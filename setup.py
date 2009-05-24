@@ -10,8 +10,9 @@ PyG3T, the Python gettext Translation Toolkit, is a collection of
 tools for working with GNU gettext translation files."""
 
 packages = ['pyg3t']
-scriptnames = ['gtabc.py', 'gtgrep.py', 'gtdiff.py', 'gtxml.py']
-scripts = ['pyg3t/%s' % scriptname 
+#scriptnames = ['gtabc.py', 'gtgrep.py', 'gtdiff.py', 'gtxml.py']
+scriptnames = ['gtgrep', 'gtxml', 'podiff', 'poabc']
+scripts = ['bin/%s' % scriptname 
            for scriptname in scriptnames]
 
 # TODO

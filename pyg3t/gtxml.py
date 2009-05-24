@@ -51,7 +51,7 @@ def build_parser():
     usage = '%prog [OPTION]... [FILE]...'
     description = ('Parse the contents of each po-FILE, writing '
                    'warnings for entries suspected of containing ill-formed '
-                   'xml.  An translated entry is considered ill-formed if '
+                   'xml.  A translated entry is considered ill-formed if '
                    'its msgid is well-formed xml while at least one of its '
                    'msgstrs is not.  If no FILE is given, '
                    'or if FILE is -, read from stdin.')
