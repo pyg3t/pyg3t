@@ -1,0 +1,33 @@
+PyG3T, the Python GetText Translation Toolkit, is a collection of
+tools for computer assisted translation using GNU gettext.
+
+Introduction
+------------
+
+PyG3T consists of the following tools:
+
+ * gtgrep: script for performing grep-like operations on po-file entries
+ * gtxml: script for checking xml in translations
+ * podiff: script for generating diffs of po-files
+ * poabc: script for checking common translation errors
+ * gtparse: module for parsing po-files
+
+Please see the --help pages for each script for further information.
+
+License information
+-------------------
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+The complete license can be found in the COPYING file.
