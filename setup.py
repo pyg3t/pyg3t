@@ -18,8 +18,6 @@ scripts = ['pyg3t/%s' % scriptname
 # what should we do about versions?
 # url should probably point to somewhere useful, i.e. with documentation
 # maintainer_email ?
-# what about a bin/ directory for the scripts?
-# (maybe that will make it easier to change command line settings, for example)
 
 setup(name='pyg3t',
       version='0.1',
