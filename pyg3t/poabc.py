@@ -52,7 +52,7 @@ def sametype(msgid, msgstr):
             return True, n
         if ichar != schar:
             return False, n
-    return msgid == msgstr, n # ugly
+    return True, n
 
         
 def samecase(self, a, b): # ugly
@@ -86,7 +86,6 @@ class LeadingCharTest:
 
 class TrailingCharTest:
     def check(self, entry, msgid, msgstr):
-        #print ''.join(list(reversed(msgstr)))
         issametype, index = sametype(reversed(msgid), 
                                      reversed(msgstr))
         if issametype:
