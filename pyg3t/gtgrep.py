@@ -121,6 +121,7 @@ def main():
                   ignorecase=not opts.case)
     parser = Parser()
 
+    global_matchcount = 0
     for filename, input in inputs:
         entries = parser.parse_asciilike(input)
         matches = grep.search_iter(entries)
@@ -131,7 +132,8 @@ def main():
                 # (This is sort of an easter egg)
                 colorizer = Colorizer('purple')
                 nmatches = colorizer.colorize(str(nmatches))
-            print nmatches
+            print ('%s:' % filename).rjust(40), nmatches
+            global_matchcount += nmatches
             continue
 
         if not opts.fancy:
@@ -170,6 +172,9 @@ def main():
                 # has None encoding (in a pipe, for example)
                 # Maybe we should wrap stdout with something which recodes
                 print string.encode('utf8')
+
+    if opts.count and multifile_mode:
+        print 'Found %d matches in %d files' % (global_matchcount, argc)
 
 
 if __name__ == '__main__':
