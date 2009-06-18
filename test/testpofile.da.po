@@ -84,7 +84,7 @@ msgstr "se <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen<a/>!"
 # Hotkey assignment, context char, trailing characters
 #: hotkeys.c:2
 msgid "action|Roll _tarball."
-msgstr "Rul _tjærebolle"
+msgstr "Rul t_jærebolle"
 
 # Bad hotkey assignment, bad context char, tests multiple faults for poabc
 # Also whitespace inconsistency

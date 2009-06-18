@@ -10,12 +10,25 @@ from pyg3t.gtparse import Parser
 from pyg3t.util import Colorizer
 
 
+class NullFilter:
+    def filter(self, string):
+        return string
+
+class SubstitutionFilter:
+    def __init__(self, pattern):
+        self.pattern = pattern
+
+    def filter(self, string):
+        return re.sub(self.pattern, '', string)
+
+
 class GTGrep:
     def __init__(self, msgid_pattern='', msgstr_pattern='',
                  invert_msgid_match=False, invert_msgstr_match=False,
-                 ignorecase=True):
+                 ignorecase=True, filter=None):
         self.msgid_pattern_string = msgid_pattern
         self.msgstr_pattern_string = msgstr_pattern
+        
         flags = 0
         if ignorecase:
             flags |= re.IGNORECASE
@@ -36,6 +49,10 @@ class GTGrep:
         else:
             self.smatch = bool
 
+        if filter is None:
+            filter = NullFilter()
+        self.filter = filter
+
     def re_compile(self, pattern, flags=0):
         return re.compile(pattern, re.UNICODE|flags)
 
@@ -46,12 +63,16 @@ class GTGrep:
         imatch = False # whether msgid matches
         smatch = False # whether msgstr matches
 
-        imatch = self.imatch(re.search(self.msgid_pattern, entry.msgid))
+        filter = self.filter.filter
+
+        imatch = self.imatch(re.search(self.msgid_pattern, 
+                                       filter(entry.msgid)))
         if entry.hasplurals:
             imatch |= self.imatch(re.search(self.msgid_pattern, 
-                                            entry.msgid_plural))
+                                            filter(entry.msgid_plural)))
         for msgstr in entry.msgstrs:
-            smatch |= self.smatch(re.search(self.msgstr_pattern, msgstr))
+            smatch |= self.smatch(re.search(self.msgstr_pattern, 
+                                            filter(msgstr)))
         return imatch & smatch
 
     def search_iter(self, entries):
@@ -85,6 +106,8 @@ def build_parser():
                       help='use markers to highlight the matching strings')
     parser.add_option('-n', '--line-numbers', action='store_true',
                       help='print line numbers for each entry')
+    parser.add_option('-H', '--ignore-hotkeys', action='store_true',
+                      help='ignore the _ character when matching')
     return parser
 
 
@@ -114,11 +137,15 @@ def main():
     else:
         inputs = args_iter(args)
 
+    filter = None
+    if opts.ignore_hotkeys:
+        filter = SubstitutionFilter(re.compile('_'))
+
     grep = GTGrep(msgid_pattern=opts.msgid.decode(utf8), 
                   msgstr_pattern=opts.msgstr.decode(utf8),
                   invert_msgid_match=opts.invert_msgid_match,
                   invert_msgstr_match=opts.invert_msgstr_match,
-                  ignorecase=not opts.case)
+                  ignorecase=not opts.case, filter=filter)
     parser = Parser()
 
     global_matchcount = 0
