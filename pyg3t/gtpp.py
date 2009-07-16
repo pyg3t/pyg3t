@@ -58,11 +58,12 @@ class LineWrappingPrinter(Printer):
 
     def format_lines_in_block(self, template, string):
         wrappedlines = textwrap.wrap(string, self.contentwidth)
-            if len(lines) == 1:
-                formattedstring = '%s "%%s"' % identifier
-                if len(formattedstring) > self.linewidth:
-                    wrappedlines.insert(0, identifier + 0)
+        if len(lines) == 1:
+            formattedstring = '%s "%%s"' % identifier
+            if len(formattedstring) > self.linewidth:
+                wrappedlines.insert(0, identifier + 0)
         #template % string
+        # Not finished.....
 
     def write_block(self, identifier, string):
         physical_lines = iter(string.split('\\n'))
@@ -80,12 +81,12 @@ class LineWrappingPrinter(Printer):
             
         self.format_lines_in_block(starttemplate, physical_lines.next())
         
-        for physical_line in physical_lines:
-            wrappedlines = textwrap.wrap(string, self.contentwidth)
-            if len(lines) == 1:
-                formattedstring = '%s "%%s"' % identifier
-                if len(formattedstring) > self.linewidth:
-                    wrappedlines.insert(0, identifier + 
+        #for physical_line in physical_lines:
+        #    wrappedlines = textwrap.wrap(string, self.contentwidth)
+        #    if len(lines) == 1:
+        #        formattedstring = '%s "%%s"' % identifier
+        #        if len(formattedstring) > self.linewidth:
+        #            wrappedlines.insert(0, identifier + 
 
 def main():
     usage = '%prog [OPTIONS] FILE'
