@@ -5,6 +5,7 @@ import codecs
 import re
 from itertools import chain, repeat, izip
 from optparse import OptionParser
+import operator
 
 from pyg3t.gtparse import Parser
 from pyg3t.util import Colorizer
@@ -25,7 +26,7 @@ class SubstitutionFilter:
 class GTGrep:
     def __init__(self, msgid_pattern='', msgstr_pattern='',
                  invert_msgid_match=False, invert_msgstr_match=False,
-                 ignorecase=True, filter=None):
+                 ignorecase=True, filter=None, boolean_operator=None):
         self.msgid_pattern_string = msgid_pattern
         self.msgstr_pattern_string = msgstr_pattern
         
@@ -53,6 +54,10 @@ class GTGrep:
             filter = NullFilter()
         self.filter = filter
 
+        if boolean_operator is None:
+            boolean_operator = operator.and_
+        self.boolean_operator = boolean_operator
+
     def re_compile(self, pattern, flags=0):
         return re.compile(pattern, re.UNICODE|flags)
 
@@ -73,7 +78,7 @@ class GTGrep:
         for msgstr in entry.msgstrs:
             smatch |= self.smatch(re.search(self.msgstr_pattern, 
                                             filter(msgstr)))
-        return imatch & smatch
+        return self.boolean_operator(imatch, smatch)
 
     def search_iter(self, entries):
         for entry in entries:
@@ -106,8 +111,11 @@ def build_parser():
                       help='use markers to highlight the matching strings')
     parser.add_option('-n', '--line-numbers', action='store_true',
                       help='print line numbers for each entry')
-    parser.add_option('-H', '--ignore-hotkeys', action='store_true',
-                      help='ignore the _ character when matching')
+    parser.add_option('-f', '--filter', action='store_true', 
+                      help='ignore filtered characters when matching')
+    parser.add_option('--filtered-chars', metavar='CHARS', default='_&',
+                      help='string of characters that are ignored when'
+                      ' given the --filter option.  Default: %default')
     return parser
 
 
@@ -122,6 +130,18 @@ def main():
     
     utf8 = 'UTF-8'
     
+    msgid_pattern = opts.msgid.decode(utf8)
+    msgstr_pattern = opts.msgstr.decode(utf8)
+    boolean_operator = None
+    if msgid_pattern == msgstr_pattern == '':
+        try:
+            msgid_pattern = msgstr_pattern = args.pop(0).decode(utf8)
+        except IndexError:
+            print >> sys.stderr, 'No pattern, no files'
+            raise SystemExit(17)
+        else:
+            boolean_operator = operator.or_
+
     argc = len(args)
     
     multifile_mode = (argc > 1)
@@ -138,14 +158,17 @@ def main():
         inputs = args_iter(args)
 
     filter = None
-    if opts.ignore_hotkeys:
-        filter = SubstitutionFilter(re.compile('_'))
+    if opts.filter:
+        pattern = re.compile('[%s]' % opts.filtered_chars)
+        filter = SubstitutionFilter(pattern)
 
-    grep = GTGrep(msgid_pattern=opts.msgid.decode(utf8), 
-                  msgstr_pattern=opts.msgstr.decode(utf8),
+    grep = GTGrep(msgid_pattern=msgid_pattern,
+                  msgstr_pattern=msgstr_pattern,
                   invert_msgid_match=opts.invert_msgid_match,
                   invert_msgstr_match=opts.invert_msgstr_match,
-                  ignorecase=not opts.case, filter=filter)
+                  ignorecase=not opts.case, 
+                  filter=filter,
+                  boolean_operator=boolean_operator)
     parser = Parser()
 
     global_matchcount = 0

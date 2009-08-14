@@ -86,6 +86,11 @@ msgstr "se <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen<a/>!"
 msgid "action|Roll _tarball."
 msgstr "Rul t_jærebolle"
 
+# Hotkeys with the & character
+#: hotkeys.c:3
+msgid "Mail &daemon"
+msgstr "Post&dæmon"
+
 # Bad hotkey assignment, bad context char, tests multiple faults for poabc
 # Also whitespace inconsistency
 #: hotkeys.c:4
