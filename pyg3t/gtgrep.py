@@ -167,6 +167,8 @@ def main():
             for entry in matches:
                 if opts.line_numbers:
                     print_linenumber(filename, entry)
+                elif multifile_mode:
+                    print 'File:', filename
                 print entry.tostring().encode('utf8')
 
         if opts.fancy:
