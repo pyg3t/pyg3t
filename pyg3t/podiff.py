@@ -110,7 +110,7 @@ class PoDiff:
                 ''.join(new_entry.getcomments('# ')):
             # Make the diff and print the result, without the 3 lines of header
             diff = list(unified_diff(orig_entry.rawlines,new_entry.rawlines,
-                                     10000))
+                                     n=10000))
             print >> self.out, ''.join(diff[3:]).encode('utf8')
 
 
