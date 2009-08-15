@@ -58,6 +58,7 @@ def build_parser():
 class PoDiff:
     def __init__(self, out):
         self.out = out
+        self.number_of_diff_chunks=0
 
     def check_files_common_base(self, loe, lne):
         # loe = list_orig_entries
@@ -97,10 +98,12 @@ class PoDiff:
                 # ask it to be diffed
                 self.diff_two_entries(dict_orig_entries[new_entry.msgid],
                                       new_entry)
+        self.print_status()
 
     def diff_files_unrelaxed(self, list_orig_entries, list_new_entries):
         for orig_entry, new_entry in zip(list_orig_entries, list_new_entries):
             self.diff_two_entries(orig_entry, new_entry)
+        self.print_status()
 
     def diff_two_entries(self, orig_entry, new_entry):
         # Check if the there is a reason to diff
@@ -109,9 +112,17 @@ class PoDiff:
                 ''.join(orig_entry.getcomments('# ')) !=\
                 ''.join(new_entry.getcomments('# ')):
             # Make the diff and print the result, without the 3 lines of header
+            # and increment the chunk counter
             diff = list(unified_diff(orig_entry.rawlines,new_entry.rawlines,
                                      n=10000))
             print >> self.out, ''.join(diff[3:]).encode('utf8')
+            self.number_of_diff_chunks=self.number_of_diff_chunks+1
+
+    def print_status(self):
+        print >> self.out, " ============================================================================="
+        print >> self.out, " Diff created\n Number of messages:",\
+            self.number_of_diff_chunks
+        print >> self.out, " ============================================================================="
 
 
 def main():
