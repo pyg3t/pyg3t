@@ -117,6 +117,14 @@ class AcceleratorTest:
         return msgid, msgstr, None
 
 
+class QuoteSubstitutionFilter:
+    def __init__(self, quotechar):
+        self.quotechar = quotechar
+    
+    def check(self, entry, msgid, msgstr):
+        return msgid.replace("'", self.quotechar), msgstr, None
+
+
 class POABC:
     def __init__(self, tests):
         self.entrycount = 0
@@ -187,6 +195,11 @@ def build_parser():
                       help='Hot key character.  Default: "%default"')
     parser.add_option('-c', '--context-char', default='|',
                       help='Context character.  Default: "%default"')
+    parser.add_option('-q', '--filter-quote-characters', action='store_true',
+                      help='Use quote character subtitution.  Default=%default')
+    parser.add_option('-Q', '--quote-character', default='\\"',
+                      help='Set the quote character.  Only relevant with -q.'
+                      '  Default: %default')
     return parser
 
 
@@ -211,6 +224,9 @@ def main():
     entries = parser.parse_asciilike(allfiles)
 
     tests = []
+    if opts.filter_quote_characters:
+        quotechar = opts.quote_character
+        tests.append(QuoteSubstitutionFilter(quotechar))
     if opts.context_char:
         tests.append(ContextCharTest(opts.context_char))
     if opts.accel_char:
