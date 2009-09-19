@@ -111,7 +111,7 @@ def build_parser():
                       help='require all, rather than any, selection criterion'
                       ' to trigger selection')
     parser.add_option('-n', '--line-number', action='store_true',
-                      help='print line numbers of found entries')
+                      help='print line numbers of selected entries')
     parser.add_option('-s', '--summary', action='store_true',
                       help='print a summary when done')
     return parser
