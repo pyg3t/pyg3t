@@ -15,6 +15,14 @@ def is_translatorcredits(msgid):
     return msgid in ['translator-credits', 'translator_credits']
 
 
+class PartiallyTranslatedPluralTest:
+    def check(self, entry, msgid, msgstr):
+        warn = None
+        if msgstr == '':
+            warn = 'Some plurals not translated'
+        return msgid, msgstr, warn
+
+
 class XMLTest:
     def __init__(self):
         self.checker = GTXMLChecker()
@@ -56,6 +64,8 @@ def sametype(msgid, msgstr):
 
         
 def samecase(self, a, b): # ugly
+    if not msgid or not msgstr:
+        return msgid, msgstr, None
     issametype, n = sametype(self, msgid, msgstr)
     if n > 0 or not issametype:
         return issametype
@@ -69,6 +79,8 @@ def samecase(self, a, b): # ugly
 
 class LeadingCharTest:
     def check(self, entry, msgid, msgstr):
+        if not msgid or not msgstr:
+            return msgid, msgstr, None
         ichar = msgid[0]
         schar = msgstr[0]
         if ichar.isalpha() and schar.isalpha():
@@ -86,6 +98,8 @@ class LeadingCharTest:
 
 class TrailingCharTest:
     def check(self, entry, msgid, msgstr):
+        if not msgid or not msgstr:
+            return msgid, msgstr, None
         issametype, index = sametype(reversed(msgid), 
                                      reversed(msgstr))
         if issametype:
@@ -134,7 +148,7 @@ class POABC:
         self.tests = tuple(tests)
 
     def add_to_stats(self, entry):
-        if entry.msgid == '':
+        if not entry.msgid:
             return
         self.entrycount += 1
         if entry.istranslated:
@@ -224,6 +238,7 @@ def main():
     entries = parser.parse_asciilike(allfiles)
 
     tests = []
+    tests.append(PartiallyTranslatedPluralTest())
     if opts.filter_quote_characters:
         quotechar = opts.quote_character
         tests.append(QuoteSubstitutionFilter(quotechar))

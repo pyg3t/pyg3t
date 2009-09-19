@@ -75,14 +75,7 @@ class Entry:
 
         if commentcount == len(lines):
             return False
-
-        self.isfuzzy = False
-        for comment in self.getcomments('#, '):
-            if comment.rfind('fuzzy') > 0:
-                # There might be trouble with strings that are not translated,
-                # but marked as fuzzy nonetheless.
-                self.isfuzzy = True
-
+        
         # Store the actual line number of the msgid
         self.linenumber = self.entryline + commentcount
 
@@ -113,9 +106,25 @@ class Entry:
         else:
             self.msgstr, index = extract_string('msgstr ', lines, index)
             self.msgstrs = [self.msgstr]
-
-        self.istranslated = not (self.isfuzzy or '' in self.msgstrs)
-
+        
+        is_partially_translated = False
+        for msgstr in self.msgstrs:
+            if msgstr:
+                is_partially_translated = True
+                break
+        
+        if not is_partially_translated:
+            self.istranslated = False
+            self.isfuzzy = False
+        else:
+            fuzzy_flag_set = False
+            for comment in self.getcomments('#, '):
+                if comment.rfind('fuzzy') > 0:
+                    fuzzy_flag_set = True
+                    break
+            #print fuzzy_flag_set
+            self.istranslated = not fuzzy_flag_set
+            self.isfuzzy = fuzzy_flag_set
         return True
 
     def getcomments(self, pattern='', strip=False):

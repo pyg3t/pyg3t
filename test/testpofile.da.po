@@ -97,6 +97,12 @@ msgstr "Post&dæmon"
 msgid "action|Write _emoticon"
 msgstr "handling|Skriv følikon "
 
+# Untranslated and marked as fuzzy
+#: weirdproperties.c:42
+#, fuzzy
+msgid "Coffee"
+msgstr ""
+
 # Translator credits
 #: credits.c:42
 msgid "translator-credits"
