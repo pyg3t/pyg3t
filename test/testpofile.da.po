@@ -55,7 +55,7 @@ msgid_plural "%d fatal errors."
 msgstr[0] "%d fatal fejl."
 msgstr[1] ""
 
-# Plurals translated, non-ASCII
+# Plurals translated, non-ASCII, repeated word in translation
 #: lawyers.c:1
 #, c-format
 msgid ""
@@ -66,7 +66,7 @@ msgid_plural ""
 "hands in their own pockets."
 msgstr[0] ""
 "Det var så koldt sidste vinter, at jeg så %d advokat med hænderne i "
-"sine egne lommer."
+"i sine egne lommer."
 msgstr[1] ""
 "Det var så koldt sidste vinter, at jeg så %d advokater med hænderne i "
 "deres egne lommer."

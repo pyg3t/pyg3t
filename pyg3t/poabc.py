@@ -36,6 +36,15 @@ class XMLTest:
         return msgid, msgstr, warn
 
 
+class WordRepeatTest:
+    def check(self, entry, msgid, msgstr):
+        words = msgstr.split()
+        for word1, word2 in zip(words[:-1], words[1:]):
+            if word1.isalpha() and word1 == word2:
+                warn = 'Repeated word: "%s"' % word1
+                return msgid, msgstr, warn
+        return msgid, msgstr, None
+
 class ContextCharTest:
     def __init__(self, context_char):
         self.context_char = context_char
@@ -249,6 +258,7 @@ def main():
     tests.append(LeadingCharTest())
     tests.append(TrailingCharTest())
     tests.append(XMLTest())
+    tests.append(WordRepeatTest())
 
     poabc = POABC(tests)
 
