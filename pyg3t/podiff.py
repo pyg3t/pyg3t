@@ -129,13 +129,16 @@ def main():
     """The main class loads the files and output the diff
     """
 
-    errors={'1':'podiff takes exactly two arguments',
-            '2':'The output file you have specified is the same as'\
-                'one of the input files. This is not allowed, as it'\
-                'may cause a loss of work',
+    errors={'1':'podiff takes exactly two arguments.',
+            '2':'The output file you have specified is the same as '\
+                'one of the input files. This is not allowed, as it '\
+                'may cause a loss of work.',
             #FIXME
-            '3':'Meaningfil error message about dissimilar files',
-            '4':'Could not open output file for writing. open() gave the'\
+            '3':'Cannot work with files with dissimilar base, unless the '\
+                'relax option (-r) is used.\n\nNOTE: This is not recommended..!\n'\
+                'Making a podiff for proofreading should happen between '\
+                'files with similar base, to make the podiff easier to read.',
+            '4':'Could not open output file for writing. open() gave the '\
                 'following error:'}
 
     files_are_similar = True
