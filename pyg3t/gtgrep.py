@@ -33,14 +33,21 @@ class GTGrep:
         flags = 0
         if ignorecase:
             flags |= re.IGNORECASE
-        self.msgid_pattern = self.re_compile(msgid_pattern, flags)
+        try:
+            self.msgid_pattern = self.re_compile(msgid_pattern, flags)
+        except re.error, err:
+            raise re.error('bad msgid pattern "%s": %s' % (msgid_pattern, err))
 
         # One should think that we should use re.LOCALE as a compile
         # flag, at least for the msgstr.  This, however, is not the
         # case, because it'll screw up unicode upper/lowercase
         # handling.
-        self.msgstr_pattern = self.re_compile(msgstr_pattern, 
-                                              flags)
+        try:
+            self.msgstr_pattern = self.re_compile(msgstr_pattern, flags)
+        except re.error, err:
+            raise re.error('bad msgstr pattern "%s": %s' % (msgstr_pattern, 
+                                                            err))
+
         if invert_msgid_match:
             self.imatch = self.invert
         else:
@@ -119,9 +126,13 @@ def build_parser():
     return parser
 
 
-def args_iter(args): # open sequentially as needed
+def args_iter(args, parser): # open sequentially as needed
     for arg in args:
-        yield arg, open(arg, 'r')
+        try:
+            fd = open(arg, 'r')
+        except IOError, err:
+            parser.error(err)
+        yield arg, fd
 
 
 def main():
@@ -155,20 +166,27 @@ def main():
     if argc == 0:
         inputs = iter([('<stdin>', sys.stdin)])
     else:
-        inputs = args_iter(args)
+        inputs = args_iter(args, parser)
 
     filter = None
     if opts.filter:
-        pattern = re.compile('[%s]' % opts.filtered_chars)
+        try:
+            pattern = re.compile('[%s]' % opts.filtered_chars)
+        except re.error, err:
+            parser.error('Bad filter pattern "%s": %s' % (opts.filtered_chars,
+                                                          err))
         filter = SubstitutionFilter(pattern)
 
-    grep = GTGrep(msgid_pattern=msgid_pattern,
-                  msgstr_pattern=msgstr_pattern,
-                  invert_msgid_match=opts.invert_msgid_match,
-                  invert_msgstr_match=opts.invert_msgstr_match,
-                  ignorecase=not opts.case, 
-                  filter=filter,
-                  boolean_operator=boolean_operator)
+    try:
+        grep = GTGrep(msgid_pattern=msgid_pattern,
+                      msgstr_pattern=msgstr_pattern,
+                      invert_msgid_match=opts.invert_msgid_match,
+                      invert_msgstr_match=opts.invert_msgstr_match,
+                      ignorecase=not opts.case, 
+                      filter=filter,
+                      boolean_operator=boolean_operator)
+    except re.error, err:
+        parser.error(err)
     parser = Parser()
 
     global_matchcount = 0
