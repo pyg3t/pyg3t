@@ -168,12 +168,16 @@ class POABC:
             self.untranslatedcount += 1
 
     def check_stringpair(self, entry, msgid, msgstr):
+        if not msgid: # The header should have been filtered out already
+            return msgid, msgstr, ['No msgid']
+        if not msgstr: 
+            # These have already been checked for if called
+            # from check_entry
+            return msgid, msgstr, ['Untranslated message']
+        if entry.isfuzzy:
+            return msgid, msgstr, ['Fuzzy message']
+
         warnings = []
-        if len(msgid) == 0: # The header should have been filtered out already
-            warnings.append('No msgid')
-            return msgid, msgstr, warnings
-        if len(msgstr) == 0:
-            msgid, msgstr, warnings.append('No msgstr')
         for test in self.tests:
             msgid, msgstr, warning = test.check(entry, msgid, msgstr)
             if warning:
@@ -182,8 +186,12 @@ class POABC:
 
     def check_entry(self, entry):
         warnings = []
-        if len(entry.msgid) == 0 or not entry.istranslated:
+        if len(entry.msgid) == 0:
             return warnings
+        if not entry.istranslated:
+            return ['Untranslated message']
+        if entry.isfuzzy:
+            return ['Fuzzy message']
         msgid, msgstr, warnings1 = self.check_stringpair(entry, entry.msgid,
                                                          entry.msgstr)
         warnings.extend(warnings1)
@@ -214,14 +222,15 @@ def build_parser():
                    'errors such as inconsistent case, punctuation and xml.')
     
     parser = OptionParser(usage=usage, description=description)
-    parser.add_option('-a', '--accel-char', default='_',
-                      help='Hot key character.  Default: "%default"')
-    parser.add_option('-c', '--context-char', default='|',
-                      help='Context character.  Default: "%default"')
+    parser.add_option('-a', '--accel-char', default='_', metavar='CHAR',
+                      help='hot key character.  Default: "%default"')
+    parser.add_option('-c', '--context-char', default='|', metavar='CHAR',
+                      help='context character.  Default: "%default"')
     parser.add_option('-q', '--filter-quote-characters', action='store_true',
-                      help='Use quote character subtitution.  Default=%default')
-    parser.add_option('-Q', '--quote-character', default='\\"',
-                      help='Set the quote character.  Only relevant with -q.'
+                      help='warn about quote characters not following'
+                      ' convention.')
+    parser.add_option('-Q', '--quote-character', default='\\"', metavar='CHAR',
+                      help='set the quote character.  Only relevant with -q.'
                       '  Default: %default')
     return parser
 
@@ -279,12 +288,11 @@ def main():
 
     width = 50
     print ' Summary '.center(width, '=')
-    print 'Total entry count: %d' % poabc.entrycount
-    print 'Translated string count: %s' % fancyfmt(poabc.translatedcount)
-    print 'Fuzzy string count: %s' % fancyfmt(poabc.fuzzycount)
-    print 'Untranslated string count: %s' % fancyfmt(poabc.untranslatedcount)
-    print 'Generated %d warnings for %d translated entries' % (warningcount,
-                                                               entrywarncount)
+    print 'Number of messages: %d' % poabc.entrycount
+    print 'Translated messages: %s' % fancyfmt(poabc.translatedcount)
+    print 'Fuzzy messages: %s' % fancyfmt(poabc.fuzzycount)
+    print 'Untranslated messages: %s' % fancyfmt(poabc.untranslatedcount)
+    print 'Number of warnings: %d' % entrywarncount
     print '=' * width
 
 if __name__ == '__main__':

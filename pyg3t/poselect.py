@@ -6,6 +6,7 @@ from pyg3t.gtparse import Parser
 
 class Counter:
     def __init__(self, selector):
+        self.name = selector.name
         self.selector = selector
         self.count = 0
         self.total = 0
@@ -27,27 +28,32 @@ class NegatingSelector:
 
 
 class FuzzySelector:
+    name = 'Fuzzy'
     def evaluate(self, entry):
         return entry.isfuzzy
 
 
 class TranslatedSelector:
+    name = 'Translated'
     def evaluate(self, entry):
         return entry.istranslated
 
 
 class UntranslatedSelector:
+    name = 'Untranslated'
     def evaluate(self, entry):
         return not entry.istranslated and not entry.isfuzzy
 
 
 class PluralSelector:
+    name = 'Plural'
     def evaluate(self, entry):
         return entry.hasplurals
 
 
 class OrSelector:
     def __init__(self, selectors):
+        self.name = 'or: %s' % list(selectors)
         self.selectors = selectors
 
     def evaluate(self, entry):
@@ -59,6 +65,7 @@ class OrSelector:
         
 class AndSelector:
     def __init__(self, selectors):
+        self.name = 'and: %s' % list(selectors)
         self.selectors = selectors
         
     def evaluate(self, entry):
@@ -114,6 +121,9 @@ def build_parser():
                       help='print line numbers of selected entries')
     parser.add_option('-s', '--summary', action='store_true',
                       help='print a summary when done')
+    parser.add_option('-c', '--count', action='store_true',
+                      help='suppress normal output; print a count of selected '
+                      'entries')
     return parser
 
 
@@ -140,6 +150,8 @@ def main():
     if opts.plural:
         selectors.append(PluralSelector())
     
+    selectors = [Counter(selector) for selector in selectors]
+    
     if opts.and_:
         superselector = AndSelector(selectors)
     else:
@@ -158,11 +170,22 @@ def main():
 
     entries = parser.parse_asciilike(src)
     selected = poselect.select(entries)
-    for entry in selected:
-        printer.write(entry)
+
+    if opts.count:
+        print len(list(selected))
+    else:
+        for entry in selected:
+            printer.write(entry)
+
     
     if opts.summary:
         print 'Summary'
         print '-------'
-        print 'Entries analysed: %d' % counter.total
-        print 'Entries found: %d' % counter.count
+        print '%16s %d' % ('Total analysed', counter.total)
+        if len(selectors) > 1:
+            print
+        for selector in selectors:
+            print '%16s %d' % (selector.name, selector.count)
+        print
+        if len(selectors) > 1:
+            print '%16s %d' % ('Total found', counter.count)
