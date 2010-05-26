@@ -124,6 +124,12 @@ def build_parser():
     parser.add_option('-c', '--count', action='store_true',
                       help='suppress normal output; print a count of selected '
                       'entries')
+    parser.add_option('-w', '--msgid-word-count', action='store_true',
+                      help='suppress normal output; print the count of words in ' + \
+                      'the msgids of selected entries')
+    parser.add_option('-l', '--msgid-letter-count', action='store_true',
+                      help='suppress normal output; print the count of letters in ' + \
+                      'the msgids of selected entries')        
     return parser
 
 
@@ -173,6 +179,10 @@ def main():
 
     if opts.count:
         print len(list(selected))
+    elif opts.msgid_letter_count:
+        print sum([len(msg.msgid) for msg in selected])
+    elif opts.msgid_word_count:
+        print sum([len(msg.msgid.split(' ')) for msg in selected])
     else:
         for entry in selected:
             printer.write(entry)
