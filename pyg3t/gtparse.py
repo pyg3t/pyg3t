@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 gtparse -- A gettext parsing module in Python
-Copyright (C) 2007-2009  Ask Hjorth Larsen <asklarsen@gmail.com>
+Copyright (C) 2007-2010  Ask Hjorth Larsen <asklarsen@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,9 +23,6 @@ import codecs
 import re
 from optparse import OptionParser
 
-
-version = '0.2'
-        
 
 class Entry:
     """This class represents a po-file entry. 
