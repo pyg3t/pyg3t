@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
-# Copyright (C) 2009 PyG3T development team
+# Copyright (C) 2009-2010 PyG3T development team
 # Please see the accompanying LICENSE file for further information.
 
 from distutils.core import setup
+import pyg3t
 
 long_description = """\
 PyG3T, the Python gettext Translation Toolkit, is a collection of
@@ -14,19 +15,18 @@ scriptnames = ['gtgrep', 'gtxml', 'podiff', 'poabc', 'poselect']
 scripts = ['bin/%s' % scriptname 
            for scriptname in scriptnames]
 
-# TODO
-# what should we do about versions?
-# url should probably point to somewhere useful, i.e. with documentation
-# maintainer_email ?
-
 setup(name='pyg3t',
-      version='0.1',
-      description='PyG3T, python gettext translation toolkit',
-      url='https://code.launchpad.net/~pyg3t-dev-team/pyg3t/trunk',
+      version=pyg3t.__version__,
+      author='PyG3T development team',
+      #author_email='',
       maintainer='PyG3T development team',
       #maintainer_email='',
-      license='GPL',
+      url='https://launchpad.net/pyg3t',
+      description='PyG3T, python gettext translation toolkit',
+      long_description=long_description,
+      download_url='https://launchpad.net/pyg3t/+download',
+      #classifiers=[],
       platforms=['linux'],
       packages=packages,
       scripts=scripts,
-      long_description=long_description)
+      license='GPL')
