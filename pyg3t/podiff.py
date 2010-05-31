@@ -29,6 +29,8 @@ Succes criteria:
     multiple file diff
     allow for definition of output file
      check that it is not the same as one of the input files
+    Give option for line numbers
+    Use optionparser.error for error messages
 
 
 Implementation:
@@ -38,8 +40,8 @@ Implementation:
 import sys
 from optparse import OptionParser
 from difflib import unified_diff
-from pyg3t import __version__
 from pyg3t.gtparse import Parser
+from pyg3t import __version__
 
 def build_parser():
     description = ('Prints the difference between two po-FILES in chunks'
@@ -70,7 +72,7 @@ class PoDiff:
         # Easy check if length is the same
         if len(loe) != len(lne):
             similar=False
-        # If the length is the same, compare msgids and fussy status pairwise
+        # If the length is the same, compare msgids and static comments pairwise
         # to determine if the files have identical base
         else:
             for oe, ne in zip(loe, lne):
@@ -122,7 +124,7 @@ class PoDiff:
 
     def print_status(self):
         print >> self.out, " ============================================================================="
-        print >> self.out, " Diff created\n Number of messages:",\
+        print >> self.out, " Number of messages:",\
             self.number_of_diff_chunks
         print >> self.out, " ============================================================================="
 
@@ -141,7 +143,9 @@ def main():
                 'Making a podiff for proofreading should happen between '\
                 'files with similar base, to make the podiff easier to read.',
             '4':'Could not open output file for writing. open() gave the '\
-                'following error:'}
+                'following error:',
+            '5':'Could not open one of the input files for reading. open() '\
+                'gave the following error:'}
 
     files_are_similar = True
 
@@ -155,7 +159,7 @@ def main():
         # FIXME handle exit codes properly
         sys.exit(1)
 
-    # Give an error of the specified output file is the same as one of the
+    # Give an error if the specified output file is the same as one of the
     # input files
     if opts.output_file is not None:
         if (opts.output_file == args[0]) or (opts.output_file == args[1]):
@@ -175,9 +179,16 @@ def main():
     podiff = PoDiff(out)        
 
     # Load files
+    # FIXME give this another name, so that it doesn't overwrite optionparser
     parser = Parser()
-    list_orig_entries = list(parser.parse_asciilike(open(args[0])))
-    list_new_entries = list(parser.parse_asciilike(open(args[1])))
+    
+    try:
+        list_orig_entries = list(parser.parse_asciilike(open(args[0])))
+        list_new_entries = list(parser.parse_asciilike(open(args[1])))
+    except IOError, err:
+         print errors['5']
+         print err
+         sys.exit(5)
 
     # If we don't relax, check if they are dissimilar
     if not opts.relax:
@@ -199,5 +210,3 @@ def main():
 #################################
 if __name__ == '__main__':
     main()
-
-
