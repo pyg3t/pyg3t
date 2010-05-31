@@ -7,6 +7,7 @@ from itertools import chain, repeat, izip
 from optparse import OptionParser
 import operator
 
+from pyg3t import __version__
 from pyg3t.gtparse import Parser
 from pyg3t.util import Colorizer
 
@@ -100,7 +101,8 @@ def build_parser():
                    'If no FILE is provided, read from stdin.')
 
     usage = '%prog [OPTIONS] [FILE]'
-    parser = OptionParser(usage=usage, description=description)
+    parser = OptionParser(usage=usage, description=description,
+                          version=__version__)
 
     parser.add_option('-i', '--msgid', default='', metavar='PATTERN',
                       help='pattern for matching msgid')

@@ -5,8 +5,9 @@ import fileinput
 import itertools
 from optparse import OptionParser
 
-from gtparse import Parser
-from gtxml import GTXMLChecker
+from pyg3t.gtparse import Parser
+from pyg3t.gtxml import GTXMLChecker
+from pyg3t import __version__
 import xml.sax
 
 # TODO: convention checks (quotation marks?)
@@ -221,7 +222,8 @@ def build_parser():
                    'errors to standard output.  Checks for a range of common '
                    'errors such as inconsistent case, punctuation and xml.')
     
-    parser = OptionParser(usage=usage, description=description)
+    parser = OptionParser(usage=usage, description=description,
+                          version=__version__)
     parser.add_option('-a', '--accel-char', default='_', metavar='CHAR',
                       help='hot key character.  Default: "%default"')
     parser.add_option('-c', '--context-char', default='|', metavar='CHAR',

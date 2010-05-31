@@ -38,6 +38,7 @@ Implementation:
 import sys
 from optparse import OptionParser
 from difflib import unified_diff
+from pyg3t import __version__
 from pyg3t.gtparse import Parser
 
 def build_parser():
@@ -45,7 +46,8 @@ def build_parser():
                    'of diff output that pertain to one original string')
 
     usage = '%prog [OPTIONS] ORIGINAL_FILE UPDATED_FILE'
-    parser = OptionParser(usage=usage, description=description)
+    parser = OptionParser(usage=usage, description=description,
+                          version=__version__)
 
     parser.add_option('-r', '--relax', action='store_true',
                       help='allows for files with different base, i.e. '

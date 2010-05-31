@@ -1,6 +1,7 @@
 import sys
 from optparse import OptionParser
 
+from pyg3t import __version__
 from pyg3t.gtparse import Parser
 
 
@@ -104,7 +105,8 @@ def build_parser():
     usage = '%prog [OPTIONS] [FILE]'
     description = ('Select messages in po-file based on various criteria '
                    'and print selected messages to standard output.')
-    parser = OptionParser(description=description, usage=usage)
+    parser = OptionParser(description=description, usage=usage,
+                          version=__version__)
     parser.add_option('-t', '--translated', action='store_true',
                       help='select translated messages')
     parser.add_option('-u', '--untranslated', action='store_true',
@@ -142,10 +144,12 @@ def main():
     if argc == 0:
         src = sys.stdin
     elif argc == 1:
-        src = open(args[0])
+        try:
+            src = open(args[0])
+        except IOError, err:
+            p.error(err)
     else:
-        print >> sys.stderr, 'Please specify either one file or no files.'
-        raise SystemExit(1)
+        p.error('Please specify either one file or no files.')
 
     selectors = []
     if opts.translated:

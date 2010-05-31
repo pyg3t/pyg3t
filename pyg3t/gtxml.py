@@ -4,7 +4,7 @@ import sys
 import xml.sax
 from optparse import OptionParser
 
-from pyg3t import gtparse
+from pyg3t import gtparse, __version__
 
 
 class GTXMLChecker(xml.sax.handler.ContentHandler):
@@ -56,7 +56,8 @@ def build_parser():
                    'msgstrs is not.  If no FILE is given, '
                    'or if FILE is -, read from stdin.')
                    
-    parser = OptionParser(usage=usage, description=description)
+    parser = OptionParser(usage=usage, description=description,
+                          version=__version__)
     parser.add_option('-s', '--summary', action='store_true',
                       help=('write only whether each FILE passes or fails, '
                             'and the number of valid and invalid strings '
