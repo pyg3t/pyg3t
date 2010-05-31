@@ -68,7 +68,7 @@ def build_parser():
     return parser
 
 
-def get_inputfiles(args):
+def get_inputfiles(args, parser):
     """Yield file-like objects corresponding to the given list of filenames."""
     if len(args) == 0:
         yield sys.stdin
@@ -77,7 +77,10 @@ def get_inputfiles(args):
         if arg == '-':
             yield arg, sys.stdin
         else:
-            input = open(arg, 'r')
+            try:
+                input = open(arg, 'r')
+            except IOError, err:
+                parser.error(err)
             yield arg, input
 
 
@@ -139,7 +142,7 @@ def main():
         fileprinter = SilentFileSummarizer()
 
     total_badcount = 0
-    for filename, input in get_inputfiles(args):
+    for filename, input in get_inputfiles(args, parser):
         parser = gtparse.Parser()
         entries = parser.parse_asciilike(input)
         if opts.fuzzy:

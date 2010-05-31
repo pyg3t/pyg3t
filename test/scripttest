@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# This test mostly checks that the scripts run.
+#
+# The test passes if it prints nothing to stderr.
+
+FILE=testpofile.da.po
+DIFF1=anjuta.master.da.po.old
+DIFF2=anjuta.master.da.po
+
+OUT=output.txt
+
+echo -n > $OUT
+
+gtgrep -i hello -s hej $FILE >> $OUT
+
+poabc $FILE >> $OUT
+poabc sdfkjsdfkj 2> /dev/null
+
+gtxml $FILE >> $OUT
+
+podiff $DIFF1 $DIFF2 >> $OUT
+
+poselect -ft $FILE >> $OUT

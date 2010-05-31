@@ -276,13 +276,16 @@ def main():
     warningcount = 0 # total number of warnings
     entrywarncount = 0 # number of entries with at least one warning
 
-    for entry, warnings in poabc.check_entries(entries):
-        print header(entry.linenumber)
-        warningcount += len(warnings)
-        entrywarncount += 1
-        for warning in warnings:
-            print warning
-        print entry.tostring().encode('utf8')
+    try:
+        for entry, warnings in poabc.check_entries(entries):
+            print header(entry.linenumber)
+            warningcount += len(warnings)
+            entrywarncount += 1
+            for warning in warnings:
+                print warning
+            print entry.tostring().encode('utf8')
+    except IOError, err:
+        cmdparser.error(err)
         
     def fancyfmt(n):
         return '%d [%d%%]' % (n, round(100 * float(n) / poabc.entrycount))
