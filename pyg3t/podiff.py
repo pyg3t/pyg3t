@@ -15,8 +15,9 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 
-
+"""
 podiff whiteboard
 
 Succes criteria:
@@ -130,8 +131,7 @@ class PoDiff:
 
 
 def main():
-    """The main class loads the files and output the diff
-    """
+    """The main class loads the files and output the diff"""
 
     errors={'1':'podiff takes exactly two arguments.',
             '2':'The output file you have specified is the same as '\
@@ -149,8 +149,8 @@ def main():
 
     files_are_similar = True
 
-    parser = build_parser()
-    opts, args = parser.parse_args()
+    option_parser = build_parser()
+    opts, args = option_parser.parse_args()
 
     # We need exactly two files to proceed
     if len(args) != 2:
@@ -179,12 +179,10 @@ def main():
     podiff = PoDiff(out)        
 
     # Load files
-    # FIXME give this another name, so that it doesn't overwrite optionparser
-    parser = Parser()
-    
+    gt_parser = Parser()
     try:
-        list_orig_entries = list(parser.parse_asciilike(open(args[0])))
-        list_new_entries = list(parser.parse_asciilike(open(args[1])))
+        list_orig_entries = list(gt_parser.parse_asciilike(open(args[0])))
+        list_new_entries = list(gt_parser.parse_asciilike(open(args[1])))
     except IOError, err:
          print errors['5']
          print err
