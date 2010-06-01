@@ -52,18 +52,29 @@ def build_parser():
     parser = OptionParser(usage=usage, description=description,
                           version=__version__)
 
-    parser.add_option('-r', '--relax', action='store_true',
-                      help='allows for files with different base, i.e. '
-                      'where the msgids are not pairwise the same')
+    parser.add_option('-l', '--line-numbers', action='store_true', default=True,
+                      dest='line_numbers',
+                      help='prefix line number of the msgid in the original '
+                      'file to the diff chunks')
+    parser.add_option('-m', '--no-line-numbers', action='store_false',
+                      dest='line_numbers',
+                      help='do not prefix line number (opposite of -l)')
     parser.add_option('-o', '--output-file',
                       help='file to send the diff output to, instead of '
                       'standard out')
+    parser.add_option('-r', '--relax', action='store_true', default=False,
+                      help='allow for files with different base, i.e. '
+                      'where the msgids are not pairwise the same')
+    parser.add_option('-s', '--strict', action='store_false', dest='relax',
+                      help='do not allow for files with different base '
+                      '(opposite of -r)')
     return parser
 
 class PoDiff:
     def __init__(self, out):
         self.out = out
         self.number_of_diff_chunks=0
+        self.show_line_numbers=None
 
     def check_files_common_base(self, loe, lne):
         # loe = list_orig_entries
@@ -116,12 +127,21 @@ class PoDiff:
                 ''.join(orig_entry.msgstrs) != ''.join(new_entry.msgstrs) or\
                 ''.join(orig_entry.getcomments('# ')) !=\
                 ''.join(new_entry.getcomments('# ')):
-            # Make the diff and print the result, without the 3 lines of header
-            # and increment the chunk counter
+
+            # Possibly output the line number of the msgid in the new file
+            if self.show_line_numbers:
+                print >> self.out, self.header(new_entry.linenumber)
+
+            # Make the diff
             diff = list(unified_diff(orig_entry.rawlines,new_entry.rawlines,
                                      n=10000))
+            # and print the result, without the 3 lines of header and increment
+            # the chunk counter
             print >> self.out, ''.join(diff[3:]).encode('utf8')
-            self.number_of_diff_chunks=self.number_of_diff_chunks+1
+            self.number_of_diff_chunks += 1
+            
+    def header(self, linenumber):
+        return ('--- Line %d (new file) ' % linenumber).ljust(32, '-')
 
     def print_status(self):
         print >> self.out, " ============================================================================="
@@ -176,27 +196,31 @@ def main():
     else:
         out = sys.stdout        
 
-    podiff = PoDiff(out)        
-
+    # Get PoDiff instanse
+    podiff = PoDiff(out)
+    # Overwrite settings with system wide settings
+         
+    # Overwrite settings with commands line arguments
+    podiff.show_line_numbers = opts.line_numbers
+    
     # Load files
     gt_parser = Parser()
     try:
         list_orig_entries = list(gt_parser.parse_asciilike(open(args[0])))
         list_new_entries = list(gt_parser.parse_asciilike(open(args[1])))
     except IOError, err:
-         print errors['5']
-         print err
-         sys.exit(5)
+        print errors['5']
+        print err
+        sys.exit(5)
 
     # If we don't relax, check if they are dissimilar
     if not opts.relax:
         files_are_similar = podiff.check_files_common_base(list_orig_entries,
                                                            list_new_entries)
-
-    # If we don't relax and the files are dissimilar, give and error
-    if not opts.relax and not files_are_similar:
-        print errors['3']
-        sys.exit(3)
+        # and if they indeed are dissimilar, give and error
+        if not files_are_similar:
+            print errors['3']
+            sys.exit(3)
 
     if opts.relax:
         podiff.diff_files_relaxed(list_orig_entries, list_new_entries)
