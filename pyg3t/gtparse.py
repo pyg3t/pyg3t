@@ -17,11 +17,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import sys
-import traceback
 import codecs
 import re
-from optparse import OptionParser
 
 
 class Entry:
@@ -115,7 +112,7 @@ class Entry:
             self.isfuzzy = False
         else:
             fuzzy_flag_set = False
-            for comment in self.getcomments('#, '):
+            for comment in self.get_comments('#, '):
                 if comment.rfind('fuzzy') > 0:
                     fuzzy_flag_set = True
                     break
@@ -124,7 +121,7 @@ class Entry:
             self.isfuzzy = fuzzy_flag_set
         return True
 
-    def getcomments(self, pattern='', strip=False):
+    def get_comments(self, pattern='', strip=False):
         """Return comments, optionally starting with a particular pattern.
 
         Returns all the comments for this entry that start with the
@@ -140,7 +137,7 @@ class Entry:
                 if line.startswith(pattern)]
 
     def tostring(self):
-        return u''.join(self.rawlines)
+        return ''.join(self.rawlines)
 
     def copy(self):
         other = Entry()
@@ -168,7 +165,7 @@ def extract_string(pattern, lines, index=0):
         else:
             break
 
-    return ''.join(msglines), index + len(msglines)
+    return u''.join(msglines), index + len(msglines)
 
 def sortcomments(comments):
     """Get a tuple of lists of comments, each list being one comment type.
@@ -177,7 +174,7 @@ def sortcomments(comments):
     containing six lists of strings, namely the translator comments 
     ('# '), extracted comments ('#. '), references ('#: '), flags  ('#, ')
     and comments relating to previous strings ('#| ')."""
-    raise DeprecationWarning('use Entry.getcomments(self, pattern, ...)')
+    raise DeprecationWarning('use Entry.get_comments(self, pattern, ...)')
 
     transl = []
     auto = []
@@ -243,16 +240,17 @@ class Parser:
             lineno = lineiter.linenumber - len(entrylines)
             yield lineno, entrylines
 
-    def parse(self, input, include_obsolete=False):
+    def parse(self, input, encoding='utf8', include_obsolete=False):
         """Yield all entries found in the input file."""
-        for lineno, lines in self.read_entrylinesets(input):
+        decoded_input = codecs.iterdecode(input, encoding)
+        for lineno, lines in self.read_entrylinesets(decoded_input):
             entry = Entry()
             if entry.load(lines, lineno) or include_obsolete:
                 yield entry
 
-    def parse_asciilike(self, input):
-        """Like parse, but actively decode input as utf8."""
-        return self.parse(codecs.iterdecode(input, 'utf8'))
+    #def parse_asciilike(self, input):
+    #    """Like parse, but actively decode input as utf8."""
+    #    return self.parse(codecs.iterdecode(input, 'utf8'))
 
 
 class Printer:

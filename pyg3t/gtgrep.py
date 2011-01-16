@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
+"""Perform grep-like operations on message catalogs."""
+
 import sys
-import codecs
 import re
-from itertools import chain, repeat, izip
-from optparse import OptionParser
+from optparse import OptionParser, OptionGroup
 import operator
 
 from pyg3t import __version__
@@ -26,10 +26,12 @@ class SubstitutionFilter:
 
 class GTGrep:
     def __init__(self, msgid_pattern='', msgstr_pattern='',
+                 comment_pattern='',
                  invert_msgid_match=False, invert_msgstr_match=False,
                  ignorecase=True, filter=None, boolean_operator=None):
         self.msgid_pattern_string = msgid_pattern
         self.msgstr_pattern_string = msgstr_pattern
+        self.comment_pattern_string = comment_pattern
         
         flags = 0
         if ignorecase:
@@ -48,6 +50,12 @@ class GTGrep:
         except re.error, err:
             raise re.error('bad msgstr pattern "%s": %s' % (msgstr_pattern, 
                                                             err))
+        try:
+            self.comment_pattern = self.re_compile(comment_pattern, flags)
+        except re.error, err:
+            raise re.error('bad comment pattern "%s": %s' % (comment_pattern,
+                                                             err))
+
 
         if invert_msgid_match:
             self.imatch = self.invert
@@ -68,7 +76,7 @@ class GTGrep:
 
     def re_compile(self, pattern, flags=0):
         return re.compile(pattern, re.UNICODE|flags)
-
+    
     def invert(self, result):
         return not bool(result)
 
@@ -103,28 +111,42 @@ def build_parser():
     usage = '%prog [OPTIONS] [FILE]'
     parser = OptionParser(usage=usage, description=description,
                           version=__version__)
-
-    parser.add_option('-i', '--msgid', default='', metavar='PATTERN',
-                      help='pattern for matching msgid')
-    parser.add_option('-s', '--msgstr', default='', metavar='PATTERN',
-                      help='pattern for matching msgstr')
-    parser.add_option('-I', '--invert-msgid-match', action='store_true',
-                      help='invert the sense of matching for msgids')
-    parser.add_option('-S', '--invert-msgstr-match', action='store_true',
-                      help='invert the sense of matching for msgstrs')
-    parser.add_option('-c', '--case', action='store_true',
-                      help='use case sensitive matching')
-    parser.add_option('-C', '--count', action='store_true',
+    
+    match = OptionGroup(parser, 'Matching options')
+    output = OptionGroup(parser, 'Output options')
+    
+    match.add_option('-i', '--msgid', default='', metavar='PATTERN',
+                     help='pattern for matching msgid')
+    match.add_option('-s', '--msgstr', default='', metavar='PATTERN',
+                     help='pattern for matching msgstr')
+    match.add_option('--comment', default='', metavar='PATTERN',
+                     help='pattern for matching comments')
+    
+    match.add_option('-I', '--invert-msgid-match', action='store_true',
+                     help='invert the sense of matching for msgids')
+    match.add_option('-S', '--invert-msgstr-match', action='store_true',
+                     help='invert the sense of matching for msgstrs')
+    match.add_option('-c', '--case', action='store_true',
+                     help='use case sensitive matching')
+    match.add_option('-f', '--filter', action='store_true', 
+                     help='ignore filtered characters when matching')
+    match.add_option('--filtered-chars', metavar='CHARS', default='_&',
+                     help='string of characters that are ignored when'
+                     ' given the --filter option.  Default: %default')
+    
+    output.add_option('-C', '--count', action='store_true',
                       help='print only a count of matching entries')
-    parser.add_option('-F', '--fancy', action='store_true',
+    output.add_option('-F', '--fancy', action='store_true',
                       help='use markers to highlight the matching strings')
-    parser.add_option('-n', '--line-numbers', action='store_true',
+    output.add_option('-n', '--line-numbers', action='store_true',
                       help='print line numbers for each entry')
-    parser.add_option('-f', '--filter', action='store_true', 
-                      help='ignore filtered characters when matching')
-    parser.add_option('--filtered-chars', metavar='CHARS', default='_&',
-                      help='string of characters that are ignored when'
-                      ' given the --filter option.  Default: %default')
+    output.add_option('-G', '--gettext-compatible', action='store_true',
+                      help='print annotations such as line numbers as'
+                      ' comments, making output a valid po-file.')
+    
+    parser.add_option_group(match)
+    parser.add_option_group(output)
+    
     return parser
 
 
@@ -145,6 +167,7 @@ def main():
     
     msgid_pattern = opts.msgid.decode(utf8)
     msgstr_pattern = opts.msgstr.decode(utf8)
+    comment_pattern = opts.comment.decode(utf8)
     boolean_operator = None
     if msgid_pattern == msgstr_pattern == '':
         try:
@@ -159,11 +182,16 @@ def main():
     
     multifile_mode = (argc > 1)
     if multifile_mode:
-        def print_linenumber(filename, entry):
-            print '%s:%d' % (filename, entry.entryline)
+        def format_linenumber(filename, entry):
+            return '%s:%d' % (filename, entry.entryline)
     else:
-        def print_linenumber(filename, entry):
-            print 'Line %d' % entry.entryline
+        def format_linenumber(filename, entry):
+            return 'Line %d' % entry.entryline
+
+    if opts.gettext_compatible:
+        orig_fmt_lineno = format_linenumber
+        def format_linenumber(filename, entry):
+            return '# pyg3t: %s' % orig_fmt_lineno(filename, entry)
 
     if argc == 0:
         inputs = iter([('<stdin>', sys.stdin)])
@@ -182,6 +210,7 @@ def main():
     try:
         grep = GTGrep(msgid_pattern=msgid_pattern,
                       msgstr_pattern=msgstr_pattern,
+                      comment_pattern=comment_pattern,
                       invert_msgid_match=opts.invert_msgid_match,
                       invert_msgstr_match=opts.invert_msgstr_match,
                       ignorecase=not opts.case, 
@@ -193,7 +222,7 @@ def main():
 
     global_matchcount = 0
     for filename, input in inputs:
-        entries = parser.parse_asciilike(input)
+        entries = parser.parse(input)
         matches = grep.search_iter(entries)
 
         if opts.count:
@@ -201,18 +230,20 @@ def main():
             if opts.fancy:
                 # (This is sort of an easter egg)
                 colorizer = Colorizer('purple')
-                nmatches = colorizer.colorize(str(nmatches))
-            print ('%s:' % filename).rjust(40), nmatches
+                nmatches_str = colorizer.colorize(str(nmatches))
+            else:
+                nmatches_str = str(nmatches)
+            print ('%s:' % filename).rjust(40), nmatches_str
             global_matchcount += nmatches
             continue
 
         if not opts.fancy:
             for entry in matches:
                 if opts.line_numbers:
-                    print_linenumber(filename, entry)
+                    print format_linenumber(filename, entry)
                 elif multifile_mode:
                     print 'File:', filename
-                print entry.tostring().encode('utf8')
+                print entry.tostring()#.encode('utf8')
 
         if opts.fancy:
             # It's a bit hairy to do this properly, so we'll just make a hack
@@ -239,7 +270,7 @@ def main():
                                     string)
 
                 if opts.line_numbers:
-                    print_linenumber(filename, entry)
+                    print format_linenumber(filename, entry)
                 # Encode before print ensures there'll be no screwups if stdout
                 # has None encoding (in a pipe, for example)
                 # Maybe we should wrap stdout with something which recodes

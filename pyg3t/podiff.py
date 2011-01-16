@@ -91,12 +91,12 @@ class PoDiff:
                 if oe.msgid != ne.msgid or\
                         oe.hasplurals != ne.hasplurals or\
                         oe.msgctxt != ne.msgctxt or\
-                        ''.join(oe.getcomments('#.')) !=\
-                        ''.join(ne.getcomments('#.')) or\
-                        ''.join(oe.getcomments('#:')) !=\
-                        ''.join(ne.getcomments('#:')) or\
-                        ''.join(oe.getcomments('#|')) !=\
-                        ''.join(ne.getcomments('#|')):
+                        ''.join(oe.get_comments('#.')) !=\
+                        ''.join(ne.get_comments('#.')) or\
+                        ''.join(oe.get_comments('#:')) !=\
+                        ''.join(ne.get_comments('#:')) or\
+                        ''.join(oe.get_comments('#|')) !=\
+                        ''.join(ne.get_comments('#|')):
                     similar=False
         return similar
 
@@ -125,8 +125,8 @@ class PoDiff:
         # Check if the there is a reason to diff
         if orig_entry.isfuzzy is not new_entry.isfuzzy or\
                 ''.join(orig_entry.msgstrs) != ''.join(new_entry.msgstrs) or\
-                ''.join(orig_entry.getcomments('# ')) !=\
-                ''.join(new_entry.getcomments('# ')):
+                ''.join(orig_entry.get_comments('# ')) !=\
+                ''.join(new_entry.get_comments('# ')):
 
             # Possibly output the line number of the msgid in the new file
             if self.show_line_numbers:
@@ -206,8 +206,8 @@ def main():
     # Load files
     gt_parser = Parser()
     try:
-        list_orig_entries = list(gt_parser.parse_asciilike(open(args[0])))
-        list_new_entries = list(gt_parser.parse_asciilike(open(args[1])))
+        list_orig_entries = list(gt_parser.parse(open(args[0])))
+        list_new_entries = list(gt_parser.parse(open(args[1])))
     except IOError, err:
         print errors['5']
         print err

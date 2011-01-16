@@ -73,20 +73,6 @@ def sametype(msgid, msgstr):
     return True, n
 
         
-def samecase(self, a, b): # ugly
-    if not msgid or not msgstr:
-        return msgid, msgstr, None
-    issametype, n = sametype(self, msgid, msgstr)
-    if n > 0 or not issametype:
-        return issametype
-
-    ichar = msgid[0]
-    schar = msgstr[0]
-    if ichar.isalpha() and schar.isalpha():
-        return a.isupper() == schar.isupper()
-    return False
-        
-
 class LeadingCharTest:
     def check(self, entry, msgid, msgstr):
         if not msgid or not msgstr:
@@ -255,7 +241,7 @@ def main():
     allfiles = fileinput.input(args)
         
     parser = Parser()
-    entries = parser.parse_asciilike(allfiles)
+    entries = parser.parse(allfiles)
 
     tests = []
     tests.append(PartiallyTranslatedPluralTest())
@@ -289,7 +275,6 @@ def main():
         
     def fancyfmt(n):
         return '%d [%d%%]' % (n, round(100 * float(n) / poabc.entrycount))
-        return (n, float(n) / poabc.entrycount)
 
     width = 50
     print ' Summary '.center(width, '=')

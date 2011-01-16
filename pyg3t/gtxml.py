@@ -144,7 +144,7 @@ def main():
     total_badcount = 0
     for filename, input in get_inputfiles(args, parser):
         parser = gtparse.Parser()
-        entries = parser.parse_asciilike(input)
+        entries = parser.parse(input)
         if opts.fuzzy:
             entries = [entry for entry in entries 
                        if entry.istranslated or entry.isfuzzy]

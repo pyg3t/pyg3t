@@ -17,7 +17,7 @@ msgid "Hello world!"
 msgstr "Hej verden!"
 
 # Untranslated string, multiline
-#: fortran.for:43
+#: fortran.f90:43
 msgid ""
 "Consistently separating words by spaces became a general custom about\n"
 "the tenth century A.D., and lasted until about 1957, when FORTRAN abandoned\n"

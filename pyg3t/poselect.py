@@ -1,5 +1,5 @@
 import sys
-from optparse import OptionParser
+from optparse import OptionParser, OptionGroup
 
 from pyg3t import __version__
 from pyg3t.gtparse import Parser
@@ -107,32 +107,41 @@ def build_parser():
                    'and print selected messages to standard output.')
     parser = OptionParser(description=description, usage=usage,
                           version=__version__)
-    parser.add_option('-t', '--translated', action='store_true',
+
+    selection = OptionGroup(parser, 'Selection options')
+    output = OptionGroup(parser, 'Output options')
+    
+    selection.add_option('-t', '--translated', action='store_true',
                       help='select translated messages')
-    parser.add_option('-u', '--untranslated', action='store_true',
+    selection.add_option('-u', '--untranslated', action='store_true',
                       help='select untranslated messages')
-    parser.add_option('-f', '--fuzzy', action='store_true',
+    selection.add_option('-f', '--fuzzy', action='store_true',
                       help='select fuzzy messages')
-    parser.add_option('-p', '--plural', action='store_true',
+    selection.add_option('-p', '--plural', action='store_true',
                       help='select entries with plural forms')
-    parser.add_option('-v', '--invert', action='store_true',
+    selection.add_option('-v', '--invert', action='store_true',
                       help='invert selection criterion')
-    parser.add_option('-a', '--and', action='store_true', dest='and_',
-                      help='require all, rather than any, selection criterion'
-                      ' to trigger selection')
-    parser.add_option('-n', '--line-number', action='store_true',
+    selection.add_option('-a', '--and', action='store_true', dest='and_',
+                         help='require all, rather than any, selection '
+                         'criterion to trigger selection')
+                      
+    output.add_option('-n', '--line-number', action='store_true',
                       help='print line numbers of selected entries')
-    parser.add_option('-s', '--summary', action='store_true',
+    output.add_option('-s', '--summary', action='store_true',
                       help='print a summary when done')
-    parser.add_option('-c', '--count', action='store_true',
+    output.add_option('-c', '--count', action='store_true',
                       help='suppress normal output; print a count of selected '
                       'entries')
-    parser.add_option('-w', '--msgid-word-count', action='store_true',
+    output.add_option('-w', '--msgid-word-count', action='store_true',
                       help='suppress normal output; print the count of words '
                       'in the msgids of selected entries')
-    parser.add_option('-l', '--msgid-letter-count', action='store_true',
+    output.add_option('-l', '--msgid-letter-count', action='store_true',
                       help='suppress normal output; print the count of '
                       'letters in the msgids of selected entries')
+
+    parser.add_option_group(selection)
+    parser.add_option_group(output)
+
     return parser
 
 
@@ -160,7 +169,7 @@ def main():
         selectors.append(FuzzySelector())
     if opts.plural:
         selectors.append(PluralSelector())
-    
+
     selectors = [Counter(selector) for selector in selectors]
     
     if opts.and_:
@@ -179,7 +188,7 @@ def main():
     if opts.line_number:
         printer = LineNumberEntryPrinter(printer)
 
-    entries = parser.parse_asciilike(src)
+    entries = parser.parse(src)
     selected = poselect.select(entries)
 
     if opts.count:
