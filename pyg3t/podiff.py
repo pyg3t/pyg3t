@@ -30,7 +30,7 @@ Succes criteria:
     multiple file diff
 (v) allow for definition of output file
 (v)  check that it is not the same as one of the input files
-    Give option for line numbers
+(v) Give option for line numbers
     Use optionparser.error for error messages
 
 
@@ -70,47 +70,40 @@ def build_parser():
                       help='do not allow for files with different base '
                       '(opposite of -r)')
     parser.add_option('-f', '--full', action='store_true', default=False,
-                      help='show the full diff including the entries that are '
-                      'only present in the original file (as opposed to '
-                      '--relaz')
+                      help='like --relax but show the full diff including the '
+                      'entries that are only present in the original file')
     return parser
 
 class PoDiff:
-    def __init__(self, out):
+    def __init__(self, out, in_orig, in_new):
         self.out = out
-        self.number_of_diff_chunks=0
-        self.show_line_numbers=None
+        self.in_orig = in_orig
+        self.in_new = in_new
+        self.number_of_diff_chunks = 0
+        self.show_line_numbers = None
 
     def check_files_common_base(self, loe, lne):
-        # loe = list_orig_entries
-        # lne = list_new_entries
-        similar=True
+        # loe = list_orig_entries  ###  lne = list_new_entries
+        similar = True
 
         # Easy check if length is the same
         if len(loe) != len(lne):
-            similar=False
-        # If the length is the same, compare msgids and static comments pairwise
+            similar = False
+        # If the length is the same, compare msgids and msgctxt pairwise
         # to determine if the files have identical base
         else:
             for oe, ne in zip(loe, lne):
-                if oe.msgid != ne.msgid or\
-                        oe.hasplurals != ne.hasplurals or\
-                        oe.msgctxt != ne.msgctxt or\
-                        ''.join(oe.get_comments('#.')) !=\
-                        ''.join(ne.get_comments('#.')) or\
-                        ''.join(oe.get_comments('#:')) !=\
-                        ''.join(ne.get_comments('#:')) or\
-                        ''.join(oe.get_comments('#|')) !=\
-                        ''.join(ne.get_comments('#|')):
-                    similar=False
+                if (oe.msgid != ne.msgid or oe.hasplurals != ne.hasplurals or
+                    oe.msgctxt != ne.msgctxt):
+                    similar = False
         return similar
 
     def dict_entries(self, list_entries):
         # Make a dictionary out of a list of entries for faster multiple
         # searches
-        dict_entries={}
+        dict_entries = {}
         for entry in list_entries:
-            dict_entries[entry.msgid]=entry
+            dict_entries[entry.msgid] = entry
         return dict_entries
 
     def diff_files_relaxed(self, list_orig_entries, list_new_entries, full=False):
@@ -121,7 +114,7 @@ class PoDiff:
         for new_entry in list_new_entries:
             # and if the new entry msgid is also found in the orig
             if dict_orig_entries.has_key(new_entry.msgid):
-                # ask it to be diffed
+                # ask it to be diffed ...
                 self.diff_two_entries(dict_orig_entries[new_entry.msgid],
                                       new_entry)
                 # ... and set it to None in orig mesages, so that we know
@@ -129,7 +122,7 @@ class PoDiff:
                 dict_orig_entries[new_entry.msgid] = None
             else:
                 # output diff showing only the new entry
-                diff_one_entry(new_entry, entry_is='new')
+                self.diff_one_entry(new_entry, entry_is='new')
 
         # If we ar making the full diff, diff the entries that are only
         # present in original file (the ones that are not None in
@@ -138,7 +131,8 @@ class PoDiff:
             for key in dict_orig_entries.keys():
                 if dict_orig_entries[key]:
                     # output diff showing only the old entry
-                    diff_one_entry(dict_orig_entries[key])
+                    self.diff_one_entry(dict_orig_entries[key],\
+                                            entry_is='orig')
 
         self.print_status()
 
@@ -156,10 +150,11 @@ class PoDiff:
 
             # Possibly output the line number of the msgid in the new file
             if self.show_line_numbers:
-                print >> self.out, self.header(new_entry.linenumber)
+                print >> self.out, self.header(new_entry.linenumber,\
+                                                   self.in_new)
 
             # Make the diff
-            diff = list(unified_diff(orig_entry.rawlines,new_entry.rawlines,
+            diff = list(unified_diff(orig_entry.rawlines, new_entry.rawlines,
                                      n=10000))
             # and print the result, without the 3 lines of header and increment
             # the chunk counter
@@ -172,6 +167,11 @@ class PoDiff:
         Keyword:
         entry_is   can be either 'new' or 'orig'
         """
+        # Possibly output the line number of the msgid in the new file
+        source = self.in_orig if entry_is == 'orig' else self.in_new
+        if self.show_line_numbers:
+            print >> self.out, self.header(entry.linenumber, source)
+
         # Make the diff
         if entry_is == 'new':
             diff = list(unified_diff('', entry.rawlines, n=10000))
@@ -182,8 +182,8 @@ class PoDiff:
         print >> self.out, ''.join(diff[3:]).encode('utf8')
         self.number_of_diff_chunks += 1
             
-    def header(self, linenumber):
-        return ('--- Line %d (new file) ' % linenumber).ljust(32, '-')
+    def header(self, linenumber, source):
+        return ('--- Line %d (%s) ' % (linenumber, source)).ljust(32, '-')
 
     def print_status(self):
         bar = ' ' + '=' * 77
@@ -195,20 +195,6 @@ class PoDiff:
 def main():
     """The main class loads the files and output the diff"""
 
-    errors={'1':'podiff takes exactly two arguments.',
-            '2':'The output file you have specified is the same as '\
-                'one of the input files. This is not allowed, as it '\
-                'may cause a loss of work.',
-            #FIXME
-            '3':'Cannot work with files with dissimilar base, unless the '\
-                'relax option (-r) is used.\n\nNOTE: This is not recommended..!\n'\
-                'Making a podiff for proofreading should happen between '\
-                'files with similar base, to make the podiff easier to read.',
-            '4':'Could not open output file for writing. open() gave the '\
-                'following error:',
-            '5':'Could not open one of the input files for reading. open() '\
-                'gave the following error:'}
-
     files_are_similar = True
 
     option_parser = build_parser()
@@ -216,30 +202,32 @@ def main():
 
     # We need exactly two files to proceed
     if len(args) != 2:
-        # System exit with error code
-        print errors['1']
-        # FIXME handle exit codes properly
-        sys.exit(1)
+        # Give a parser error and return with exit code 2
+        option_parser.error('podiff takes exactly two arguments')
 
     # Give an error if the specified output file is the same as one of the
     # input files
     if opts.output is not None:
         if (opts.output == args[0]) or (opts.output == args[1]):
-            print errors['2']
-            sys.exit(2)
+            # Give a parser error and return with exit code 2
+            option_parser.error('The output file you have specified is the '
+                                'same as one of the input files. This is not '
+                                'allowed, as it may cause a loss of work.')
+            
         # Try and open file for writing, if it does not succeed, give error
         # and exit
         try:
             out = open(opts.output, 'w')
-        except IOError, msg:
-            print errors['4']
-            print msg
-            sys.exit(4)
+        except IOError, err:
+            print >> sys.stderr, ('Could not open output file for writing. '
+                                  'open() gave the following error:')
+            print >> sys.stderr, err
+            raise SystemExit(4)
     else:
         out = sys.stdout        
 
     # Get PoDiff instanse
-    podiff = PoDiff(out)
+    podiff = PoDiff(out, args[0], args[1])
     # Overwrite settings with system wide settings
          
     # Overwrite settings with commands line arguments
@@ -251,9 +239,10 @@ def main():
         list_orig_entries = list(gt_parser.parse(open(args[0])))
         list_new_entries = list(gt_parser.parse(open(args[1])))
     except IOError, err:
-        print errors['5']
-        print err
-        sys.exit(5)
+        print >> sys.stderr, ('Could not open one of the input files for '
+                              'reading. open() gave the following error:')
+        print >> sys.stderr, err
+        raise SystemExit(5)
 
     # If we don't relax or do full diff (which also implies relax), check if
     # they are dissimilar
@@ -262,9 +251,14 @@ def main():
                                                            list_new_entries)
         # and if they indeed are dissimilar, give and error
         if not files_are_similar:
-            print errors['3']
-            sys.exit(3)
-
+            option_parser.error('Cannot work with files with dissimilar base, '
+                                'unless the relax option (-r) or the full '
+                                'options (-f) is used.\n\nNOTE: This is not '
+                                'recommended..!\nMaking a podiff for '
+                                'proofreading should happen between files '
+                                'with similar base, to make the podiff easier '
+                                'to read.')
+            
     if opts.relax or opts.full:
         podiff.diff_files_relaxed(list_orig_entries, list_new_entries,\
                                       opts.full)
