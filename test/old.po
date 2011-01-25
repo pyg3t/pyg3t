@@ -1,0 +1,66 @@
+# Danish translation of Anjuta.
+# Copyright (C) 2001-2009 Free Software Foundation, Inc.
+# Gitte Wange <gitte@babytux.dk>, 2001-2002.
+# Christian Rose <menthos@menthos.com>, 2001.
+# Göran Weinholt <weinholt@linux.nu>, 2001.
+# Keld Simonsen <keld@dkuug.dk>, 2002.
+# Ask Hjorth Larsen <asklarsen@gmail.com>, 2008, 09.
+#
+# Konventioner
+#   watch -> overvåger (funktion der holder øje med værdien af variable)
+#   patch -> patch
+#   symbol browser -> symboviser
+#   assistent -> guide
+#   options -> indstillinger eller tilvalg, for det meste
+#
+# Versionsstyringsbegreber
+#   reset -> nulstil
+#   revert -> forkast
+#   commit -> integrér.  Betydningen varierer mellem programmerne, så det er meget svært at finde en fælles oversættelse, og mange af strengene har kodehenvisninger fra flere versionsstyringsmoduler.  I visse tilfælde involverer commit kun lokale operationer, og kan dermed ikke oversættes til "indsend" (eller lignende), men "integrér" dækker enhver mulighed idet ordet selv rummer plads til fortolkning.
+#   rebase -> flyt forgreningspunkt (se manual for git-rebase)
+#   stage -> føj til indeks (se manual for git-add)
+#   unstage -> fjern fra indeks
+#   merge -> sammenføj
+#
+# Sørg for at alle engelske versionsstyringskommandoer kan udledes af den danske dokumentation, så en erfaren bruger ikke skal tænke for meget over om "sammenføj" betyder "merge" osv.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: anjuta\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=anjuta&component=core application\n"
+"POT-Creation-Date: 2009-08-11 17:07+0000\n"
+"PO-Revision-Date: 2011-01-25 19:15+0100\n"
+"Last-Translator: Ask Hjorth Larsen <asklarsen@gmail.com>\n"
+"Language-Team: <dansk@dansk-gruppen.dk>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 0.9.5\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: ../anjuta.desktop.in.in.h:1
+msgid "Anjuta IDE"
+msgstr "Anjuta IDE!"
+
+#: ../anjuta.desktop.in.in.h:2
+#, fuzzy
+msgid "Develop software in an integrated development environment"
+msgstr "Skriv software i et integreret udviklingsmiljø"
+
+#: ../anjuta.desktop.in.in.h:3 ../src/about.c:204
+#, fuzzy
+msgid "Integrated Development Environment"
+msgstr "Integreret udviklingsmiljø"
+
+#: ../libanjuta/anjuta-c-module.c:203
+#, c-format
+msgid "Unable to find plugin module %s"
+msgstr "Kan ikke finde udvidelsesmodulet %s"
+
+#: ../libanjuta/anjuta-plugin-manager.c:1197
+msgid ""
+"These are the plugins selected by you when Anjuta prompted to choose one of "
+"many suitable plugins. Removing the preferred plugin will let Anjuta prompt "
+"you again to choose different plugin."
+msgstr "Dette er det modul, du valgte da Anjuta bad dig vælge et passende modul. Fjernelse af det foretrukne modul vil lade Anjuta spørge dig om et nyt modul igen."
