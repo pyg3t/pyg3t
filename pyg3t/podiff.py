@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 podiff -- A gettext diff module in Python
-Copyright (C) 2009 Kenneth Nielsen <k.nielsen81@gmail.com>
+Copyright (C) 2009-2011 Kenneth Nielsen <k.nielsen81@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,8 +28,8 @@ Succes criteria:
 (v) allow for files with different base, i.e. diff against newer version
 (v)   via relax option
     multiple file diff
-    allow for definition of output file
-     check that it is not the same as one of the input files
+(v) allow for definition of output file
+(v)  check that it is not the same as one of the input files
     Give option for line numbers
     Use optionparser.error for error messages
 
@@ -59,15 +59,20 @@ def build_parser():
     parser.add_option('-m', '--no-line-numbers', action='store_false',
                       dest='line_numbers',
                       help='do not prefix line number (opposite of -l)')
-    parser.add_option('-o', '--output-file',
+    parser.add_option('-o', '--output',
                       help='file to send the diff output to, instead of '
                       'standard out')
     parser.add_option('-r', '--relax', action='store_true', default=False,
                       help='allow for files with different base, i.e. '
-                      'where the msgids are not pairwise the same')
+                      'where the msgids are not pairwise the same. But still '
+                      'make the output proofread friendly')
     parser.add_option('-s', '--strict', action='store_false', dest='relax',
                       help='do not allow for files with different base '
                       '(opposite of -r)')
+    parser.add_option('-f', '--full', action='store_true', default=False,
+                      help='show the full diff including the entries that are '
+                      'only present in the original file (as opposed to '
+                      '--relaz')
     return parser
 
 class PoDiff:
@@ -100,12 +105,17 @@ class PoDiff:
                     similar=False
         return similar
 
-    def diff_files_relaxed(self, list_orig_entries, list_new_entries):
-        # Make a dictionary out of the old entries to easen multiple searches
-        # for strings
-        dict_orig_entries={}
-        for entry in list_orig_entries:
-            dict_orig_entries[entry.msgid]=entry
+    def dict_entries(self, list_entries):
+        # Make a dictionary out of a list of entries for faster multiple
+        # searches
+        dict_entries={}
+        for entry in list_entries:
+            dict_entries[entry.msgid]=entry
+        return dict_entries
+
+    def diff_files_relaxed(self, list_orig_entries, list_new_entries, full=False):
+        # Turn orig entries into dictionary
+        dict_orig_entries = self.dict_entries(list_orig_entries)
 
         # Walk throug the list of new entries
         for new_entry in list_new_entries:
@@ -114,6 +124,22 @@ class PoDiff:
                 # ask it to be diffed
                 self.diff_two_entries(dict_orig_entries[new_entry.msgid],
                                       new_entry)
+                # ... and set it to None in orig mesages, so that we know
+                # which ones we have used
+                dict_orig_entries[new_entry.msgid] = None
+            else:
+                # output diff showing only the new entry
+                diff_one_entry(new_entry, entry_is='new')
+
+        # If we ar making the full diff, diff the entries that are only
+        # present in original file (the ones that are not None in
+        # dict_orig_entries)
+        if full:
+            for key in dict_orig_entries.keys():
+                if dict_orig_entries[key]:
+                    # output diff showing only the old entry
+                    diff_one_entry(dict_orig_entries[key])
+
         self.print_status()
 
     def diff_files_unrelaxed(self, list_orig_entries, list_new_entries):
@@ -139,16 +165,32 @@ class PoDiff:
             # the chunk counter
             print >> self.out, ''.join(diff[3:]).encode('utf8')
             self.number_of_diff_chunks += 1
+
+    def diff_one_entry(self, entry, entry_is):
+        """ produce diff if only one entry is present
+
+        Keyword:
+        entry_is   can be either 'new' or 'orig'
+        """
+        # Make the diff
+        if entry_is == 'new':
+            diff = list(unified_diff('', entry.rawlines, n=10000))
+        elif entry_is == 'orig':
+            diff = list(unified_diff(entry.rawlines, '', n=10000))
+        # and print the result, without the 3 lines of header and increment
+        # the chunk counter
+        print >> self.out, ''.join(diff[3:]).encode('utf8')
+        self.number_of_diff_chunks += 1
             
     def header(self, linenumber):
         return ('--- Line %d (new file) ' % linenumber).ljust(32, '-')
 
     def print_status(self):
-        print >> self.out, " ============================================================================="
+        bar = ' ' + '=' * 77
+        print >> self.out, bar
         print >> self.out, " Number of messages:",\
             self.number_of_diff_chunks
-        print >> self.out, " ============================================================================="
-
+        print >> self.out, bar
 
 def main():
     """The main class loads the files and output the diff"""
@@ -181,14 +223,14 @@ def main():
 
     # Give an error if the specified output file is the same as one of the
     # input files
-    if opts.output_file is not None:
-        if (opts.output_file == args[0]) or (opts.output_file == args[1]):
+    if opts.output is not None:
+        if (opts.output == args[0]) or (opts.output == args[1]):
             print errors['2']
             sys.exit(2)
         # Try and open file for writing, if it does not succeed, give error
         # and exit
         try:
-            out = open(opts.output_file, 'w')
+            out = open(opts.output, 'w')
         except IOError, msg:
             print errors['4']
             print msg
@@ -213,8 +255,9 @@ def main():
         print err
         sys.exit(5)
 
-    # If we don't relax, check if they are dissimilar
-    if not opts.relax:
+    # If we don't relax or do full diff (which also implies relax), check if
+    # they are dissimilar
+    if not (opts.relax or opts.full):
         files_are_similar = podiff.check_files_common_base(list_orig_entries,
                                                            list_new_entries)
         # and if they indeed are dissimilar, give and error
@@ -222,8 +265,9 @@ def main():
             print errors['3']
             sys.exit(3)
 
-    if opts.relax:
-        podiff.diff_files_relaxed(list_orig_entries, list_new_entries)
+    if opts.relax or opts.full:
+        podiff.diff_files_relaxed(list_orig_entries, list_new_entries,\
+                                      opts.full)
     else:
         podiff.diff_files_unrelaxed(list_orig_entries, list_new_entries)
 
