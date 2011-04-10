@@ -23,12 +23,59 @@ import sys, tty, termios
 import os
 
 class PoProofRead():
+    """ This class provides the functionality for the poproofread command line
+    tool
+    """
 
-    def __init__(self, input_file_name, output_file_name = None):
+    def __init__(self, input_file_name, continue_work=False,
+                 output_extension='.proofread'):
+        """ Initiate variables and file states """
+        self.continue_work = continue_work
+        self.position = None
+        self.size = None
         self.input_file_name = input_file_name
-        self.output_file_name = output_file_name
+        self.output_file_name = input_file_name + output_extension
+        
+        # Test of readablility of input file
+        if not os.access(self.input_file_name, os.R_OK):
+            print 'Could not read file:', self.input_file_name, '\nExiting!'
+            raise SystemExit(1)
+
+        # Check if output file already exists
+        if os.access(self.output_file_name, os.F_OK):
+            # Check if the output file is writeable
+            if not os.access(self.output_file_name, os.W_OK):
+                print 'Could not write to file:', self.output_file_name,\
+                    '\nExiting!'
+                raise SystemExit(4)
+
+            if not self.continue_work:
+                print 'The output file', self.output_file_name, 'already '\
+                    'exists!\nContinue to work with this file as the '\
+                    'output(y/n)? '
+                char = ''
+                while char not in ['y', 'n']:
+                    char = self.__read_char()
+                    if char == 'n':
+                        raise SystemExit(3)
+                    elif char == 'y':
+                        self.continue_work = True
+        else:
+            pass
+            # Test if the file can be created
+            
+        # If we should continue the work, we should alos be able to read
+        # the file
+        if self.continue_work and not os.access(self.output_file_name, os.R_OK):
+            print 'Could not read from output file:',\
+                self.output_file_name, 'to continue work\nExiting!'
+            raise SystemExit(4)
 
     def read(self):
+        """ Read files """
+        
+        # This should no longer be necessary, since we test for readability in
+        # __init__()
         try:
             with open(self.input_file_name) as f:
                 content = str().join(f.readlines())
@@ -38,6 +85,39 @@ class PoProofRead():
 
         self.chunks = [{'diff_chunk':cont, 'comment':''} for cont in
                        content.split('\n\n')]
+        
+        if self.continue_work:
+            try:
+                with open(self.output_file_name) as f:
+                    content = str().join(f.readlines())
+            except IOError:
+                print 'Could not read file:', self.output_file_name
+                raise SystemExit(1)
+            
+            self.already_done = content.split('\n\n')
+            
+            diff_chunks = [e['diff_chunk'] for e in self.chunks]
+            last_diff = ''
+            gathering_diff = ''
+            for e in self.already_done:
+                print gathering_diff
+                if e in diff_chunks:
+                    if last_diff != '':
+                        self.chunks[diff_chunks.index(last_diff)]['comment'] =\
+                            gathering_diff
+                    last_diff = e
+                    gathering_diff = ''
+                else:
+                    if gathering_diff == '':
+                        gathering_diff = e
+                    else:
+                        gathering_diff += ('\n\n' + e)
+
+            if last_diff != '':
+                self.chunks[diff_chunks.index(last_diff)]['comment'] =\
+                    gathering_diff
+
+        #raise SystemExit(0)
         self.position = 0
         self.size = len(self.chunks)
 
@@ -75,12 +155,17 @@ class PoProofRead():
         else:
             f = sys.stdout
         
+        first = True
         for chunk in self.chunks:
             if chunk['comment'] != '':
+                if not first:
+                    f.write('\n\n')
+                else:
+                    first = False
                 f.write(chunk['diff_chunk'])
                 f.write('\n\n')
                 f.write(chunk['comment'])
-                f.write('\n\n')
+
 
         if self.output_file_name:
             f.close()
@@ -125,16 +210,20 @@ if __name__ == "__main__":
         'in very early stage of developement. Expect frequent brackages')
     parser.add_argument('input',
                         help='input filename')
-    parser.add_argument('-o', '--output',
-                        help='output filename')
+    parser.add_argument('-c', '--continue_work',
+                        help=('continue working on the _poproofread file that '
+                              'matches the input file name'),
+                        action = 'store_true', default = False)
+    # Add extension option
 
     args = parser.parse_args()
 
     if args.input == None:
-        print 'Argument \'input\' is required'
+        print 'Argument \'input\' is mandatory'
+        raise SystemExit(1)
         
     
-    ppr = PoProofRead(args.input, args.output)
+    ppr = PoProofRead(args.input, continue_work=args.continue_work)
 
     ppr.read()
     ppr.proofread()
