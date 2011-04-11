@@ -47,8 +47,10 @@ class PoProofRead():
             if not os.access(self.output_file_name, os.W_OK):
                 print 'Could not write to file:', self.output_file_name,\
                     '\nExiting!'
-                raise SystemExit(4)
+                raise SystemExit(1)
 
+            # If the file already exists but we have not specifically said
+            # that we want to continue the work in it, we ask
             if not self.continue_work:
                 print 'The output file', self.output_file_name, 'already '\
                     'exists!\nContinue to work with this file as the '\
@@ -57,19 +59,27 @@ class PoProofRead():
                 while char not in ['y', 'n']:
                     char = self.__read_char()
                     if char == 'n':
-                        raise SystemExit(3)
+                        raise SystemExit(1)
                     elif char == 'y':
                         self.continue_work = True
         else:
-            pass
-            # Test if the file can be created
+            # Check if the output could be created
+            # Get the dirname of output file or '.' if current dir
+            dirname = os.path.dirname(self.output_file_name) if\
+                os.path.dirname(self.output_file_name) != '' else '.'
+            if not (os.access(dirname, os.W_OK) and
+                    os.access(dirname, os.X_OK)):
+                print 'Output file:', self.output_file_name, 'cannot be '\
+                    'created\nExiting!'
+                raise SystemExit(1)
+            
             
         # If we should continue the work, we should alos be able to read
         # the file
         if self.continue_work and not os.access(self.output_file_name, os.R_OK):
             print 'Could not read from output file:',\
                 self.output_file_name, 'to continue work\nExiting!'
-            raise SystemExit(4)
+            raise SystemExit(1)
 
     def read(self):
         """ Read files """
@@ -83,9 +93,12 @@ class PoProofRead():
             print 'Could not read file:', self.input_file_name
             raise SystemExit(1)
 
+        # Make a list of dictionaries, taking the diff chunks by splitting
+        # the file at '\n\n'
         self.chunks = [{'diff_chunk':cont, 'comment':''} for cont in
                        content.split('\n\n')]
         
+        # If we are to continue old work
         if self.continue_work:
             try:
                 with open(self.output_file_name) as f:
@@ -94,51 +107,68 @@ class PoProofRead():
                 print 'Could not read file:', self.output_file_name
                 raise SystemExit(1)
             
+            # Split the content at '\n\n'
             self.already_done = content.split('\n\n')
             
+            # Make a list of just the diff chunks
             diff_chunks = [e['diff_chunk'] for e in self.chunks]
             last_diff = ''
-            gathering_diff = ''
+            gathering_comment = ''
+            
             for e in self.already_done:
-                print gathering_diff
+                # If the current chunk is a diff chunk ..
                 if e in diff_chunks:
+                    # .. not the first one ..
                     if last_diff != '':
+                        # .. put the gathered comment in the apropriate
+                        # dictionary
                         self.chunks[diff_chunks.index(last_diff)]['comment'] =\
-                            gathering_diff
+                            gathering_comment
+                    # Replace the last diff and reset the gathered comment
                     last_diff = e
-                    gathering_diff = ''
+                    gathering_comment = ''
                 else:
-                    if gathering_diff == '':
-                        gathering_diff = e
+                    # If the chunk was not a diff chunk, add it to the
+                    # gathering comment
+                    if gathering_comment == '':
+                        gathering_comment = e
                     else:
-                        gathering_diff += ('\n\n' + e)
+                        gathering_comment += ('\n\n' + e)
 
+            # Make sure we write the last comment even though we do not
+            # encounter another real diff chunk after that
             if last_diff != '':
                 self.chunks[diff_chunks.index(last_diff)]['comment'] =\
-                    gathering_diff
+                    gathering_comment
 
-        #raise SystemExit(0)
+        # After having read the files, set the position and the size
         self.position = 0
         self.size = len(self.chunks)
 
     def proofread(self):
+        """ Proofread """
         c = ''
+        # This loop is what keeps running as long as you are moving though the
+        # file or editing
         while c != 'q':
             self.__print_header()
 
             # Read control character
             c = self.__read_char()
 
+            # Go to next diff chunk
             if c == 'n':
                 self.position += 1
                 if self.position >= self.size:
                     self.position -= 1
 
+            # Go to previous diff chunk
             if c == 'p':
                 self.position -= 1
                 if self.position < 0:
                     self.position += 1
 
+            # Edit comment for diff chunk
             if c == 'e':
                 self.__print_header('EDIT')
                 user_input = ''
@@ -149,12 +179,25 @@ class PoProofRead():
                 
                 self.chunks[self.position]['comment'] = user_input[:-2]
 
+                # Write to file everytime we have added a comment, to make sure
+                # we do not loose work if the program breaks
+                self.write()
+
     def write(self):
+        """ Write to file """
+
+        # First check whether there is actually anything to write
+        if [e['comment'] for e in self.chunks].count('') == self.size:
+            return False
+        
+        # Open output file or use stdout if none is provided
+        # NOTE right now it is not possible to write to stdout
         if self.output_file_name:
             f = open(self.output_file_name, 'w')
         else:
             f = sys.stdout
         
+        # Write the comments
         first = True
         for chunk in self.chunks:
             if chunk['comment'] != '':
@@ -166,9 +209,10 @@ class PoProofRead():
                 f.write('\n\n')
                 f.write(chunk['comment'])
 
-
         if self.output_file_name:
             f.close()
+
+        return True
 
     def __read_char(self):
         """ Recipe for reading single char, without pressing enter at the end
