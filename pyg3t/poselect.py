@@ -2,7 +2,7 @@ import sys
 from optparse import OptionParser, OptionGroup
 
 from pyg3t import __version__
-from pyg3t.gtparse import Parser
+from pyg3t.gtparse import parse
 
 
 class Counter:
@@ -89,7 +89,7 @@ class PoSelect:
 
 class EntryPrinter:
     def write(self, entry):
-        print entry.tostring().encode('utf8')
+        print entry.tostring()
 
 
 class LineNumberEntryPrinter:
@@ -182,13 +182,11 @@ def main():
     counter = Counter(superselector)
     poselect = PoSelect(counter)
     
-    parser = Parser()
-    
     printer = EntryPrinter()
     if opts.line_number:
         printer = LineNumberEntryPrinter(printer)
 
-    entries = parser.parse(src)
+    entries = parse(src)
     selected = poselect.select(entries)
 
     if opts.count:

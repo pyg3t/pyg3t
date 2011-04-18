@@ -5,8 +5,8 @@
 # The test passes if it prints nothing to stderr.
 
 FILE=testpofile.da.po
-DIFF1=anjuta.master.da.po.old
-DIFF2=anjuta.master.da.po
+DIFF1=old.po
+DIFF2=new.po
 
 OUT=output.txt
 
@@ -19,6 +19,6 @@ poabc sdfkjsdfkj 2> /dev/null
 
 gtxml $FILE >> $OUT
 
-podiff $DIFF1 $DIFF2 >> $OUT
+podiff --relax $DIFF1 $DIFF2 >> $OUT
 
 poselect -ft $FILE >> $OUT
