@@ -38,10 +38,17 @@ Implementation:
 ===============
 """
 
+# XXX
+# Diffing files with different encodings
+# To compare strings, they should have same encoding.
+# My suggestion (Ask) is to not do anything if they do happen to have
+# same encoding from the start, but if they do not, then convert
+# both to utf8.
+
 import sys
 from optparse import OptionParser
 from difflib import unified_diff
-from pyg3t.gtparse import Parser
+from pyg3t.gtparse import parse
 from pyg3t import __version__
 
 def build_parser():
@@ -150,15 +157,16 @@ class PoDiff:
 
             # Possibly output the line number of the msgid in the new file
             if self.show_line_numbers:
-                print >> self.out, self.header(new_entry.linenumber,\
-                                                   self.in_new)
+                print >> self.out, self.header(new_entry.meta['lineno'],
+                                               self.in_new)
 
             # Make the diff
-            diff = list(unified_diff(orig_entry.rawlines, new_entry.rawlines,
+            diff = list(unified_diff(orig_entry.meta['rawlines'], 
+                                     new_entry.meta['rawlines'],
                                      n=10000))
             # and print the result, without the 3 lines of header and increment
             # the chunk counter
-            print >> self.out, ''.join(diff[3:]).encode('utf8')
+            print >> self.out, ''.join(diff[3:])
             self.number_of_diff_chunks += 1
 
     def diff_one_entry(self, entry, entry_is):
@@ -170,13 +178,13 @@ class PoDiff:
         # Possibly output the line number of the msgid in the new file
         source = self.in_orig if entry_is == 'orig' else self.in_new
         if self.show_line_numbers:
-            print >> self.out, self.header(entry.linenumber, source)
+            print >> self.out, self.header(entry.meta['lineno'], source)
 
         # Make the diff
         if entry_is == 'new':
-            diff = list(unified_diff('', entry.rawlines, n=10000))
+            diff = list(unified_diff('', entry.meta['rawlines'], n=10000))
         elif entry_is == 'orig':
-            diff = list(unified_diff(entry.rawlines, '', n=10000))
+            diff = list(unified_diff(entry.meta['rawlines'], '', n=10000))
         # and print the result, without the 3 lines of header and increment
         # the chunk counter
         print >> self.out, ''.join(diff[3:]).encode('utf8')
@@ -234,10 +242,9 @@ def main():
     podiff.show_line_numbers = opts.line_numbers
     
     # Load files
-    gt_parser = Parser()
     try:
-        list_orig_entries = list(gt_parser.parse(open(args[0])))
-        list_new_entries = list(gt_parser.parse(open(args[1])))
+        list_orig_entries = list(parse(open(args[0])))
+        list_new_entries = list(parse(open(args[1])))
     except IOError, err:
         print >> sys.stderr, ('Could not open one of the input files for '
                               'reading. open() gave the following error:')

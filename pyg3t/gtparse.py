@@ -19,9 +19,56 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import codecs
 import re
+from textwrap import TextWrapper
+
+wrapper = TextWrapper(width=77,
+                      replace_whitespace=False,
+                      expand_tabs=False,
+                      drop_whitespace=False)
 
 
-class Entry:
+class Catalog(object):
+    """A Catalog represents one gettext catalog, or po-file."""
+    def __init__(self, fname, encoding, msgs, obsoletes=None):
+        self.fname = fname
+        self.encoding = encoding
+        self.msgs = msgs
+        if obsoletes is None:
+            obsoletes = []
+        self.obsoletes = obsoletes
+        self.header = self._get_header()
+
+    def _get_header(self):
+        for msg in self.msgs:
+            if msg.msgid == '':
+                return msg
+    
+    def dict(self):
+        """Return a dict with the contents of this catalog.
+
+        Values are Messages and keys are tuples of (msgid, msgctxt)."""
+        d = {}
+        for msg in self.msgs:
+            d[(msg.msgid, msg.msgctxt)] = msg
+        return d
+    
+    def obsoletes(self):
+        return iter(self.obsoletes)
+
+    def __iter__(self):
+        return iter(self.msgs)
+
+    def __len__(self):
+        return len(self.msgs)
+
+    # XXX todo implement this
+    #def encode(self, encoding):
+    #    for msg in self:
+    #        ...
+    #    cat = Catalog(self.fname, encoding) # XXX
+
+
+class Message(object):
     """This class represents a po-file entry. 
 
     Contains attributes that describe:
@@ -29,97 +76,107 @@ class Entry:
     * comments
     * msgid (possibly plural)
     * msgstr(s)
-    * miscellaneous informations (line count, translation status)
-    """
+    * miscellaneous informations (line count, translation status)"""
 
-    def __init__(self):
-        """Create an empty entry object.
+    def __init__(self, msgid, msgstr=None, msgid_plural=None,
+                 msgctxt=None, comments=None, meta=None):
+        """Create a Message, representing one message from a message catalog.
         
-        This will only initialize all the fields of an Entry object.
-        Invoke the 'load' method to load information into it."""
-        self.msgctxt = None
-        self.msgid = None
-        self.msgid_plural = None
-        self.msgstr = None # This is ONLY the first, if there is more than one
-        self.msgstrs = []
-        self.hasplurals = False
-        self.hascontext = False
-        self.entryline = None # Line number of first comment
-        self.linenumber = None # Line number of msgid
-        self.rawlines = None # A list of the actual lines of this entry
-        self.istranslated = False # Translated: not fuzzy, and no empty msgstr
-        self.isfuzzy = False # Marked as fuzzy (having possibly empty msgstr)
+        All strings are assumed to be unicode.  XXX or are they?
         
-    def load(self, lines, entryline=None):
-        """Parse the lines of text, populating attributes of this object.
+        Parameters:
+         * msgid: string
+         * msgstr: string, or list of strings for plurals
+         * msgid_plural: None, or a string if there are plurals
+         * msgctxt: None, or a string if there is a message context
+         * comments: list of newline-terminated strings (use [] if None)
+         
+         The two last arguments specify information that pertains to
+         the file from which the message was loaded.  If the Message
+         is not based on a file, these should be None.  rawlines is
+         the original representation from an input file, if the
+         original representation must be remembered.  lineno is the
+         line number of the msgid in the file from which it was
+         loaded.
 
-        Initializes the variables of this Entry according to the contents
-        of the 'lines' parameter.  If entryline is specified, this will be
-        stored as the line number of the entry in the po-file.
+         It is understood that the properties of a Message may be
+         changed programmatically so as to render it inconsistent with
+         its rawlines and/or lineno.
+        """
+        self.msgid = msgid
+        self.msgid_plural = msgid_plural
 
-        Returns False if all lines are comments (such as for obsolete 
-        entries), otherwise True."""
-        self.entryline = entryline
-        self.rawlines = tuple(lines)
-        
-        # Note: comment order has NOT been verified.
-        comments = [line for line in lines if line.startswith('#')]
-        self.comments = tuple(comments)
-        commentcount = len(comments)
-
-        if commentcount == len(lines):
-            return False
-        
-        # Store the actual line number of the msgid
-        self.linenumber = self.entryline + commentcount
-
-        index = commentcount
-        # Optional context
-        self.hascontext = lines[commentcount].startswith('msgctxt ')
-        if self.hascontext:
-            self.msgctxt, index = extract_string('msgctxt ', lines, index)
-
-        # Next thing should be the msgid
-        self.msgid, index = extract_string('msgid ', lines, index)
-
-        # Check for plural entries
-        self.hasplurals = lines[index].startswith('msgid_plural ')
-        if self.hasplurals:
-            self.msgid_plural, index = extract_string('msgid_plural ',
-                                                      lines, index)
-
-            plurcount = 0
-            while index < len(lines) and lines[index].startswith('msgstr['):
-                string, index = extract_string('msgstr['+str(plurcount)+'] ',
-                                               lines, index)
-                plurcount += 1
-                self.msgstrs.append(string)
-
-            self.msgstr = self.msgstrs[0]
-
+        if msgid_plural is None:
+            self.msgstr = msgstr
+            self.msgstrs = [msgstr]
         else:
-            self.msgstr, index = extract_string('msgstr ', lines, index)
-            self.msgstrs = [self.msgstr]
+            # msgstr is a list; if it turns out to be a string, raise
+            # an error to avoid confusion
+            self.msgstr = msgstr[0]
+            assert not isinstance(msgstr, basestring)
+            self.msgstrs = msgstr
         
-        is_partially_translated = False
-        for msgstr in self.msgstrs:
-            if msgstr:
-                is_partially_translated = True
+        if comments is None:
+            comments = []
+        self.comments = comments
+        
+        # The fuzzy flag is whether fuzzy is specified in the
+        # comments.  It is ignored if the message has an empty
+        # translation.
+        self.fuzzyflag = False
+        for comment in comments:
+            if comment.startswith('#, ') and 'fuzzy' in comment:
+                self.fuzzyflag = True
                 break
         
-        if not is_partially_translated:
-            self.istranslated = False
-            self.isfuzzy = False
-        else:
-            fuzzy_flag_set = False
-            for comment in self.get_comments('#, '):
-                if comment.rfind('fuzzy') > 0:
-                    fuzzy_flag_set = True
-                    break
-            #print fuzzy_flag_set
-            self.istranslated = not fuzzy_flag_set
-            self.isfuzzy = fuzzy_flag_set
-        return True
+        self.msgctxt = msgctxt
+        
+        # XXX TODO:
+        # previous_msgid, has_previous_msgid
+        self.previous_msgid = None
+        if meta is None:
+            meta = {}
+        self.meta = meta
+
+    # Message is either translated, fuzzy or untranslated.
+    # 
+    # If the msgstr (or msgstr[0] in case of plurals) does not have a
+    # translation (i.e. it is the empty string), the message is
+    # considered untranslated.
+    # 
+    # Else, if the message has the fuzzy flag set, it is considered fuzzy.
+    #
+    # Else it is considered translated, unless its msgid is empty.
+    #
+    # This is consistent with msgfmt, but not entirely logical: If a
+    # message has multiple plural forms and one of the subsequent ones
+    # is not translated, then the message *should* logically be
+    # considered untranslated, but this is left for tools like poabc
+    # to warn abount.
+
+    @property
+    def untranslated(self):
+        return self.msgstr == ''
+
+    @property
+    def isfuzzy(self):
+        return self.fuzzyflag and not self.untranslated
+    
+    @property
+    def istranslated(self):
+        return self.msgstr != '' and not self.fuzzyflag
+    
+    @property
+    def has_context(self):
+        return self.msgctxt is not None
+    
+    @property
+    def has_previous_msgid(self):
+        return self.previous_msgid is not None
+    
+    @property
+    def hasplurals(self):
+        return self.msgid_plural is not None
 
     def get_comments(self, pattern='', strip=False):
         """Return comments, optionally starting with a particular pattern.
@@ -136,153 +193,239 @@ class Entry:
         return [line[striplength:] for line in self.comments 
                 if line.startswith(pattern)]
 
+    def rawstring(self):
+        if not 'rawlines' in self.meta:
+            raise KeyError('No raw lines for this Message')
+        return ''.join(self.meta['rawlines'])
+
     def tostring(self):
-        return ''.join(self.rawlines)
-
-    def copy(self):
-        other = Entry()
-        other.load(self.rawlines, self.entryline)
-        return other
-
-
-def extract_string(pattern, lines, index=0):
-    """Extracts the text of an msgid or msgstr, not including 
-    "msgid"/"msgstr", quotation marks or newlines.
-    """
-    # Rearrange indices
-    lines = lines[index:]
-
-    if not lines[0].startswith(pattern):
-        raise Exception('Pattern "'+pattern+'" not found at start of string "'
-                        + lines[0] + '".')
-
-
-    lines[0] = lines[0][len(pattern):] # Strip pattern
-    msglines = []
-    for line in lines:
-        if line.startswith('"'):
-            msglines.append(line[1:-2]) # Strip quotation marks and newline
+        lines = []
+        lines.extend(self.comments)
+        if self.has_context:
+            lines.append(wrap('msgctxt', self.msgctxt))
+        lines.append(wrap('msgid', self.msgid))
+        if self.hasplurals:
+            lines.append(wrap('msgid_plural', self.msgid_plural))
+            for i, msgstr in enumerate(self.msgstrs):
+                lines.append(wrap('msgstr[%d]' % i, msgstr))
         else:
-            break
+            lines.append(wrap('msgstr', self.msgstr))
+        string = ''.join(lines)
+        return string
 
-    return u''.join(msglines), index + len(msglines)
 
-def sortcomments(comments):
-    """Get a tuple of lists of comments, each list being one comment type.
+class ObsoleteMessage(object):
+    def __init__(self, comments, meta=None):
+        self.comments = comments
+        if meta is None:
+            meta = {}
+        self.meta = meta
 
-    Given a list of strings which must all start with '#', returns a tuple
-    containing six lists of strings, namely the translator comments 
-    ('# '), extracted comments ('#. '), references ('#: '), flags  ('#, ')
-    and comments relating to previous strings ('#| ')."""
-    raise DeprecationWarning('use Entry.get_comments(self, pattern, ...)')
+    def tostring(self):
+        return ''.join(self.comments)
 
-    transl = []
-    auto = []
-    ref = []
-    flag = []
-    for comment in comments:
-        if comment.startswith('#. '):
-            auto.append(comment)
-        elif comment.startswith('#: '):
-            ref.append(comment)
-        elif comment.startswith('#, '):
-            flag.append(comment)
-        elif comment.startswith('#  '):
-            transl.append(comment)
 
-    # Note: comment order has NOT been verified.
-    return transl, auto, ref, flag
-
-def grab_sub_string(string, pattern, terminator=None, start=0):
-    """Extract sting enclosed by pattern and terminator.
-
-    From the given string, returns the text enclosed within pattern and
-    terminator (which is the start pattern unless otherwise specified).
-    The return value is a tuple with the enclosed text, start index and end 
-    index.
-    """
-    startindex = string.index(pattern) + len(pattern)
-    if terminator is None:
-        terminator = pattern
-    endindex = string.index(terminator, startindex)
-    
-    return (string[startindex:endindex], startindex, endindex)
+def wrap(declaration, string):
+    if len(string) + len(declaration) > 75 or '\\n' in string:
+        tokens = []
+        tokens.append('%s ""\n' % declaration)
+        linetokens = string.split('\\n')
+        for i, token in enumerate(linetokens[:-1]):
+            linetokens[i] += '\\n' # grrr
+        for linetoken in linetokens:
+            lines = wrapper.wrap(linetoken)
+            for line in lines:
+                tokens.append('"')
+                tokens.append(line)
+                tokens.append('"\n')
+        return ''.join(tokens)
+    else:
+        return '%s "%s"\n' % (declaration, string)
 
 
 class LineNumberIterator:
     # XXX Can probably be replaced by using fileinput module
     def __init__(self, input):
-        self.linenumber = 0
+        self.lineno = 0
         self.input = input
+        self.lines = []
+    def pop_lines(self):
+        lines = self.lines
+        self.lines = []
+        return lines
     def next(self):
         line = self.input.next()
-        self.linenumber += 1
+        self.lineno += 1
+        self.lines.append(line)
         return line
 
 
-class Parser:
-    def read_entrylines(self, input):
-        """Yield the lines corresponding to one entry, reading from input."""
+class PoSyntaxError(ValueError):
+    pass
+
+
+# Exception for cases we don't support, such as obsoletes (#~), future
+# gettext features and so on
+class UnimplementedPoSyntaxError(NotImplementedError):
+    pass
+
+
+def get_message_chunk(input):
+    """Read text from input and yield a dictionary for each message.
+
+    The format of this dictionary is subject to change."""
+    msgdata = {}
+    input.pop_lines()
+    #assert len(input.pop_lines()) == 0
+    
+    line = input.next()
+    while line.isspace():
+        input.pop_lines()
         line = input.next()
-        while line.isspace():
+    
+    msgdata['lineno'] = input.lineno
+    comments = []
+
+    def extract_string(line, input, header):
+        if not line.startswith(header + ' "'):
+            raise PoSyntaxError('%s not found near line %d:\n%s'
+                                % (header, input.lineno, 
+                                   ''.join(input.pop_lines())))
+        lines = []
+
+        # get e.g. 'hello' from the line 'msgid "hello"'
+        lines.append(line[len(header) + 2:-2])
+        line = input.next()
+        while line.startswith('"'):
+            lines.append(line[1:-2]) # get 'hello' from line '"hello"'
+            assert line.endswith('"\n'), line
             line = input.next()
-        while not line.isspace():
-            yield line
-            line = input.next()
+        string = ''.join(lines)
+        return line, string
 
-    def read_entrylinesets(self, input):
-        """Yield tuples (n, lines) of line number and lines forming entries."""
-        lineiter = LineNumberIterator(input)
-        while True:
-            entrylines = list(self.read_entrylines(lineiter))
-            if not entrylines:
-                raise StopIteration
-            lineno = lineiter.linenumber - len(entrylines)
-            yield lineno, entrylines
+    while line.startswith('#'):
+        comments.append(line)
+        line = input.next()
+    msgdata['comments'] = comments
 
-    def parse(self, input, encoding='utf8', include_obsolete=False):
-        """Yield all entries found in the input file."""
-        decoded_input = codecs.iterdecode(input, encoding)
-        for lineno, lines in self.read_entrylinesets(decoded_input):
-            entry = Entry()
-            if entry.load(lines, lineno) or include_obsolete:
-                yield entry
+    if line.startswith('msgctxt "'):
+        line, msgctxt = extract_string(line, input, 'msgctxt')
+        msgdata['msgctxt'] = msgctxt # XXX remember to take care of this
 
-    #def parse_asciilike(self, input):
-    #    """Like parse, but actively decode input as utf8."""
-    #    return self.parse(codecs.iterdecode(input, 'utf8'))
+    if not line.startswith('msgid "'):
+        if any(previous_line.startswith('#~') 
+               for previous_line in comments):
+            msgdata['obsolete'] = True
+            return msgdata
 
+    line, msgid = extract_string(line, input, 'msgid')
 
-class Printer:
-    def __init__(self, out):
-        self.out = out
+    msgdata['msgid'] = msgid
 
-    def w(self, string):
-        print >> self.out, string,
+    isplural = line.startswith('msgid_plural "')
+    msgdata['isplural'] = isplural
 
-    def write_entry(self, entry):
-        self.write_comments(entry)
-        if entry.hascontext:
-            self.write_block('msgctxt', entry.msgctxt)
-        self.write_block('msgid', entry.msgid)
-        if entry.hasplurals:
-            self.write_block('msgid_plural', entry.msgid_plural)
-            for i, msgstr in enumerate(entry.msgstrs):
-                self.write_block('msgstr[%d]' % i, msgstr)
+    if isplural:
+        line, msgid_plural = extract_string(line, input, 'msgid_plural')
+        msgdata['msgid_plural'] = msgid_plural
+        nmsgstr = 0
+        msgstrs = []
+        msgstr_token = 'msgstr[%d]' % nmsgstr
+        while line.startswith(msgstr_token):
+            line, msgstr = extract_string(line, input, msgstr_token)
+            # XXXX what if chunk runs out of lines?
+            
+            msgstrs.append(msgstr)
+            nmsgstr += 1
+            msgstr_token = 'msgstr[%d]' % nmsgstr
+        msgdata['msgstrs'] = msgstrs
+    else:
+        if not line.startswith('msgstr "'):
+            raise PoSyntaxError('msgstr not found')
+        line, msgstr = extract_string(line, input, 'msgstr')
+        msgdata['msgstr'] = msgstr
+    msgdata['rawlines'] = input.pop_lines()
+    return msgdata
+
+def chunk_iter(input, include_obsoletes=False):
+    input = LineNumberIterator(input)
+    while True:
+        try:
+            msgdata = get_message_chunk(input)
+        except UnimplementedPoSyntaxError, e:
+            pass
+            #print e
         else:
-            self.write_block('msgstr', entry.msgstr)
-        self.write_terminator()
+            if not msgdata.get('obsolete') or include_obsoletes:
+                yield msgdata
 
-    def write_comments(self, entry):
-        for comment in entry.comments:
-            self.write_comment(comment)
 
-    def write_comment(self, comment):
-        self.w(comment)
+def parse(input):
+    try:
+        fname = input.name
+    except AttributeError:
+        fname = '<unknown>'
 
-    def write_block(self, identifier, string):
-        self.w('%s "%s"\n' % (identifier, string))
+    chunks = []
+    obsoletes = []
+    
+    for chunk in chunk_iter(input, include_obsoletes=True):
+        if chunk.get('obsolete'):
+            obsoletes.append(chunk)
+        else:
+            chunks.append(chunk)
+    
+    for chunk in chunks:
+        if chunk['msgid'] == '':
+            header = chunk
+        break
+    else:
+        raise PoSyntaxError('Header not found')
 
-    def write_terminator(self):
-        self.w('\n')
+    for line in header['msgstr'].split('\\n'):
+        if line.startswith('Content-Type:'):
+            break
+    for token in line.split():
+        if token.startswith('charset='):
+            break
+    encoding = token.split('=')[1]
+    
+    msgs = []
+    for chunk in chunks:
+        msgid = chunk['msgid']
+        
+        if 'msgstr' in chunk:
+            assert not 'msgid_plural' in chunk
+            msgstr = chunk['msgstr']
+        elif 'msgid_plural' in chunk:
+            msgstr = chunk['msgstrs']
+        else:
+            raise AssertionError('dictionary format acting up')
+        
+        comments = chunk['comments']
+        rawlines = chunk['rawlines']
 
+        meta = dict(rawlines=chunk['rawlines'],
+                    lineno=chunk['lineno'],
+                    fname=fname,
+                    encoding=encoding)
+
+        msgs.append(Message(msgid=chunk['msgid'],
+                            msgstr=msgstr, # (includes any plurals)
+                            msgid_plural=chunk.get('msgid_plural'),
+                            msgctxt=chunk.get('msgctxt'),
+                            comments=chunk['comments'],
+                            meta=meta))
+    
+    obsoletes = [ObsoleteMessage(obsolete['comments'], 
+                                 meta=dict(encoding=encoding, fname=fname))
+                                 for obsolete in obsoletes]
+
+    cat = Catalog(fname, encoding, msgs, obsoletes=obsoletes)
+    return cat
+
+
+# When parsing, allow stuff like:
+# * allow for missing header
+# * ignore encoding errors
+# * ignoring bad syntax

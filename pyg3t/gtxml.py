@@ -4,7 +4,7 @@ import sys
 import xml.sax
 from optparse import OptionParser
 
-from pyg3t import gtparse, __version__
+from pyg3t.gtparse import parse
 
 
 class GTXMLChecker(xml.sax.handler.ContentHandler):
@@ -26,25 +26,27 @@ class GTXMLChecker(xml.sax.handler.ContentHandler):
         xml.sax.parseString(xmlstring, self)
         return True
     
-    def check_entry(self, entry):
+    def check_entry(self, msg):
         """Raise SAXParseException if entry is considered ill-formed."""
-        if not '<' in entry.msgid:
+        encoding = msg.meta['encoding']
+        msgid = msg.msgid.decode(encoding)
+        if not '<' in msgid:
             return True
         try:
-            self.check_string(entry.msgid)
+            self.check_string(msgid)
         except xml.sax.SAXParseException:
             return True # msgid is probably not supposed to be xml
-        for msgstr in entry.msgstrs:
-            self.check_string(msgstr)
+        for msgstr in msg.msgstrs:
+            self.check_string(msgstr.decode(encoding))
         return True
     
-    def check_entries(self, entries):
+    def check_entries(self, msgs):
         """Yield pairs (entry, errmsg) for entries with ill-formed xml."""
-        for entry in entries:
+        for msg in msgs:
             try:
-                self.check_entry(entry)
+                self.check_entry(msg)
             except xml.sax.SAXParseException, err:
-                yield entry, err
+                yield msg, err
 
 
 def build_parser():
@@ -56,8 +58,7 @@ def build_parser():
                    'msgstrs is not.  If no FILE is given, '
                    'or if FILE is -, read from stdin.')
                    
-    parser = OptionParser(usage=usage, description=description,
-                          version=__version__)
+    parser = OptionParser(usage=usage, description=description)
     parser.add_option('-s', '--summary', action='store_true',
                       help=('write only whether each FILE passes or fails, '
                             'and the number of valid and invalid strings '
@@ -86,7 +87,7 @@ def get_inputfiles(args, parser):
 
 class EntryPrinter:
     def get_header(self, filename, entry, err):
-        return 'At line %d: %s' % (entry.linenumber, err)
+        return 'At line %d: %s' % (entry.meta['lineno'], err)
         
     def write_entry(self, entrystring, err):
         print entrystring
@@ -95,7 +96,7 @@ class EntryPrinter:
         header = self.get_header(filename, entry, err)
         print header
         print '-' * min(78, len(header))
-        self.write_entry(entry.tostring().encode('utf8'), err)
+        self.write_entry(entry.tostring(), err)
 
 
 class MultiFileEntryPrinter(EntryPrinter):
@@ -143,8 +144,8 @@ def main():
 
     total_badcount = 0
     for filename, input in get_inputfiles(args, parser):
-        parser = gtparse.Parser()
-        entries = parser.parse(input)
+        #parser = gtparse.Parser()
+        entries = parse(input)
         if opts.fuzzy:
             entries = [entry for entry in entries 
                        if entry.istranslated or entry.isfuzzy]

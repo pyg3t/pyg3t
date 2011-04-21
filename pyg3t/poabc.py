@@ -5,7 +5,7 @@ import fileinput
 import itertools
 from optparse import OptionParser
 
-from pyg3t.gtparse import Parser
+from pyg3t.gtparse import parse
 from pyg3t.gtxml import GTXMLChecker
 from pyg3t import __version__
 import xml.sax
@@ -239,9 +239,9 @@ def main():
         raise SystemExit(1)
     
     allfiles = fileinput.input(args)
-        
-    parser = Parser()
-    entries = parser.parse(allfiles)
+    
+    # XXX does this work with multiple files actually?
+    entries = parse(allfiles)
 
     tests = []
     tests.append(PartiallyTranslatedPluralTest())
@@ -264,12 +264,12 @@ def main():
 
     try:
         for entry, warnings in poabc.check_entries(entries):
-            print header(entry.linenumber)
+            print header(entry.meta['lineno'])
             warningcount += len(warnings)
             entrywarncount += 1
             for warning in warnings:
                 print warning
-            print entry.tostring().encode('utf8')
+            print entry.rawstring()
     except IOError, err:
         cmdparser.error(err)
         

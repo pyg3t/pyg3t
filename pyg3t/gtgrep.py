@@ -8,7 +8,7 @@ from optparse import OptionParser, OptionGroup
 import operator
 
 from pyg3t import __version__
-from pyg3t.gtparse import Parser
+from pyg3t.gtparse import parse
 from pyg3t.util import Colorizer
 
 
@@ -84,23 +84,28 @@ class GTGrep:
         imatch = False # whether msgid matches
         smatch = False # whether msgstr matches
 
-        filter = self.filter.filter
+        encoding = entry.meta['encoding']
 
-        imatch = self.imatch(re.search(self.msgid_pattern, 
-                                       filter(entry.msgid)))
+        filter = self.filter.filter
+        
+        msgid = entry.msgid.decode(encoding)
+        imatch = self.imatch(re.search(self.msgid_pattern, filter(msgid)))
+        
         if entry.hasplurals:
+            msgid_plural = entry.msgid_plural.decode(encoding)
             imatch |= self.imatch(re.search(self.msgid_pattern, 
-                                            filter(entry.msgid_plural)))
+                                            filter(msgid_plural)))
         for msgstr in entry.msgstrs:
+            msgstr = msgstr.decode(encoding)
             smatch |= self.smatch(re.search(self.msgstr_pattern, 
                                             filter(msgstr)))
         return self.boolean_operator(imatch, smatch)
 
-    def search_iter(self, entries):
-        for entry in entries:
-            matches = self.check(entry)
+    def search_iter(self, msgs):
+        for msg in msgs:
+            matches = self.check(msg)
             if matches:
-                yield entry
+                yield msg
 
 
 def build_parser():
@@ -218,12 +223,13 @@ def main():
                       boolean_operator=boolean_operator)
     except re.error, err:
         parser.error(err)
-    parser = Parser()
+    #parser = Parser()
 
     global_matchcount = 0
     for filename, input in inputs:
-        entries = parser.parse(input)
-        matches = grep.search_iter(entries)
+        cat = parse(input)
+        #entries = parser.parse(input)
+        matches = grep.search_iter(cat)
 
         if opts.count:
             nmatches = len(list(matches))
