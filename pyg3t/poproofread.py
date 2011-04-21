@@ -168,6 +168,22 @@ class PoProofRead():
                 if self.position < 0:
                     self.position += 1
 
+            # Go to numbered diff chunk
+            if c == 'g':
+                self.__print_header('GOTO')
+                entry = raw_input('Goto number diff: ')
+                # Turn the input into an int and make sure it is within range
+                try:
+                    entry = int(entry)
+                    assert(entry > 0 and entry <= self.size)
+                    self.position = entry - 1
+                except (ValueError, AssertionError):
+                    print ('Error: %s is not a valid message number\n'
+                           'Valid number are between 1 and %i\n\n'
+                           'Press a key to continue'
+                           % (str(entry), self.size))
+                    self.__read_char()
+
             # Edit comment for diff chunk
             if c == 'e':
                 self.__print_header('EDIT')
@@ -237,8 +253,8 @@ class PoProofRead():
         status_length = len(str(self.position+1)) + len(str(self.size)) + 4
         print '# poproofread', (78-status_length-13-2)*' ',\
             str(self.position+1),'of', str(self.size) + ' #'
-        print  ('# Press (n)ext, (p)revious, (e)dit or (q'
-                ')uit and save                     '+state+' #\n'
+        print  ('# Press (n)ext, (p)revious, (e)dit, (g)o'
+                'to or (q)uit and save             '+state+' #\n'
                 '########################################'
                 '########################################')
         # Print diff chunk
