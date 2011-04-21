@@ -24,7 +24,7 @@ import os
 
 class PoProofRead():
     """ This class provides the functionality for the poproofread command line
-    tool
+    tool 
     """
 
     def __init__(self, input_file_name, continue_work=False,
