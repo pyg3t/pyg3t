@@ -144,18 +144,17 @@ def main():
 
     total_badcount = 0
     for filename, input in get_inputfiles(args, parser):
-        #parser = gtparse.Parser()
-        msgs = parse(input)
+        cat = parse(input)
         if opts.fuzzy:
-            msgs = [msg for msg in msgs 
-                    if msg.istranslated or msg.isfuzzy]
+            cat = [msg for msg in msgs # XXX not a catalog
+                   if msg.istranslated or msg.isfuzzy]
         else:
-            msgs = [msg for msg in msgs if msg.istranslated]
+            cat = [msg for msg in cat if msg.istranslated]
         badcount = 0
-        for bad_msg, err in gtxml.check_msgs(msgs):
+        for bad_msg, err in gtxml.check_msgs(cat):
             msgprinter.write(filename, bad_msg, err)
             badcount += 1
-        fileprinter.write(filename, len(msgs), badcount)
+        fileprinter.write(filename, len(cat), badcount)
         total_badcount += badcount
 
     if opts.summary:

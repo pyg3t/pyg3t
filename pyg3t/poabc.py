@@ -241,7 +241,7 @@ def main():
     allfiles = fileinput.input(args)
     
     # XXX does this work with multiple files actually?
-    msgs = parse(allfiles)
+    cat = parse(allfiles)
 
     tests = []
     tests.append(PartiallyTranslatedPluralTest())
@@ -263,7 +263,7 @@ def main():
     msgwarncount = 0 # number of msgs with at least one warning
 
     try:
-        for msg, warnings in poabc.check_msgs(msgs):
+        for msg, warnings in poabc.check_msgs(cat):
             print header(msg.meta['lineno'])
             warningcount += len(warnings)
             msgwarncount += 1

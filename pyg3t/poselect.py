@@ -186,8 +186,8 @@ def main():
     if opts.line_number:
         printer = LineNumberMsgPrinter(printer)
 
-    msgs = parse(src)
-    selected = poselect.select(msgs)
+    cat = parse(src)
+    selected = poselect.select(cat)
 
     if opts.count:
         print len(list(selected))
