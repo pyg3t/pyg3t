@@ -12,8 +12,8 @@ class Counter:
         self.count = 0
         self.total = 0
     
-    def evaluate(self, entry):
-        result = self.selector.evaluate(entry)
+    def evaluate(self, msg):
+        result = self.selector.evaluate(msg)
         if result:
             self.count += 1
         self.total += 1
@@ -24,32 +24,32 @@ class NegatingSelector:
     def __init__(self, selector):
         self.selector = selector
 
-    def evaluate(self, entry):
-        return not self.selector.evaluate(entry)
+    def evaluate(self, msg):
+        return not self.selector.evaluate(msg)
 
 
 class FuzzySelector:
     name = 'Fuzzy'
-    def evaluate(self, entry):
-        return entry.isfuzzy
+    def evaluate(self, msg):
+        return msg.isfuzzy
 
 
 class TranslatedSelector:
     name = 'Translated'
-    def evaluate(self, entry):
-        return entry.istranslated
+    def evaluate(self, msg):
+        return msg.istranslated
 
 
 class UntranslatedSelector:
     name = 'Untranslated'
-    def evaluate(self, entry):
-        return not entry.istranslated and not entry.isfuzzy
+    def evaluate(self, msg):
+        return not msg.istranslated and not msg.isfuzzy
 
 
 class PluralSelector:
     name = 'Plural'
-    def evaluate(self, entry):
-        return entry.hasplurals
+    def evaluate(self, msg):
+        return msg.hasplurals
 
 
 class OrSelector:
@@ -57,9 +57,9 @@ class OrSelector:
         self.name = 'or: %s' % list(selectors)
         self.selectors = selectors
 
-    def evaluate(self, entry):
+    def evaluate(self, msg):
         for selector in self.selectors:
-            if selector.evaluate(entry):
+            if selector.evaluate(msg):
                 return True
         return False
 
@@ -69,9 +69,9 @@ class AndSelector:
         self.name = 'and: %s' % list(selectors)
         self.selectors = selectors
         
-    def evaluate(self, entry):
+    def evaluate(self, msg):
         for selector in self.selectors:
-            if not selector.evaluate(entry):
+            if not selector.evaluate(msg):
                 return False
         return True
 
@@ -80,25 +80,25 @@ class PoSelect:
     def __init__(self, selector):
         self.selector = selector
 
-    def select(self, entries):
+    def select(self, msgs):
         selector = self.selector
-        for entry in entries:
-            if entry.msgid and selector.evaluate(entry):
-                yield entry
+        for msg in msgs:
+            if msg.msgid and selector.evaluate(msg):
+                yield msg
 
 
-class EntryPrinter:
-    def write(self, entry):
-        print entry.tostring()
+class MsgPrinter:
+    def write(self, msg):
+        print msg.tostring()
 
 
-class LineNumberEntryPrinter:
+class LineNumberMsgPrinter:
     def __init__(self, printer):
         self.printer = printer
     
-    def write(self, entry):
-        print 'Line %d' % entry.linenumber
-        self.printer.write(entry)
+    def write(self, msg):
+        print 'Line %d' % msg.linenumber
+        self.printer.write(msg)
 
 
 def build_parser():
@@ -118,7 +118,7 @@ def build_parser():
     selection.add_option('-f', '--fuzzy', action='store_true',
                       help='select fuzzy messages')
     selection.add_option('-p', '--plural', action='store_true',
-                      help='select entries with plural forms')
+                      help='select messages with plural forms')
     selection.add_option('-v', '--invert', action='store_true',
                       help='invert selection criterion')
     selection.add_option('-a', '--and', action='store_true', dest='and_',
@@ -126,18 +126,18 @@ def build_parser():
                          'criterion to trigger selection')
                       
     output.add_option('-n', '--line-number', action='store_true',
-                      help='print line numbers of selected entries')
+                      help='print line numbers of selected messages')
     output.add_option('-s', '--summary', action='store_true',
                       help='print a summary when done')
     output.add_option('-c', '--count', action='store_true',
                       help='suppress normal output; print a count of selected '
-                      'entries')
+                      'messages')
     output.add_option('-w', '--msgid-word-count', action='store_true',
                       help='suppress normal output; print the count of words '
-                      'in the msgids of selected entries')
+                      'in the msgids of selected messages')
     output.add_option('-l', '--msgid-letter-count', action='store_true',
                       help='suppress normal output; print the count of '
-                      'letters in the msgids of selected entries')
+                      'letters in the msgids of selected messages')
 
     parser.add_option_group(selection)
     parser.add_option_group(output)
@@ -182,12 +182,12 @@ def main():
     counter = Counter(superselector)
     poselect = PoSelect(counter)
     
-    printer = EntryPrinter()
+    printer = MsgPrinter()
     if opts.line_number:
-        printer = LineNumberEntryPrinter(printer)
+        printer = LineNumberMsgPrinter(printer)
 
-    entries = parse(src)
-    selected = poselect.select(entries)
+    msgs = parse(src)
+    selected = poselect.select(msgs)
 
     if opts.count:
         print len(list(selected))
@@ -196,8 +196,8 @@ def main():
     elif opts.msgid_word_count:
         print sum([len(msg.msgid.split()) for msg in selected])
     else:
-        for entry in selected:
-            printer.write(entry)
+        for msg in selected:
+            printer.write(msg)
 
     
     if opts.summary:

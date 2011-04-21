@@ -10,7 +10,7 @@ from pyg3t.gtparse import parse
 class GTXMLChecker(xml.sax.handler.ContentHandler):
     """XML parser class for checking bad xml in gettext translations.
 
-    An entry is considered ill-formed if its msgid is valid xml while at
+    An msg is considered ill-formed if its msgid is valid xml while at
     least one msgstr is not.  Note that this is a heuristic; the msgid may
     happen to form valid xml by accident."""
     def __init__(self):
@@ -26,8 +26,8 @@ class GTXMLChecker(xml.sax.handler.ContentHandler):
         xml.sax.parseString(xmlstring, self)
         return True
     
-    def check_entry(self, msg):
-        """Raise SAXParseException if entry is considered ill-formed."""
+    def check_msg(self, msg):
+        """Raise SAXParseException if msg is considered ill-formed."""
         encoding = msg.meta['encoding']
         msgid = msg.msgid.decode(encoding)
         if not '<' in msgid:
@@ -40,11 +40,11 @@ class GTXMLChecker(xml.sax.handler.ContentHandler):
             self.check_string(msgstr.decode(encoding))
         return True
     
-    def check_entries(self, msgs):
-        """Yield pairs (entry, errmsg) for entries with ill-formed xml."""
+    def check_msgs(self, msgs):
+        """Yield pairs (msg, errmsg) for msgs with ill-formed xml."""
         for msg in msgs:
             try:
-                self.check_entry(msg)
+                self.check_msg(msg)
             except xml.sax.SAXParseException, err:
                 yield msg, err
 
@@ -52,8 +52,8 @@ class GTXMLChecker(xml.sax.handler.ContentHandler):
 def build_parser():
     usage = '%prog [OPTION]... [FILE]...'
     description = ('Parse the contents of each po-FILE, writing '
-                   'warnings for entries suspected of containing ill-formed '
-                   'xml.  A translated entry is considered ill-formed if '
+                   'warnings for messages suspected of containing ill-formed '
+                   'xml.  A translated message is considered ill-formed if '
                    'its msgid is well-formed xml while at least one of its '
                    'msgstrs is not.  If no FILE is given, '
                    'or if FILE is -, read from stdin.')
@@ -64,8 +64,8 @@ def build_parser():
                             'and the number of valid and invalid strings '
                             'for each file.'))
     parser.add_option('-f', '--fuzzy', action='store_true',
-                      help=('print warnings for fuzzy entries aside from '
-                            'just translated entries.'))
+                      help=('print warnings for fuzzy messages aside from '
+                            'just translated messages.'))
     return parser
 
 
@@ -85,29 +85,29 @@ def get_inputfiles(args, parser):
             yield arg, input
 
 
-class EntryPrinter:
-    def get_header(self, filename, entry, err):
-        return 'At line %d: %s' % (entry.meta['lineno'], err)
+class MsgPrinter:
+    def get_header(self, filename, msg, err):
+        return 'At line %d: %s' % (msg.meta['lineno'], err)
         
-    def write_entry(self, entrystring, err):
-        print entrystring
+    def write_msg(self, msgstring, err):
+        print msgstring
 
-    def write(self, filename, entry, err):
-        header = self.get_header(filename, entry, err)
+    def write(self, filename, msg, err):
+        header = self.get_header(filename, msg, err)
         print header
         print '-' * min(78, len(header))
-        self.write_entry(entry.tostring(), err)
+        self.write_msg(msg.tostring(), err)
 
 
-class MultiFileEntryPrinter(EntryPrinter):
-    def get_header(self, filename, entry, err):
+class MultiFileMsgPrinter(MsgPrinter):
+    def get_header(self, filename, msg, err):
         if filename == '-':
             filename = '<stdin>'
-        return '%s, line %d: %s' % (filename, entry.linenumber, err)
+        return '%s, line %d: %s' % (filename, msg.linenumber, err)
 
 
-class SilentEntryPrinter:
-    def write(self, filename, entry, err):
+class SilentMsgPrinter:
+    def write(self, filename, msg, err):
         pass
 
 
@@ -133,29 +133,29 @@ def main():
     gtxml = GTXMLChecker()
 
     if opts.summary:
-        entryprinter = SilentEntryPrinter()
+        msgprinter = SilentMsgPrinter()
         fileprinter = FileSummarizer()
     else:
         if len(args) > 1:
-            entryprinter = MultiFileEntryPrinter()
+            msgprinter = MultiFileMsgPrinter()
         else:
-            entryprinter = EntryPrinter()
+            msgprinter = MsgPrinter()
         fileprinter = SilentFileSummarizer()
 
     total_badcount = 0
     for filename, input in get_inputfiles(args, parser):
         #parser = gtparse.Parser()
-        entries = parse(input)
+        msgs = parse(input)
         if opts.fuzzy:
-            entries = [entry for entry in entries 
-                       if entry.istranslated or entry.isfuzzy]
+            msgs = [msg for msg in msgs 
+                    if msg.istranslated or msg.isfuzzy]
         else:
-            entries = [entry for entry in entries if entry.istranslated]
+            msgs = [msg for msg in msgs if msg.istranslated]
         badcount = 0
-        for bad_entry, err in gtxml.check_entries(entries):
-            entryprinter.write(filename, bad_entry, err)
+        for bad_msg, err in gtxml.check_msgs(msgs):
+            msgprinter.write(filename, bad_msg, err)
             badcount += 1
-        fileprinter.write(filename, len(entries), badcount)
+        fileprinter.write(filename, len(msgs), badcount)
         total_badcount += badcount
 
     if opts.summary:

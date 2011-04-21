@@ -21,10 +21,36 @@ import codecs
 import re
 from textwrap import TextWrapper
 
-wrapper = TextWrapper(width=77,
-                      replace_whitespace=False,
-                      expand_tabs=False,
-                      drop_whitespace=False)
+wordseparator = re.compile(r'(\s+)')
+
+#wrapper = TextWrapper(width=77,
+#                      replace_whitespace=False,
+#                      expand_tabs=False,
+#                      drop_whitespace=False)
+
+# Built-in textwrapper doesn't support the drop_whitespace=False
+# option before 2.6, and it's sort of nice to support 2.5 still.
+# So this is sort of equivalent to the TextWrapper
+class TextWrapper:
+    def wrap(self, text):
+        chunks = iter(wordseparator.split(text))
+        lines = []
+        tokens = []
+        chars = 0
+        for chunk in chunks:
+            if chars + len(chunk) > 77:
+                lines.append(''.join(tokens))
+                tokens = []
+                chars = 0
+            if len(chunk) > 0:
+                tokens.append(chunk)
+                chars += len(chunk)
+        if tokens:
+            lines.append(''.join(tokens))
+        return lines
+wrapper = TextWrapper()
+
+
 
 
 class Catalog(object):

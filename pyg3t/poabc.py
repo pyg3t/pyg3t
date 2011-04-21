@@ -17,7 +17,7 @@ def is_translatorcredits(msgid):
 
 
 class PartiallyTranslatedPluralTest:
-    def check(self, entry, msgid, msgstr):
+    def check(self, msg, msgid, msgstr):
         warn = None
         if msgstr == '':
             warn = 'Some plurals not translated'
@@ -28,17 +28,17 @@ class XMLTest:
     def __init__(self):
         self.checker = GTXMLChecker()
 
-    def check(self, entry, msgid, msgstr):
+    def check(self, msg, msgid, msgstr):
         warn = None
         try:
-            self.checker.check_entry(entry)
+            self.checker.check_msg(msg)
         except xml.sax.SAXParseException, err:
             warn = 'Invalid xml: ' + str(err)
         return msgid, msgstr, warn
 
 
 class WordRepeatTest:
-    def check(self, entry, msgid, msgstr):
+    def check(self, msg, msgid, msgstr):
         words = msgstr.split()
         for word1, word2 in zip(words[:-1], words[1:]):
             if word1.isalpha() and word1 == word2:
@@ -50,7 +50,7 @@ class ContextCharTest:
     def __init__(self, context_char):
         self.context_char = context_char
 
-    def check(self, entry, msgid, msgstr):
+    def check(self, msg, msgid, msgstr):
         index1 = msgid.find(self.context_char)
         warn = None
         if index1 == -1:
@@ -74,7 +74,7 @@ def sametype(msgid, msgstr):
 
         
 class LeadingCharTest:
-    def check(self, entry, msgid, msgstr):
+    def check(self, msg, msgid, msgstr):
         if not msgid or not msgstr:
             return msgid, msgstr, None
         ichar = msgid[0]
@@ -93,7 +93,7 @@ class LeadingCharTest:
 
 
 class TrailingCharTest:
-    def check(self, entry, msgid, msgstr):
+    def check(self, msg, msgid, msgstr):
         if not msgid or not msgstr:
             return msgid, msgstr, None
         issametype, index = sametype(reversed(msgid), 
@@ -112,7 +112,7 @@ class AcceleratorTest:
     def __init__(self, accel_key):
         self.accel_key = accel_key
 
-    def check(self, entry, msgid, msgstr):
+    def check(self, msg, msgid, msgstr):
         char = self.accel_key
         naccels_msgid = msgid.count(char)
         naccels_msgstr = msgstr.count(char)
@@ -131,75 +131,75 @@ class QuoteSubstitutionFilter:
     def __init__(self, quotechar):
         self.quotechar = quotechar
     
-    def check(self, entry, msgid, msgstr):
+    def check(self, msg, msgid, msgstr):
         return msgid.replace("'", self.quotechar), msgstr, None
 
 
 class POABC:
     def __init__(self, tests):
-        self.entrycount = 0
+        self.msgcount = 0
         self.translatedcount = 0
         self.untranslatedcount = 0
         self.fuzzycount = 0
         self.tests = tuple(tests)
 
-    def add_to_stats(self, entry):
-        if not entry.msgid:
+    def add_to_stats(self, msg):
+        if not msg.msgid:
             return
-        self.entrycount += 1
-        if entry.istranslated:
+        self.msgcount += 1
+        if msg.istranslated:
             self.translatedcount += 1
-        elif entry.isfuzzy:
+        elif msg.isfuzzy:
             self.fuzzycount += 1
         else:
             self.untranslatedcount += 1
 
-    def check_stringpair(self, entry, msgid, msgstr):
+    def check_stringpair(self, msg, msgid, msgstr):
         if not msgid: # The header should have been filtered out already
             return msgid, msgstr, ['No msgid']
         if not msgstr: 
             # These have already been checked for if called
-            # from check_entry
+            # from check_msg
             return msgid, msgstr, ['Untranslated message']
-        if entry.isfuzzy:
+        if msg.isfuzzy:
             return msgid, msgstr, ['Fuzzy message']
 
         warnings = []
         for test in self.tests:
-            msgid, msgstr, warning = test.check(entry, msgid, msgstr)
+            msgid, msgstr, warning = test.check(msg, msgid, msgstr)
             if warning:
                 warnings.append(warning)
         return msgid, msgstr, warnings
 
-    def check_entry(self, entry):
+    def check_msg(self, msg):
         warnings = []
-        if len(entry.msgid) == 0:
+        if len(msg.msgid) == 0:
             return warnings
-        if not entry.istranslated:
+        if not msg.istranslated:
             return ['Untranslated message']
-        if entry.isfuzzy:
+        if msg.isfuzzy:
             return ['Fuzzy message']
-        msgid, msgstr, warnings1 = self.check_stringpair(entry, entry.msgid,
-                                                         entry.msgstr)
+        msgid, msgstr, warnings1 = self.check_stringpair(msg, msg.msgid,
+                                                         msg.msgstr)
         warnings.extend(warnings1)
         
-        if entry.hasplurals:
-            msgid_plural = entry.msgid_plural
-            for msgstr in entry.msgstrs[1:]:
-                msgid, msgstr, morewarns = self.check_stringpair(entry,
+        if msg.hasplurals:
+            msgid_plural = msg.msgid_plural
+            for msgstr in msg.msgstrs[1:]:
+                msgid, msgstr, morewarns = self.check_stringpair(msg,
                                                                  msgid_plural,
                                                                  msgstr)
             warnings.extend(morewarns)
         return warnings
 
-    def check_entries(self, entries):
-        for entry in entries:
-            self.add_to_stats(entry)
-            if is_translatorcredits(entry.msgid):
+    def check_msgs(self, msgs):
+        for msg in msgs:
+            self.add_to_stats(msg)
+            if is_translatorcredits(msg.msgid):
                 continue
-            warnings = self.check_entry(entry)
+            warnings = self.check_msg(msg)
             if warnings:
-                yield entry, warnings
+                yield msg, warnings
 
 
 def build_parser():
@@ -241,7 +241,7 @@ def main():
     allfiles = fileinput.input(args)
     
     # XXX does this work with multiple files actually?
-    entries = parse(allfiles)
+    msgs = parse(allfiles)
 
     tests = []
     tests.append(PartiallyTranslatedPluralTest())
@@ -260,29 +260,29 @@ def main():
     poabc = POABC(tests)
 
     warningcount = 0 # total number of warnings
-    entrywarncount = 0 # number of entries with at least one warning
+    msgwarncount = 0 # number of msgs with at least one warning
 
     try:
-        for entry, warnings in poabc.check_entries(entries):
-            print header(entry.meta['lineno'])
+        for msg, warnings in poabc.check_msgs(msgs):
+            print header(msg.meta['lineno'])
             warningcount += len(warnings)
-            entrywarncount += 1
+            msgwarncount += 1
             for warning in warnings:
                 print warning
-            print entry.rawstring()
+            print msg.rawstring()
     except IOError, err:
         cmdparser.error(err)
         
     def fancyfmt(n):
-        return '%d [%d%%]' % (n, round(100 * float(n) / poabc.entrycount))
+        return '%d [%d%%]' % (n, round(100 * float(n) / poabc.msgcount))
 
     width = 50
     print ' Summary '.center(width, '=')
-    print 'Number of messages: %d' % poabc.entrycount
+    print 'Number of messages: %d' % poabc.msgcount
     print 'Translated messages: %s' % fancyfmt(poabc.translatedcount)
     print 'Fuzzy messages: %s' % fancyfmt(poabc.fuzzycount)
     print 'Untranslated messages: %s' % fancyfmt(poabc.untranslatedcount)
-    print 'Number of warnings: %d' % entrywarncount
+    print 'Number of warnings: %d' % msgwarncount
     print '=' * width
 
 if __name__ == '__main__':

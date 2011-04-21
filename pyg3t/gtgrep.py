@@ -80,22 +80,22 @@ class GTGrep:
     def invert(self, result):
         return not bool(result)
 
-    def check(self, entry):
+    def check(self, msg):
         imatch = False # whether msgid matches
         smatch = False # whether msgstr matches
 
-        encoding = entry.meta['encoding']
+        encoding = msg.meta['encoding']
 
         filter = self.filter.filter
         
-        msgid = entry.msgid.decode(encoding)
+        msgid = msg.msgid.decode(encoding)
         imatch = self.imatch(re.search(self.msgid_pattern, filter(msgid)))
         
-        if entry.hasplurals:
-            msgid_plural = entry.msgid_plural.decode(encoding)
+        if msg.hasplurals:
+            msgid_plural = msg.msgid_plural.decode(encoding)
             imatch |= self.imatch(re.search(self.msgid_pattern, 
                                             filter(msgid_plural)))
-        for msgstr in entry.msgstrs:
+        for msgstr in msg.msgstrs:
             msgstr = msgstr.decode(encoding)
             smatch |= self.smatch(re.search(self.msgstr_pattern, 
                                             filter(msgstr)))
@@ -109,7 +109,7 @@ class GTGrep:
 
 
 def build_parser():
-    description = ('Print po-FILE entries for which original or translated '
+    description = ('Print po-FILE messages for which original or translated '
                    'strings match a particular pattern.  '
                    'If no FILE is provided, read from stdin.')
 
@@ -140,11 +140,11 @@ def build_parser():
                      ' given the --filter option.  Default: %default')
     
     output.add_option('-C', '--count', action='store_true',
-                      help='print only a count of matching entries')
+                      help='print only a count of matching messages')
     output.add_option('-F', '--fancy', action='store_true',
                       help='use markers to highlight the matching strings')
     output.add_option('-n', '--line-numbers', action='store_true',
-                      help='print line numbers for each entry')
+                      help='print line numbers for each message')
     output.add_option('-G', '--gettext-compatible', action='store_true',
                       help='print annotations such as line numbers as'
                       ' comments, making output a valid po-file.')
@@ -187,16 +187,16 @@ def main():
     
     multifile_mode = (argc > 1)
     if multifile_mode:
-        def format_linenumber(filename, entry):
-            return '%s:%d' % (filename, entry.entryline)
+        def format_linenumber(filename, msg):
+            return '%s:%d' % (filename, msg.meta['lineno'])
     else:
-        def format_linenumber(filename, entry):
-            return 'Line %d' % entry.entryline
+        def format_linenumber(filename, msg):
+            return 'Line %d' % msg.meta['lineno']
 
     if opts.gettext_compatible:
         orig_fmt_lineno = format_linenumber
-        def format_linenumber(filename, entry):
-            return '# pyg3t: %s' % orig_fmt_lineno(filename, entry)
+        def format_linenumber(filename, msg):
+            return '# pyg3t: %s' % orig_fmt_lineno(filename, msg)
 
     if argc == 0:
         inputs = iter([('<stdin>', sys.stdin)])
@@ -223,12 +223,10 @@ def main():
                       boolean_operator=boolean_operator)
     except re.error, err:
         parser.error(err)
-    #parser = Parser()
 
     global_matchcount = 0
     for filename, input in inputs:
         cat = parse(input)
-        #entries = parser.parse(input)
         matches = grep.search_iter(cat)
 
         if opts.count:
@@ -244,12 +242,12 @@ def main():
             continue
 
         if not opts.fancy:
-            for entry in matches:
+            for msg in matches:
                 if opts.line_numbers:
-                    print format_linenumber(filename, entry)
+                    print format_linenumber(filename, msg)
                 elif multifile_mode:
                     print 'File:', filename
-                print entry.tostring()#.encode('utf8')
+                print msg.tostring()#.encode('utf8')
 
         if opts.fancy:
             # It's a bit hairy to do this properly, so we'll just make a hack
@@ -264,8 +262,8 @@ def main():
             ihighlighter = MatchColorizer('light blue')
             shighlighter = MatchColorizer('light green')
 
-            for entry in matches:
-                string = entry.tostring()
+            for msg in matches:
+                string = msg.tostring()
                 if grep.msgid_pattern_string:
                     string = re.sub(grep.msgid_pattern,
                                     ihighlighter.colorize_match, 
@@ -276,7 +274,7 @@ def main():
                                     string)
 
                 if opts.line_numbers:
-                    print format_linenumber(filename, entry)
+                    print format_linenumber(filename, msg)
                 # Encode before print ensures there'll be no screwups if stdout
                 # has None encoding (in a pipe, for example)
                 # Maybe we should wrap stdout with something which recodes
