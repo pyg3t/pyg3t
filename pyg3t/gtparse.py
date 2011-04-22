@@ -75,7 +75,7 @@ class Catalog(object):
         Values are Messages and keys are tuples of (msgid, msgctxt)."""
         d = {}
         for msg in self.msgs:
-            d[(msg.msgid, msg.msgctxt)] = msg
+            d[msg.key] = msg
         return d
     
     def obsoletes(self):
@@ -203,6 +203,10 @@ class Message(object):
     @property
     def hasplurals(self):
         return self.msgid_plural is not None
+
+    @property
+    def key(self):
+        return (self.msgid, self.msgctxt)
 
     def get_comments(self, pattern='', strip=False):
         """Return comments, optionally starting with a particular pattern.
