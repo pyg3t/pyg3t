@@ -87,11 +87,21 @@ class Catalog(object):
     def __len__(self):
         return len(self.msgs)
 
-    # XXX todo implement this
-    #def encode(self, encoding):
-    #    for msg in self:
-    #        ...
-    #    cat = Catalog(self.fname, encoding) # XXX
+    def decode(self, encoding='utf8'):
+        # XXX not really implemented
+        msgs = [msg.decode(encoding) for msg in self]
+        obsoletes = [obs.decode(encoding) for obs in self.obsoletes]
+        cat = Catalog(self.fname, self.encoding, msgs, obsoletes)
+        return cat
+
+    def encode(self, encoding=None):
+        # XXX not really implemented
+        if encoding is None:
+            encoding = self.encoding
+        msgs = [msg.encode(encoding) for msg in self]
+        obsoletes = [obs.encode(encoding) for obs in self.obsoletes]
+        cat = Catalog(self.fname, encoding, msgs, obsoletes)
+        return cat
 
 
 class Message(object):
