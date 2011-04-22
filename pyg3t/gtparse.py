@@ -51,7 +51,7 @@ class TextWrapper:
 wrapper = TextWrapper()
 
 
-
+# XXXX something doesn't work if header is not in the top of file
 
 class Catalog(object):
     """A Catalog represents one gettext catalog, or po-file."""
@@ -87,6 +87,9 @@ class Catalog(object):
     def __len__(self):
         return len(self.msgs)
 
+    def __getitem__(self, index):
+        return self.msgs[index]
+    
     def decode(self, encoding='utf8'):
         # XXX not really implemented
         msgs = [msg.decode(encoding) for msg in self]
@@ -253,6 +256,8 @@ class Message(object):
         string = ''.join(lines)
         return string
 
+    def __str__(self):
+        return self.tostring()
 
 class ObsoleteMessage(object):
     def __init__(self, comments, meta=None):

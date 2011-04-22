@@ -25,23 +25,7 @@ def stats(msgs):
             t += 1
     return u, f, t
 
-
-def main():
-    optparser = build_parser()
-    opts, args = optparser.parse_args()
-    
-    if len(args) != 2:
-        optparser.error('Error: Requires exactly 2 files; got %d' % len(args))
-
-
-
-    file1, file2 = args
-    
-    input1 = open(file1)
-    input2 = open(file2)
-    cat1 = parse(input1)
-    cat2 = parse(input2)
-    
+def compare(cat1, cat2):
     if cat1.encoding != cat2.encoding:
         print 'These files have encodings %s vs %s.' % (cat1.encoding,
                                                         cat2.encoding)
@@ -49,11 +33,12 @@ def main():
     
     msgs1 = cat1.dict()
     msgs2 = cat2.dict()
-    n1 = len(msgs1)
-    n2 = len(msgs2)
 
     header1 = msgs1.pop(cat1.header.key)
     header2 = msgs2.pop(cat2.header.key)
+    
+    n1 = len(msgs1)
+    n2 = len(msgs2)
     
     def compare_msgids(source, dest):
         missing = []
@@ -187,3 +172,20 @@ def main():
 
     # An option to print each groups of messages pertaining to the
     # data, e.g. to print all the conflicts, print all the common msgs, ...
+
+
+def main():
+    parser = build_parser()
+    opts, args = parser.parse_args()
+    
+    if len(args) != 2:
+        parser.error('Error: Requires exactly 2 files; got %d' % len(args))
+
+    file1, file2 = args
+    
+    input1 = open(file1)
+    input2 = open(file2)
+    cat1 = parse(input1)
+    cat2 = parse(input2)
+
+    compare(cat1, cat2)
