@@ -51,24 +51,27 @@ class TextWrapper:
 wrapper = TextWrapper()
 
 
-# XXXX something doesn't work if header is not in the top of file
+def _get_header(msgs):
+    for msg in msgs:
+        if msg.msgid == '':
+            return msg
+    else:
+        raise ValueError('header not found in msgs')
+
 
 class Catalog(object):
     """A Catalog represents one gettext catalog, or po-file."""
     def __init__(self, fname, encoding, msgs, obsoletes=None):
         self.fname = fname
         self.encoding = encoding
-        self.msgs = msgs
+        self.msgs = list(msgs)
         if obsoletes is None:
             obsoletes = []
+        else:
+            obsoletes = list(obsoletes)
         self.obsoletes = obsoletes
-        self.header = self._get_header()
+        self.header = _get_header(self.msgs)
 
-    def _get_header(self):
-        for msg in self.msgs:
-            if msg.msgid == '':
-                return msg
-    
     def dict(self):
         """Return a dict with the contents of this catalog.
 
@@ -106,6 +109,21 @@ class Catalog(object):
         cat = Catalog(self.fname, encoding, msgs, obsoletes)
         return cat
 
+    def _catalog(self, msgs, obsoletes=None):
+        cat = Catalog(self.fname, self.encoding, msgs, obsoletes)
+        return cat
+
+    def filter(self, choicefunction):
+        return self._catalog(msg for msg in self if choicefunction(msg))
+
+    def get_translated(self):
+        return self.filter(Message.istranslated)
+    
+    def get_untranslated(self):
+        return self.filter(Message.untranslated)
+    
+    def get_fuzzy(self):
+        return self.filter(Message.isfuzzy)
 
 class Message(object):
     """This class represents a po-file entry. 
@@ -169,6 +187,11 @@ class Message(object):
                 break
         
         self.msgctxt = msgctxt
+
+        # XXX right now the comments are always written as is, even if
+        # someone changed the fuzzy flag programmatically.  We should
+        # make it so the printed comments will be generated from the
+        # programmed representation of the flags
         
         # XXX TODO:
         # previous_msgid, has_previous_msgid
@@ -259,19 +282,29 @@ class Message(object):
     def __str__(self):
         return self.tostring()
 
-class ObsoleteMessage(object):
-    def __init__(self, comments, meta=None):
-        self.comments = comments
-        if meta is None:
-            meta = {}
-        self.meta = meta
+#class ObsoleteMessage(object):
+#    def __init__(self, comments, meta=None):
+#        self.comments = comments
+#        if meta is None:
+#            meta = {}
+#        self.meta = meta
+#    def tostring(self):
+#        return ''.join(self.comments)
 
-    def tostring(self):
-        return ''.join(self.comments)
 
+def is_wrappable(declaration, string):
+    if len(string) + len(declaration) > 75:
+        return True
+    newlineindex = string.find('\\n')
+    
+    # Don't wrap if newline is only at end of string
+    if newlineindex > 0 and not newlineindex == len(string) - 2:
+        return True
+    return False
 
 def wrap(declaration, string):
-    if len(string) + len(declaration) > 75 or '\\n' in string:
+    if is_wrappable(declaration, string):
+    #if len(string) + len(declaration) > 75 or '\\n' in string:
         tokens = []
         tokens.append('%s ""\n' % declaration)
         linetokens = string.split('\\n')
@@ -294,16 +327,20 @@ class LineNumberIterator:
         self.lineno = 0
         self.input = input
         self.lines = []
+        self.iter = iter(self)
+    
     def pop_lines(self):
         lines = self.lines
         self.lines = []
         return lines
+    def __iter__(self):
+        for line in self.input:
+            self.lineno += 1
+            if line.isspace():
+                continue
+            yield line
     def next(self):
-        line = self.input.next()
-        self.lineno += 1
-        self.lines.append(line)
-        return line
-
+        return self.iter.next()
 
 class PoSyntaxError(ValueError):
     pass
@@ -315,95 +352,104 @@ class UnimplementedPoSyntaxError(NotImplementedError):
     pass
 
 
-def get_message_chunk(input):
-    """Read text from input and yield a dictionary for each message.
+#def whole_chunk_iter(input):
 
-    The format of this dictionary is subject to change."""
-    msgdata = {}
-    input.pop_lines()
-    #assert len(input.pop_lines()) == 0
-    
-    line = input.next()
-    while line.isspace():
-        input.pop_lines()
-        line = input.next()
-    
-    msgdata['lineno'] = input.lineno
-    comments = []
-
-    def extract_string(line, input, header):
-        if not line.startswith(header + ' "'):
-            raise PoSyntaxError('%s not found near line %d:\n%s'
-                                % (header, input.lineno, 
-                                   ''.join(input.pop_lines())))
-        lines = []
-
-        # get e.g. 'hello' from the line 'msgid "hello"'
-        lines.append(line[len(header) + 2:-2])
-        line = input.next()
-        while line.startswith('"'):
-            lines.append(line[1:-2]) # get 'hello' from line '"hello"'
-            assert line.endswith('"\n'), line
-            line = input.next()
-        string = ''.join(lines)
-        return line, string
-
-    while line.startswith('#'):
-        comments.append(line)
-        line = input.next()
-    msgdata['comments'] = comments
-
-    if line.startswith('msgctxt "'):
-        line, msgctxt = extract_string(line, input, 'msgctxt')
-        msgdata['msgctxt'] = msgctxt # XXX remember to take care of this
-
-    if not line.startswith('msgid "'):
-        if any(previous_line.startswith('#~') 
-               for previous_line in comments):
-            msgdata['obsolete'] = True
-            return msgdata
-
-    line, msgid = extract_string(line, input, 'msgid')
-
-    msgdata['msgid'] = msgid
-
-    isplural = line.startswith('msgid_plural "')
-    msgdata['isplural'] = isplural
-
-    if isplural:
-        line, msgid_plural = extract_string(line, input, 'msgid_plural')
-        msgdata['msgid_plural'] = msgid_plural
-        nmsgstr = 0
-        msgstrs = []
-        msgstr_token = 'msgstr[%d]' % nmsgstr
-        while line.startswith(msgstr_token):
-            line, msgstr = extract_string(line, input, msgstr_token)
-            # XXXX what if chunk runs out of lines?
-            
-            msgstrs.append(msgstr)
-            nmsgstr += 1
-            msgstr_token = 'msgstr[%d]' % nmsgstr
-        msgdata['msgstrs'] = msgstrs
-    else:
-        if not line.startswith('msgstr "'):
-            raise PoSyntaxError('msgstr not found')
-        line, msgstr = extract_string(line, input, 'msgstr')
-        msgdata['msgstr'] = msgstr
-    msgdata['rawlines'] = input.pop_lines()
-    return msgdata
-
-def chunk_iter(input, include_obsoletes=False):
-    input = LineNumberIterator(input)
-    while True:
-        try:
-            msgdata = get_message_chunk(input)
-        except UnimplementedPoSyntaxError, e:
-            pass
-            #print e
+def consume_lines(nextline, input, startpattern, continuepattern):
+    if not nextline.startswith(startpattern):
+        print 'pat', startpattern, 'line', nextline
+        raise PoSyntaxError()#XXXX
+    lines = [nextline]
+    for nextline in input:
+        if nextline.startswith(continuepattern):
+            lines.append(nextline)
         else:
-            if not msgdata.get('obsolete') or include_obsoletes:
-                yield msgdata
+            break
+    else:
+        nextline = None # EOF
+    return nextline, lines
 
+def extract_string(lines, header):
+    line = lines[0]
+    if not line.startswith(header + ' "'):
+        raise PoSyntaxError()#'%s not found near line %d:\n%s'
+                            #% (header, input.lineno, 
+                            #   ''.join(input.pop_lines())))
+
+    # get e.g. 'hello' from the line 'msgid "hello"'
+    headerline = line[len(header) + 2:-2]
+    
+    # get 'hello' from line '"hello"'
+    otherlines = [line[1:-2] for line in lines[1:]]
+    return ''.join([headerline] + otherlines)
+
+def get_message_chunks(input):
+    input = LineNumberIterator(input)
+    line = input.next()
+    while True:
+        msgdata = {}
+        rawlines = []
+        msgdata['rawlines'] = rawlines
+        
+        def _consume_lines(nextline, input, startpattern, continuepattern):
+            nextline, lines = consume_lines(nextline, input, startpattern, 
+                                            continuepattern)
+            rawlines.extend(lines)
+            return nextline, lines
+        def _extract_string(nextline, input, header):
+            nextline, lines = _consume_lines(nextline, input, header, '"')
+            string = extract_string(lines, header)
+            return nextline, string
+
+        line, comments = _consume_lines(line, input, '#', '#')
+        msgdata['comments'] = comments
+
+        if line is None:
+            msgdata['obsolete'] = True
+            yield msgdata # obsolete, and EOF
+            # EOF can only legally occur after comments (this case)
+            # or of course after last msgstr
+            # XXX right now all obsoletes will be lobbed into the same
+            # block
+            return
+
+        if line.startswith('msgctxt "'):
+            line, msgctxt = _extract_string(line, input, 'msgctxt')
+            msgdata['msgctxt'] = msgctxt # XXX remember to take care of this
+
+        if line.startswith('msgid '):
+            line, msgid = _extract_string(line, input, 'msgid')
+            msgdata['msgid'] = msgid
+            msgdata['lineno'] = input.lineno
+        else:
+            sdlkfjasdfkjasldfkjalfkjaslkdfjlkkj
+            assert rawlines[-1].startswith('#~') # obsolete
+            yield msgdata
+            continue # XXXXXXX
+
+        if line.startswith('msgid_plural'):
+            line, msgid_plural = _extract_string(line, input, 'msgid_plural')
+            msgdata['msgid_plural'] = msgid_plural
+            
+            nmsgstr = 0
+            msgstrs = []
+            while line.startswith('msgstr['):
+                line, msgstr = _extract_string(line, input, 
+                                               'msgstr[%d]' % nmsgstr)
+                msgstrs.append(msgstr)
+                nmsgstr += 1
+            msgdata['msgstrs'] = msgstrs
+        else:
+            line, msgstr = _extract_string(line, input, 'msgstr')
+            msgdata['msgstr'] = msgstr
+        yield msgdata
+        if line is None:
+            return
+
+# XXX lineno should be input.lineno + len(comments)
+
+        
+def chunk_iter(input, include_obsoletes=False):
+    return get_message_chunks(input)
 
 def parse(input):
     try:
@@ -412,18 +458,19 @@ def parse(input):
         fname = '<unknown>'
 
     chunks = []
-    obsoletes = []
+    obsoletes = [] # this is just a list of lines
     
     for chunk in chunk_iter(input, include_obsoletes=True):
-        if chunk.get('obsolete'):
-            obsoletes.append(chunk)
-        else:
+        if 'msgid' in chunk:
             chunks.append(chunk)
-    
+        else:
+            assert 'obsolete' in chunk
+            obsoletes.extend(chunk['comments'])
+
     for chunk in chunks:
         if chunk['msgid'] == '':
             header = chunk
-        break
+            break
     else:
         raise PoSyntaxError('Header not found')
 
@@ -462,15 +509,15 @@ def parse(input):
                             comments=chunk['comments'],
                             meta=meta))
     
-    obsoletes = [ObsoleteMessage(obsolete['comments'], 
-                                 meta=dict(encoding=encoding, fname=fname))
-                                 for obsolete in obsoletes]
+    #obsoletes = [ObsoleteMessage(obsolete['comments'], 
+    #                             meta=dict(encoding=encoding, fname=fname))
+    #                             for obsolete in obsoletes]
 
     cat = Catalog(fname, encoding, msgs, obsoletes=obsoletes)
     return cat
 
 
-# When parsing, allow stuff like:
+# XXX When parsing, allow stuff like:
 # * allow for missing header
 # * ignore encoding errors
 # * ignoring bad syntax

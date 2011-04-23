@@ -43,9 +43,11 @@ def main():
             for msg in cat:
                 print msg.tostring().decode(src_encoding).encode(dst_encoding)
             for obs in cat.obsoletes:
-                print obs.tostring().decode(src_encoding).encode(dst_encoding)
+                print obs.decode(src_encoding).encode(dst_encoding),
+                #print obs.tostring().decode(src_encoding).encode(dst_encoding)
         else:
             for msg in cat:
                 print msg.tostring()
             for obs in cat.obsoletes:
-                print obs.tostring()
+                print obs,
+                #print obs.tostring()

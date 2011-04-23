@@ -1,13 +1,13 @@
 from optparse import OptionParser
 from pyg3t.gtparse import parse
 
+
 def build_parser():
     usage = '%prog [OPTIONS] OLD NEW'
     description = ('Print a description of the differences between OLD '
                    'and NEW')
     parser = OptionParser(usage=usage,
                           description=description)
-    
     return parser
 
 
@@ -15,7 +15,9 @@ def stats(msgs):
     u = 0
     f = 0
     t = 0
+    n = 0
     for msg in msgs:
+        n += 1
         if msg.untranslated:
             u += 1
         elif msg.isfuzzy:
@@ -23,7 +25,9 @@ def stats(msgs):
         else:
             assert msg.istranslated
             t += 1
+    assert u + f + t == n
     return u, f, t
+
 
 def compare(cat1, cat2):
     if cat1.encoding != cat2.encoding:
