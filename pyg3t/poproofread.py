@@ -2,7 +2,7 @@
 
 """
 poproofread -- A podiff proofreader for the terminal
-Copyright (C) 2009-2011 Kenneth Nielsen <k.nielsen81@gmail.com>
+Copyright (C) 2011 Kenneth Nielsen <k.nielsen81@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -143,6 +143,7 @@ class PoProofRead():
 
         # After having read the files, set the position and the size
         self.position = 0
+        self.no_comments = 0
         self.size = len(self.chunks)
 
     def proofread(self):
@@ -151,6 +152,8 @@ class PoProofRead():
         # This loop is what keeps running as long as you are moving though the
         # file or editing
         while c != 'q':
+            comments = [chunk['comment'] for chunk in self.chunks]
+            self.no_comments = self.size - comments.count('')
             self.__print_header()
 
             # Read control character
@@ -248,19 +251,17 @@ class PoProofRead():
         # Clear terminal
         os.system( [ 'clear', 'cls' ][ os.name == 'nt' ] )
         # Print header
-        print ('########################################'
-               '########################################')
-        status_length = len(str(self.position+1)) + len(str(self.size)) + 4
-        print '# poproofread', (78-status_length-13-2)*' ',\
-            str(self.position+1),'of', str(self.size) + ' #'
-        print  ('# Press (n)ext, (p)revious, (e)dit, (g)o'
-                'to or (q)uit and save             '+state+' #\n'
-                '########################################'
-                '########################################')
+        print(''.ljust(80, '#'))
+        print('# poproofread'.ljust(15) + 'Comments: {0}   String {1} of {2} #'\
+                  .format(self.no_comments, self.position+1, self.size)\
+                  .rjust(65))
+        print('# Press (n)ext, (p)revious, (e)dit, (g)oto or (q)uit and save'\
+                  .ljust(70) + '{0} #'.format(state).rjust(10))
+        print(''.ljust(80, '#'))
+       
         # Print diff chunk
-        print self.chunks[self.position]['diff_chunk']
-        print ('########################################'
-               '########################################')
+        print(self.chunks[self.position]['diff_chunk'])
+        print(''.ljust(80, '#'))
         if state != 'edit' and self.chunks[self.position]['comment'] != '':
             print self.chunks[self.position]['comment']
 
