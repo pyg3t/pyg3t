@@ -1,4 +1,5 @@
 import re
+import codecs
 from optparse import OptionParser
 
 from gtparse import parse
@@ -25,7 +26,12 @@ def main():
         
         if opts.encoding is not None:
             src_encoding = cat.encoding
-            dst_encoding = opts.encoding
+            codecinfo = codecs.lookup(opts.encoding)
+
+            # should result in a canonical/transferable name even if
+            # people don't specify dashes or other things in the way
+            # gettext likes
+            dst_encoding = codecinfo.name
 
             header = cat.header
 
@@ -49,5 +55,5 @@ def main():
             for msg in cat:
                 print msg.tostring()
             for obs in cat.obsoletes:
-                print obs,
+                print obs.tostring()
                 #print obs.tostring()
