@@ -20,5 +20,7 @@ poabc sdfkjsdfkj 2> /dev/null
 gtxml $FILE >> $OUT
 
 podiff --relax $DIFF1 $DIFF2 >> $OUT
+# Podiff test for files with different encodings
+gtcat --encode ISO-8859-1 old.po|podiff -r - new.po
 
 poselect -ft $FILE >> $OUT
