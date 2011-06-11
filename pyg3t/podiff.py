@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+
 """
 podiff whiteboard
 
@@ -36,31 +37,169 @@ Succes criteria:
 
 Implementation:
 ===============
+Diffing files with different encodings
+To compare strings, they should have same encoding.
+My suggestion (Ask) is to not do anything if they do happen to have
+same encoding from the start, but if they do not, then convert
+both to utf8.
+
+.encode('ascii', errors='replace')
 """
 
-# XXX
-# Diffing files with different encodings
-# To compare strings, they should have same encoding.
-# My suggestion (Ask) is to not do anything if they do happen to have
-# same encoding from the start, but if they do not, then convert
-# both to utf8.
 
 import sys
 from optparse import OptionParser
 from difflib import unified_diff
 from pyg3t.gtparse import parse
 from pyg3t import __version__
+##############################################################################
 
-def build_parser():
-    description = ('Prints the difference between two po-FILES in chunks'
+class PoDiff:
+
+    """Description of the PoDiff class"""
+
+    def __init__(self, out, show_line_numbers=False):
+        """Initialize class variables
+
+        Keywords:
+        out        A file like object that the output will be printed to
+        show_line_numbers
+                   boolean, whether to show the line numbers from the new
+                   catalog object in a header line above each diff piece
+        """
+        self.out = out
+        self.number_of_diff_chunks = 0
+        self.show_line_numbers = show_line_numbers
+
+    def catalogs_has_common_base(self, old_cat, new_cat):
+        """Check if catalogs has common base
+
+        Keywords:
+        old_cat    old catalog
+        new_cat    new catalog
+        """
+        # Perform checks of whether the files have common base
+        if len(old_cat) != len(new_cat):
+            return False
+
+        for old_msg, new_msg in zip(old_cat, new_cat):
+            if old_msg.key != new_msg.key:
+                return False
+
+        return True
+
+    def diff_catalogs_relaxed(self, old_cat, new_cat, full_diff=False):
+        """Diff catalogs relaxed. I.e. accept differences in base.
+
+        Keywords:
+        old_cat    old catalog
+        new_cat    new catalog
+        full_diff  boolean, show msg's unique to old_cat
+        """
+        dict_old_cat = old_cat.dict()
+
+        # Make diff for all the msg's in new_cat
+        for new_msg in new_cat:
+            if new_msg.key in dict_old_cat:
+                self.diff_two_msgs(dict_old_cat[new_msg.key], new_msg, new_cat)
+            else:
+                self.diff_one_msg(new_msg, new_cat, is_new=True)
+
+        # If we are making the full diff, diff the entries that are only
+        # present in old file
+        if full_diff:
+            dict_new_cat = new_cat.dict()
+            only_old = [key for key in dict_old_cat if key not in 
+                        dict_new_cat]
+
+            for key in only_old:
+                self.diff_one_msg(dict_old_cat[key], old_cat, is_new=False)
+
+        self.print_status()
+
+    def diff_catalogs_strict(self, old_cat, new_cat):
+        """Diff catalogs strict. I.e. enforce common base
+        
+        Keywords:
+        old_cat    old catalog
+        new_cat    new catalog
+        """
+        for old_msg, new_msg in zip(old_cat, new_cat):
+            self.diff_two_msgs(old_msg, new_msg, new_cat)
+        self.print_status()
+
+    def diff_two_msgs(self, old_msg, new_msg, new_cat):
+        """Produce diff between two messages
+
+        Keywords:
+        old_msg    old message
+        new_msg    new message
+        new_cat    new catalog (Used to get the filename for the line number
+                   header)
+        """
+        # Check if the there is a reason to diff
+        if old_msg.isfuzzy is not new_msg.isfuzzy or\
+                old_msg.msgstrs != new_msg.msgstrs or\
+                old_msg.get_comments('# ') != new_msg.get_comments('# '):
+
+            if self.show_line_numbers:
+                print >> self.out, self.__header(new_msg, new_cat)
+
+            # Make the diff
+            diff = list(unified_diff(old_msg.meta['rawlines'], 
+                                     new_msg.meta['rawlines'],
+                                     n=10000))
+            # Print the result, without the 3 lines of header
+            print >> self.out, ''.join(diff[3:])
+            self.number_of_diff_chunks += 1
+
+    def diff_one_msg(self, msg, cat, is_new):
+        """Produce diff if only one entry is present
+
+        Keywords:
+        msg        message
+        cat        catalog
+        is_new     boolean
+        """
+        if self.show_line_numbers:
+            print >> self.out, self.__header(msg, cat)
+
+        # Make the diff
+        if is_new:
+            diff = list(unified_diff('', msg.meta['rawlines'], n=10000))
+        else:
+            diff = list(unified_diff(msg.meta['rawlines'], '', n=10000))
+
+        # Print the result without the 3 lines of header
+        print >> self.out, ''.join(diff[3:])#.encode('utf8')
+        self.number_of_diff_chunks += 1
+            
+    def __header(self, msg, cat):
+        """Print line number and file name header for diff of msg pairs"""
+        lineno = msg.meta['lineno'] if 'lineno' in msg.meta else 'N/A'
+        fname = cat.fname # May be None if cat was created programatically
+        return ('--- Line %d (%s) ' % (lineno, fname)).ljust(32, '-')
+
+    def print_status(self):
+        """Print the number of diff pieces that have been output"""
+        bar = ' ' + '=' * 77
+        print >> self.out, bar
+        print >> self.out, " Number of messages: %d" %\
+            self.number_of_diff_chunks
+        print >> self.out, bar
+
+##############################################################################
+
+def __build_parser():
+    description = ('Prints the difference between two po-FILES in pieces '
                    'of diff output that pertain to one original string')
 
     usage = '%prog [OPTIONS] ORIGINAL_FILE UPDATED_FILE'
     parser = OptionParser(usage=usage, description=description,
                           version=__version__)
 
-    parser.add_option('-l', '--line-numbers', action='store_true', default=True,
-                      dest='line_numbers',
+    parser.add_option('-l', '--line-numbers', action='store_true',
+                      default=True, dest='line_numbers',
                       help='prefix line number of the msgid in the original '
                       'file to the diff chunks')
     parser.add_option('-m', '--no-line-numbers', action='store_false',
@@ -72,7 +211,7 @@ def build_parser():
     parser.add_option('-r', '--relax', action='store_true', default=False,
                       help='allow for files with different base, i.e. '
                       'where the msgids are not pairwise the same. But still '
-                      'make the output proofread friendly')
+                      'make the output proofread friendly.')
     parser.add_option('-s', '--strict', action='store_false', dest='relax',
                       help='do not allow for files with different base '
                       '(opposite of -r)')
@@ -81,149 +220,24 @@ def build_parser():
                       'entries that are only present in the original file')
     return parser
 
-class PoDiff:
-    def __init__(self, out, in_orig, in_new):
-        self.out = out
-        self.in_orig = in_orig
-        self.in_new = in_new
-        self.number_of_diff_chunks = 0
-        self.show_line_numbers = None
-
-    def check_files_common_base(self, loe, lne):
-        # loe = list_orig_entries  ###  lne = list_new_entries
-        similar = True
-
-        # Easy check if length is the same
-        if len(loe) != len(lne):
-            similar = False
-        # If the length is the same, compare msgids and msgctxt pairwise
-        # to determine if the files have identical base
-        else:
-            for oe, ne in zip(loe, lne):
-                if (oe.msgid != ne.msgid or oe.hasplurals != ne.hasplurals or
-                    oe.msgctxt != ne.msgctxt):
-                    similar = False
-        return similar
-
-    def dict_entries(self, list_entries):
-        # Make a dictionary out of a list of entries for faster multiple
-        # searches
-        dict_entries = {}
-        for entry in list_entries:
-            dict_entries[entry.msgid] = entry
-        return dict_entries
-
-    def diff_files_relaxed(self, list_orig_entries, list_new_entries, full=False):
-        # Turn orig entries into dictionary
-        dict_orig_entries = self.dict_entries(list_orig_entries)
-
-        # Walk throug the list of new entries
-        for new_entry in list_new_entries:
-            # and if the new entry msgid is also found in the orig
-            if dict_orig_entries.has_key(new_entry.msgid):
-                # ask it to be diffed ...
-                self.diff_two_entries(dict_orig_entries[new_entry.msgid],
-                                      new_entry)
-                # ... and set it to None in orig mesages, so that we know
-                # which ones we have used
-                dict_orig_entries[new_entry.msgid] = None
-            else:
-                # output diff showing only the new entry
-                self.diff_one_entry(new_entry, entry_is='new')
-
-        # If we ar making the full diff, diff the entries that are only
-        # present in original file (the ones that are not None in
-        # dict_orig_entries)
-        if full:
-            for key in dict_orig_entries.keys():
-                if dict_orig_entries[key]:
-                    # output diff showing only the old entry
-                    self.diff_one_entry(dict_orig_entries[key],\
-                                            entry_is='orig')
-
-        self.print_status()
-
-    def diff_files_unrelaxed(self, list_orig_entries, list_new_entries):
-        for orig_entry, new_entry in zip(list_orig_entries, list_new_entries):
-            self.diff_two_entries(orig_entry, new_entry)
-        self.print_status()
-
-    def diff_two_entries(self, orig_entry, new_entry):
-        # Check if the there is a reason to diff
-        if orig_entry.isfuzzy is not new_entry.isfuzzy or\
-                ''.join(orig_entry.msgstrs) != ''.join(new_entry.msgstrs) or\
-                ''.join(orig_entry.get_comments('# ')) !=\
-                ''.join(new_entry.get_comments('# ')):
-
-            # Possibly output the line number of the msgid in the new file
-            if self.show_line_numbers:
-                print >> self.out, self.header(new_entry.meta['lineno'],
-                                               self.in_new)
-
-            # Make the diff
-            diff = list(unified_diff(orig_entry.meta['rawlines'], 
-                                     new_entry.meta['rawlines'],
-                                     n=10000))
-            # and print the result, without the 3 lines of header and increment
-            # the chunk counter
-            print >> self.out, ''.join(diff[3:])
-            self.number_of_diff_chunks += 1
-
-    def diff_one_entry(self, entry, entry_is):
-        """ produce diff if only one entry is present
-
-        Keyword:
-        entry_is   can be either 'new' or 'orig'
-        """
-        # Possibly output the line number of the msgid in the new file
-        source = self.in_orig if entry_is == 'orig' else self.in_new
-        if self.show_line_numbers:
-            print >> self.out, self.header(entry.meta['lineno'], source)
-
-        # Make the diff
-        if entry_is == 'new':
-            diff = list(unified_diff('', entry.meta['rawlines'], n=10000))
-        elif entry_is == 'orig':
-            diff = list(unified_diff(entry.meta['rawlines'], '', n=10000))
-        # and print the result, without the 3 lines of header and increment
-        # the chunk counter
-        print >> self.out, ''.join(diff[3:]).encode('utf8')
-        self.number_of_diff_chunks += 1
-            
-    def header(self, linenumber, source):
-        return ('--- Line %d (%s) ' % (linenumber, source)).ljust(32, '-')
-
-    def print_status(self):
-        bar = ' ' + '=' * 77
-        print >> self.out, bar
-        print >> self.out, " Number of messages:",\
-            self.number_of_diff_chunks
-        print >> self.out, bar
-
+##############################################################################
 def main():
-    """The main class loads the files and output the diff"""
+    """The main function loads the files and outputs the diff"""
 
-    files_are_similar = True
-
-    option_parser = build_parser()
+    option_parser = __build_parser()
     opts, args = option_parser.parse_args()
 
     # We need exactly two files to proceed
     if len(args) != 2:
-        # Give a parser error and return with exit code 2
         option_parser.error('podiff takes exactly two arguments')
 
-    # Give an error if the specified output file is the same as one of the
-    # input files
-    if opts.output is not None:
-        if (opts.output == args[0]) or (opts.output == args[1]):
-            # Give a parser error and return with exit code 2
+    # Open file for writing, if it is not one of the input files
+    if opts.output:
+        if opts.output in (args[0], args[1]):
             option_parser.error('The output file you have specified is the '
                                 'same as one of the input files. This is not '
                                 'allowed, as it may cause a loss of work.')
-            
-        # Try and open file for writing, if it does not succeed, give error
-        # and exit
+
         try:
             out = open(opts.output, 'w')
         except IOError, err:
@@ -232,32 +246,26 @@ def main():
             print >> sys.stderr, err
             raise SystemExit(4)
     else:
-        out = sys.stdout        
+        out = sys.stdout
 
     # Get PoDiff instanse
-    podiff = PoDiff(out, args[0], args[1])
-    # Overwrite settings with system wide settings
-         
-    # Overwrite settings with commands line arguments
-    podiff.show_line_numbers = opts.line_numbers
+    podiff = PoDiff(out, opts.line_numbers)
     
-    # Load files
+    # Load files into catalogs
     try:
-        list_orig_entries = list(parse(open(args[0])))
-        list_new_entries = list(parse(open(args[1])))
+        cat_old = parse(open(args[0]))
+        cat_new = parse(open(args[1]))
     except IOError, err:
         print >> sys.stderr, ('Could not open one of the input files for '
                               'reading. open() gave the following error:')
         print >> sys.stderr, err
         raise SystemExit(5)
 
-    # If we don't relax or do full diff (which also implies relax), check if
-    # they are dissimilar
-    if not (opts.relax or opts.full):
-        files_are_similar = podiff.check_files_common_base(list_orig_entries,
-                                                           list_new_entries)
-        # and if they indeed are dissimilar, give and error
-        if not files_are_similar:
+    # Diff the files
+    if opts.relax or opts.full:
+        podiff.diff_catalogs_relaxed(cat_old, cat_new, opts.full)
+    else:
+        if not podiff.catalogs_has_common_base(cat_old, cat_new):
             option_parser.error('Cannot work with files with dissimilar base, '
                                 'unless the relax option (-r) or the full '
                                 'options (-f) is used.\n\nNOTE: This is not '
@@ -265,15 +273,11 @@ def main():
                                 'proofreading should happen between files '
                                 'with similar base, to make the podiff easier '
                                 'to read.')
-            
-    if opts.relax or opts.full:
-        podiff.diff_files_relaxed(list_orig_entries, list_new_entries,\
-                                      opts.full)
-    else:
-        podiff.diff_files_unrelaxed(list_orig_entries, list_new_entries)
+
+        podiff.diff_catalogs_strict(cat_old, cat_new)
 
     return
   
-#################################
+##############################################################################
 if __name__ == '__main__':
     main()
