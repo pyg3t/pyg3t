@@ -142,7 +142,8 @@ class Message(object):
     is_obsolete = False
 
     def __init__(self, msgid, msgstr=None, msgid_plural=None,
-                 msgctxt=None, comments=None, meta=None):
+                 msgctxt=None, comments=None, meta=None,
+                 flags=None):
         """Create a Message, representing one message from a message catalog.
         
         All strings are assumed to be unicode.  XXX or are they?
@@ -186,11 +187,12 @@ class Message(object):
         # The fuzzy flag is whether fuzzy is specified in the
         # comments.  It is ignored if the message has an empty
         # translation.
-        self.fuzzyflag = False
-        for comment in comments:
-            if comment.startswith('#, ') and 'fuzzy' in comment:
-                self.fuzzyflag = True
-                break
+        self.flags = set(flags)
+        #self.fuzzyflag = False
+        #for comment in comments:
+        #    if comment.startswith('#, ') and 'fuzzy' in comment:
+        #        self.fuzzyflag = True
+        #        break
         
         self.msgctxt = msgctxt
 
@@ -225,6 +227,10 @@ class Message(object):
     @property
     def untranslated(self):
         return self.msgstr == ''
+
+    @property
+    def fuzzyflag(self):
+        return 'fuzzy' in self.flags
 
     @property
     def isfuzzy(self):
@@ -270,9 +276,17 @@ class Message(object):
             raise KeyError('No raw lines for this Message')
         return ''.join(self.meta['rawlines'])
 
-    def tostring(self):
+    def tostring(self): # maybe add line length argument for wrapping?
         lines = []
         lines.extend(self.comments)
+        if self.flags:
+            lines.append('#, %s\n' % ', '.join(self.flags))
+        #lines.extend('# %s' % comment for comment in self.translatorcomments)
+        #lines.extend('#. %s' % comment for comment in self.extractedcomments)
+        #lines.extend('#: %s' % comment for comment in self.referencecomments)
+        #lines.append('#, %s' % ', '.join(flag for flat in self.flags))
+        # XXX #| msgctxt
+        # XXX #| msgid
         if self.has_context:
             lines.append(wrap('msgctxt', self.msgctxt))
         lines.append(wrap('msgid', self.msgid))
@@ -443,20 +457,31 @@ def get_message_chunks(input):
                                             patterns['comment'])
         else:
             comments = []
-        msgdata['comments'] = comments
 
-        commenttypes = ['# ', '#. ', '#: ', '#, ', '#| msgid ']
-
-        typed_comments = {}
-        for key in commenttypes:
-            typed_comments[key] = []
-
+        flags = []
+        normalcomments = []
         for comment in comments:
-            for key in commenttypes:
-                if comment.startswith(key):
-                    typed_comments[key].append(comment[len(key):])
+            if comment.startswith('#, '):
+                flags.extend(comment[3:].split(', '))
+            else:
+                normalcomments.append(comment)
+        msgdata['comments'] = normalcomments
+        msgdata['flags'] = []
+        for flags1 in flags:
+            msgdata['flags'].extend(flags1.split(', '))
+
+        #commenttypes = ['# ', '#. ', '#: ', '#, ', '#| msgid ', '#| msgctxt ']
+
+        #typed_comments = {}
+        #for key in commenttypes:
+        #    typed_comments[key] = []
+
+        #for comment in comments:
+        #    for key in commenttypes:
+        #        if comment.startswith(key):
+        #            typed_comments[key].append(comment[len(key):])
         
-        msgdata['typedcomments'] = typed_comments
+        #msgdata['typedcomments'] = typed_comments
 
         if line.startswith(patterns['msgctxt']):
             line, msgctxt = _extract_string(line, input, patterns['msgctxt'])
@@ -560,6 +585,7 @@ def parse(input):
                              msgid_plural=chunk.get('msgid_plural'),
                              msgctxt=chunk.get('msgctxt'),
                              comments=chunk['comments'],
+                             flags=chunk['flags'],
                              meta=meta))
         
     #obsoletes = [ObsoleteMessage(obsolete['comments'], 
