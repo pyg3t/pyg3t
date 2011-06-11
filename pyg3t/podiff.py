@@ -153,7 +153,7 @@ class PoDiff:
             # Make the diff
             if enc != (None, None):
                 old_lines = [line.decode(enc[0]).encode(enc[1],
-                                                        errors='replace')
+                                                        'replace')
                              for line in old_msg.meta['rawlines']]
             else:
                 old_lines = old_msg.meta['rawlines']
