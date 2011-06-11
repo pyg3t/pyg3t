@@ -111,3 +111,12 @@ msgstr ""
 "\n"
 "Dansk-gruppen <dansk@dansk-gruppen.dk>\n"
 "Mere info: http://www.dansk-gruppen.dk>"
+
+#~ # Yuck! Here is an obsolete message, with comments even, right in
+#~ # the middle of the file!
+#~ msgid "Most grumbleworthy"
+#~ msgstr ""
+
+msgid "this message has no comments!  Also starting character mismatch"
+msgstr "Denne besked har ingen kommentarer!  Også uoverensstemmelse med "
+"starttegn"

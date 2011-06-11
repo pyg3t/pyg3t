@@ -61,14 +61,18 @@ def _get_header(msgs):
 
 class Catalog(object):
     """A Catalog represents one gettext catalog, or po-file."""
-    def __init__(self, fname, encoding, msgs, obsoletes=None):
+    def __init__(self, fname, encoding, msgs):
         self.fname = fname
         self.encoding = encoding
-        self.msgs = list(msgs)
-        if obsoletes is None:
-            obsoletes = []
-        else:
-            obsoletes = list(obsoletes)
+        _msgs = []
+        obsoletes = []
+        for msg in msgs:
+            if msg.is_obsolete:
+                obsoletes.append(msg)
+            else:
+                _msgs.append(msg)
+
+        self.msgs = _msgs
         self.obsoletes = obsoletes
         self.header = _get_header(self.msgs)
 
@@ -135,8 +139,11 @@ class Message(object):
     * msgstr(s)
     * miscellaneous informations (line count, translation status)"""
 
+    is_obsolete = False
+
     def __init__(self, msgid, msgstr=None, msgid_plural=None,
-                 msgctxt=None, comments=None, meta=None):
+                 msgctxt=None, comments=None, meta=None,
+                 flags=None):
         """Create a Message, representing one message from a message catalog.
         
         All strings are assumed to be unicode.  XXX or are they?
@@ -180,11 +187,12 @@ class Message(object):
         # The fuzzy flag is whether fuzzy is specified in the
         # comments.  It is ignored if the message has an empty
         # translation.
-        self.fuzzyflag = False
-        for comment in comments:
-            if comment.startswith('#, ') and 'fuzzy' in comment:
-                self.fuzzyflag = True
-                break
+        self.flags = set(flags)
+        #self.fuzzyflag = False
+        #for comment in comments:
+        #    if comment.startswith('#, ') and 'fuzzy' in comment:
+        #        self.fuzzyflag = True
+        #        break
         
         self.msgctxt = msgctxt
 
@@ -219,6 +227,10 @@ class Message(object):
     @property
     def untranslated(self):
         return self.msgstr == ''
+
+    @property
+    def fuzzyflag(self):
+        return 'fuzzy' in self.flags
 
     @property
     def isfuzzy(self):
@@ -264,9 +276,17 @@ class Message(object):
             raise KeyError('No raw lines for this Message')
         return ''.join(self.meta['rawlines'])
 
-    def tostring(self):
+    def tostring(self): # maybe add line length argument for wrapping?
         lines = []
         lines.extend(self.comments)
+        if self.flags:
+            lines.append('#, %s\n' % ', '.join(self.flags))
+        #lines.extend('# %s' % comment for comment in self.translatorcomments)
+        #lines.extend('#. %s' % comment for comment in self.extractedcomments)
+        #lines.extend('#: %s' % comment for comment in self.referencecomments)
+        #lines.append('#, %s' % ', '.join(flag for flat in self.flags))
+        # XXX #| msgctxt
+        # XXX #| msgid
         if self.has_context:
             lines.append(wrap('msgctxt', self.msgctxt))
         lines.append(wrap('msgid', self.msgid))
@@ -282,8 +302,17 @@ class Message(object):
     def __str__(self):
         return self.tostring()
 
-#class ObsoleteMessage(object):
-#    def __init__(self, comments, meta=None):
+class ObsoleteMessage(Message):
+    
+    is_obsolete = True
+
+    def tostring(self):
+        string = Message.tostring(self)
+        lines = string.splitlines()
+        # XXX does not re-wrap if line is too long
+        return '\n'.join('#~ %s' % line for line in lines)
+        
+#   def __init__(self, comments, meta=None):
 #        self.comments = comments
 #        if meta is None:
 #            meta = {}
@@ -356,7 +385,12 @@ class UnimplementedPoSyntaxError(NotImplementedError):
 
 def consume_lines(nextline, input, startpattern, continuepattern):
     if not nextline.startswith(startpattern):
-        print 'pat', startpattern, 'line', nextline
+        print 'pat=%s; line=%s' % (repr(startpattern), repr(nextline))
+        lines = input.pop_lines()
+        print 'lines'
+        print '----'
+        for line in lines:
+            print line
         raise PoSyntaxError()#XXXX
     lines = [nextline]
     for nextline in input:
@@ -371,16 +405,23 @@ def consume_lines(nextline, input, startpattern, continuepattern):
 def extract_string(lines, header):
     line = lines[0]
     if not line.startswith(header + ' "'):
-        raise PoSyntaxError()#'%s not found near line %d:\n%s'
-                            #% (header, input.lineno, 
-                            #   ''.join(input.pop_lines())))
-
+        raise PoSyntaxError('%s not found.  Line was: %s' % (header, line))
     # get e.g. 'hello' from the line 'msgid "hello"'
     headerline = line[len(header) + 2:-2]
     
     # get 'hello' from line '"hello"'
     otherlines = [line[1:-2] for line in lines[1:]]
     return ''.join([headerline] + otherlines)
+
+linepatterns = dict(comment='#',
+                    msgctxt='msgctxt "',
+                    msgid='msgid',
+                    msgid_plural='msgid_plural',
+                    msgstr='msgstr',
+                    msgstr_plural='msgstr[%d]',
+                    continuation='"')
+obsolete_linepatterns = dict([(key, '#~ ' + value) 
+                              for key, value in linepatterns.items()])
 
 def get_message_chunks(input):
     input = LineNumberIterator(input)
@@ -389,6 +430,15 @@ def get_message_chunks(input):
         msgdata = {}
         rawlines = []
         msgdata['rawlines'] = rawlines
+
+        
+
+        is_obsolete = line.startswith('#~ ')
+        msgdata['is_obsolete'] = is_obsolete
+        if is_obsolete:
+            patterns = obsolete_linepatterns
+        else:
+            patterns = linepatterns
         
         def _consume_lines(nextline, input, startpattern, continuepattern):
             nextline, lines = consume_lines(nextline, input, startpattern, 
@@ -396,50 +446,74 @@ def get_message_chunks(input):
             rawlines.extend(lines)
             return nextline, lines
         def _extract_string(nextline, input, header):
-            nextline, lines = _consume_lines(nextline, input, header, '"')
+            nextline, lines = _consume_lines(nextline, input, header,
+                                             patterns['continuation'])
             string = extract_string(lines, header)
             return nextline, string
 
-        line, comments = _consume_lines(line, input, '#', '#')
-        msgdata['comments'] = comments
+        if line.startswith(patterns['comment']):
+            line, comments = _consume_lines(line, input, 
+                                            patterns['comment'], 
+                                            patterns['comment'])
+        else:
+            comments = []
 
-        if line is None:
-            msgdata['obsolete'] = True
-            yield msgdata # obsolete, and EOF
-            # EOF can only legally occur after comments (this case)
-            # or of course after last msgstr
-            # XXX right now all obsoletes will be lobbed into the same
-            # block
-            return
+        flags = []
+        normalcomments = []
+        for comment in comments:
+            if comment.startswith('#, '):
+                flags.extend(comment[3:].split(', '))
+            else:
+                normalcomments.append(comment)
+        msgdata['comments'] = normalcomments
+        msgdata['flags'] = []
+        for flags1 in flags:
+            msgdata['flags'].extend(flags1.split(', '))
 
-        if line.startswith('msgctxt "'):
-            line, msgctxt = _extract_string(line, input, 'msgctxt')
+        #commenttypes = ['# ', '#. ', '#: ', '#, ', '#| msgid ', '#| msgctxt ']
+
+        #typed_comments = {}
+        #for key in commenttypes:
+        #    typed_comments[key] = []
+
+        #for comment in comments:
+        #    for key in commenttypes:
+        #        if comment.startswith(key):
+        #            typed_comments[key].append(comment[len(key):])
+        
+        #msgdata['typedcomments'] = typed_comments
+
+        if line.startswith(patterns['msgctxt']):
+            line, msgctxt = _extract_string(line, input, patterns['msgctxt'])
             msgdata['msgctxt'] = msgctxt # XXX remember to take care of this
 
-        if line.startswith('msgid '):
-            line, msgid = _extract_string(line, input, 'msgid')
+        if line.startswith(patterns['msgid']):
+            line, msgid = _extract_string(line, input, patterns['msgid'])
             msgdata['msgid'] = msgid
             msgdata['lineno'] = input.lineno
-        else:
-            sdlkfjasdfkjasldfkjalfkjaslkdfjlkkj
-            assert rawlines[-1].startswith('#~') # obsolete
-            yield msgdata
-            continue # XXXXXXX
+        #else:
+        #    sdlkfjasdfkjasldfkjalfkjaslkdfjlkkj
+        #    assert rawlines[-1].startswith('#~') # obsolete
+        #    yield msgdata
+        #    continue # XXXXXXX
 
-        if line.startswith('msgid_plural'):
-            line, msgid_plural = _extract_string(line, input, 'msgid_plural')
+        if line.startswith(patterns['msgid_plural']):
+            line, msgid_plural = _extract_string(line, input, 
+                                                 patterns['msgid_plural'])
             msgdata['msgid_plural'] = msgid_plural
             
             nmsgstr = 0
             msgstrs = []
-            while line.startswith('msgstr['):
+            pluralpattern = patterns['msgstr_plural'] % nmsgstr
+            while line.startswith(pluralpattern):
                 line, msgstr = _extract_string(line, input, 
-                                               'msgstr[%d]' % nmsgstr)
+                                               pluralpattern)
                 msgstrs.append(msgstr)
                 nmsgstr += 1
+                pluralpattern = patterns['msgstr_plural'] % nmsgstr
             msgdata['msgstrs'] = msgstrs
         else:
-            line, msgstr = _extract_string(line, input, 'msgstr')
+            line, msgstr = _extract_string(line, input, patterns['msgstr'])
             msgdata['msgstr'] = msgstr
         yield msgdata
         if line is None:
@@ -458,14 +532,13 @@ def parse(input):
         fname = '<unknown>'
 
     chunks = []
-    obsoletes = [] # this is just a list of lines
+    obsoletes = []
     
     for chunk in chunk_iter(input, include_obsoletes=True):
-        if 'msgid' in chunk:
-            chunks.append(chunk)
+        if chunk['is_obsolete']:
+            obsoletes.append(chunk)
         else:
-            assert 'obsolete' in chunk
-            obsoletes.extend(chunk['comments'])
+            chunks.append(chunk)
 
     for chunk in chunks:
         if chunk['msgid'] == '':
@@ -483,7 +556,7 @@ def parse(input):
     encoding = token.split('=')[1]
     
     msgs = []
-    for chunk in chunks:
+    for chunk in chunks + obsoletes:
         msgid = chunk['msgid']
         
         if 'msgstr' in chunk:
@@ -501,19 +574,25 @@ def parse(input):
                     lineno=chunk['lineno'],
                     fname=fname,
                     encoding=encoding)
+        
+        if chunk['is_obsolete']:
+            msgclass = ObsoleteMessage
+        else:
+            msgclass = Message
 
-        msgs.append(Message(msgid=chunk['msgid'],
-                            msgstr=msgstr, # (includes any plurals)
-                            msgid_plural=chunk.get('msgid_plural'),
-                            msgctxt=chunk.get('msgctxt'),
-                            comments=chunk['comments'],
-                            meta=meta))
-    
+        msgs.append(msgclass(msgid=chunk['msgid'],
+                             msgstr=msgstr, # (includes any plurals)
+                             msgid_plural=chunk.get('msgid_plural'),
+                             msgctxt=chunk.get('msgctxt'),
+                             comments=chunk['comments'],
+                             flags=chunk['flags'],
+                             meta=meta))
+        
     #obsoletes = [ObsoleteMessage(obsolete['comments'], 
     #                             meta=dict(encoding=encoding, fname=fname))
     #                             for obsolete in obsoletes]
 
-    cat = Catalog(fname, encoding, msgs, obsoletes=obsoletes)
+    cat = Catalog(fname, encoding, msgs)
     return cat
 
 
