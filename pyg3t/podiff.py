@@ -37,13 +37,8 @@ Succes criteria:
 
 Implementation:
 ===============
-Diffing files with different encodings
-To compare strings, they should have same encoding.
-My suggestion (Ask) is to not do anything if they do happen to have
-same encoding from the start, but if they do not, then convert
-both to utf8.
-
-.encode('ascii', errors='replace')
+In the future, hopefully the catalog class will have the ability to change its
+own encoding, then I should change the encoding support here to use that
 """
 
 
@@ -98,12 +93,17 @@ class PoDiff:
         """
         dict_old_cat = old_cat.dict()
 
+        encoding = (old_cat.encoding, new_cat.encoding)\
+            if new_cat.encoding != old_cat.encoding else (None, None)
+
         # Make diff for all the msg's in new_cat
         for new_msg in new_cat:
             if new_msg.key in dict_old_cat:
-                self.diff_two_msgs(dict_old_cat[new_msg.key], new_msg, new_cat)
+                self.diff_two_msgs(dict_old_cat[new_msg.key], new_msg,
+                                   fname=new_cat.fname, enc=encoding)
             else:
-                self.diff_one_msg(new_msg, new_cat, is_new=True)
+                self.diff_one_msg(new_msg, is_new=True, fname=new_cat.fname,
+                                  enc=encoding)
 
         # If we are making the full diff, diff the entries that are only
         # present in old file
@@ -113,7 +113,8 @@ class PoDiff:
                         dict_new_cat]
 
             for key in only_old:
-                self.diff_one_msg(dict_old_cat[key], old_cat, is_new=False)
+                self.diff_one_msg(dict_old_cat[key], is_new=False,
+                                  fname=old_cat.fname, enc=encoding)
 
         self.print_status()
 
@@ -124,11 +125,15 @@ class PoDiff:
         old_cat    old catalog
         new_cat    new catalog
         """
+        encoding = (old_cat.encoding, new_cat.encoding)\
+            if new_cat.encoding != old_cat.encoding else (None, None)
+
         for old_msg, new_msg in zip(old_cat, new_cat):
-            self.diff_two_msgs(old_msg, new_msg, new_cat)
+            self.diff_two_msgs(old_msg, new_msg, fname=new_cat.fname,
+                               enc=encoding)
         self.print_status()
 
-    def diff_two_msgs(self, old_msg, new_msg, new_cat):
+    def diff_two_msgs(self, old_msg, new_msg, fname=None, enc=(None,None)):
         """Produce diff between two messages
 
         Keywords:
@@ -143,17 +148,23 @@ class PoDiff:
                 old_msg.get_comments('# ') != new_msg.get_comments('# '):
 
             if self.show_line_numbers:
-                print >> self.out, self.__header(new_msg, new_cat)
+                print >> self.out, self.__header(new_msg, fname)
 
             # Make the diff
-            diff = list(unified_diff(old_msg.meta['rawlines'], 
-                                     new_msg.meta['rawlines'],
+            if enc != (None, None):
+                old_lines = [line.decode(enc[0]).encode(enc[1],
+                                                        errors='replace')
+                             for line in old_msg.meta['rawlines']]
+            else:
+                old_lines = old_msg.meta['rawlines']
+
+            diff = list(unified_diff(old_lines, new_msg.meta['rawlines'],
                                      n=10000))
             # Print the result, without the 3 lines of header
             print >> self.out, ''.join(diff[3:])
             self.number_of_diff_chunks += 1
 
-    def diff_one_msg(self, msg, cat, is_new):
+    def diff_one_msg(self, msg, is_new, fname=None, enc=(None,None)):
         """Produce diff if only one entry is present
 
         Keywords:
@@ -162,22 +173,28 @@ class PoDiff:
         is_new     boolean
         """
         if self.show_line_numbers:
-            print >> self.out, self.__header(msg, cat)
+            print >> self.out, self.__header(msg, fname)
 
         # Make the diff
-        if is_new:
-            diff = list(unified_diff('', msg.meta['rawlines'], n=10000))
+        if enc != (None, None) and not is_new:
+            msg_lines = [line.decode(enc[0]).encode(enc[1], errors='replace')
+                         for line in msg.meta['rawlines']]
         else:
-            diff = list(unified_diff(msg.meta['rawlines'], '', n=10000))
+            msg_lines = msg.meta['rawlines']
+
+
+        if is_new:
+            diff = list(unified_diff('', msg_lines, n=10000))
+        else:
+            diff = list(unified_diff(msg_lines, '', n=10000))
 
         # Print the result without the 3 lines of header
         print >> self.out, ''.join(diff[3:])#.encode('utf8')
         self.number_of_diff_chunks += 1
             
-    def __header(self, msg, cat):
+    def __header(self, msg, fname=None):
         """Print line number and file name header for diff of msg pairs"""
         lineno = msg.meta['lineno'] if 'lineno' in msg.meta else 'N/A'
-        fname = cat.fname # May be None if cat was created programatically
         return ('--- Line %d (%s) ' % (lineno, fname)).ljust(32, '-')
 
     def print_status(self):
@@ -192,9 +209,11 @@ class PoDiff:
 
 def __build_parser():
     description = ('Prints the difference between two po-FILES in pieces '
-                   'of diff output that pertain to one original string')
+                   'of diff output that pertain to one original string. '
+                   )
 
-    usage = '%prog [OPTIONS] ORIGINAL_FILE UPDATED_FILE'
+    usage = ('%prog [OPTIONS] ORIGINAL_FILE UPDATED_FILE\n\n'
+             'Use - as file argument to use standard in')
     parser = OptionParser(usage=usage, description=description,
                           version=__version__)
 
@@ -253,8 +272,15 @@ def main():
     
     # Load files into catalogs
     try:
-        cat_old = parse(open(args[0]))
-        cat_new = parse(open(args[1]))
+        if args[0] == '-':
+            cat_old = parse(sys.stdin)
+        else:
+            cat_old = parse(open(args[0]))
+            
+        if args[1] == '-':
+            cat_new = parse(sys.stdin)
+        else:
+            cat_new = parse(open(args[1]))
     except IOError, err:
         print >> sys.stderr, ('Could not open one of the input files for '
                               'reading. open() gave the following error:')
