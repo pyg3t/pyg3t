@@ -170,15 +170,13 @@ class Message(object):
         self.msgid = msgid
         self.msgid_plural = msgid_plural
 
-        if msgid_plural is None:
+        if isinstance(msgstr, basestring):
+            assert msgid_plural is None
             self.msgstr = msgstr
             self.msgstrs = [msgstr]
         else:
-            # msgstr is a list; if it turns out to be a string, raise
-            # an error to avoid confusion
             self.msgstr = msgstr[0]
-            assert not isinstance(msgstr, basestring)
-            self.msgstrs = msgstr
+            self.msgstrs = list(msgstr)
         
         if comments is None:
             comments = []
@@ -187,7 +185,7 @@ class Message(object):
         # The fuzzy flag is whether fuzzy is specified in the
         # comments.  It is ignored if the message has an empty
         # translation.
-        self.flags = set(flags)
+        self._flags = set(flags)
         #self.fuzzyflag = False
         #for comment in comments:
         #    if comment.startswith('#, ') and 'fuzzy' in comment:
@@ -223,6 +221,10 @@ class Message(object):
     # is not translated, then the message *should* logically be
     # considered untranslated, but this is left for tools like poabc
     # to warn abount.
+
+    @property
+    def flags(self):
+        return self._flags
 
     @property
     def untranslated(self):
@@ -301,6 +303,20 @@ class Message(object):
 
     def __str__(self):
         return self.tostring()
+
+    def copy(self):
+        return self.__class__(self.msgid, self.msgstrs, self.msgid_plural,
+                              msgctxt=self.msgctxt, 
+                              comments=list(self.comments),
+                              meta=self.meta.copy(), flags=self.flags.copy())
+
+    def check(self):
+        assert isinstance(self.msgid, basestring)
+        for msgstr in self.msgstrs:
+            assert isinstance(msgstr, basestring)
+        assert self.msgid_plural is None or isinstance(self.msgid_plural, 
+                                                       basestring)
+            
 
 class ObsoleteMessage(Message):
     
@@ -385,12 +401,12 @@ class UnimplementedPoSyntaxError(NotImplementedError):
 
 def consume_lines(nextline, input, startpattern, continuepattern):
     if not nextline.startswith(startpattern):
-        print 'pat=%s; line=%s' % (repr(startpattern), repr(nextline))
-        lines = input.pop_lines()
-        print 'lines'
-        print '----'
-        for line in lines:
-            print line
+        #print 'pat=%s; line=%s' % (repr(startpattern), repr(nextline))
+        #lines = input.pop_lines()
+        #print 'lines'
+        #print '----'
+        #for line in lines:
+        #    print line
         raise PoSyntaxError()#XXXX
     lines = [nextline]
     for nextline in input:
