@@ -39,6 +39,12 @@ msgstr "Slet ikke diskens indhold"
 msgid "How many French people does it take to change a light bulb?"
 msgstr ""
 
+# The msgctxt can also be there without being a comment
+#: contextheavy.c:17
+msgctxt "cross the road joke"
+msgid "Why did the physicist cross the road"
+msgstr ""
+
 # Plurals untranslated
 #: plurals.c:10
 #, c-format
@@ -120,3 +126,8 @@ msgstr ""
 msgid "this message has no comments!  Also starting character mismatch"
 msgstr "Denne besked har ingen kommentarer!  Også uoverensstemmelse med "
 "starttegn"
+
+# A lot of the files from GNOME are even uglier, they have obsolete
+# messages where the translator created comment has the ordinary prefix
+#~ msgid "A ugly obsolete chunk"
+#~ msgstr "En grim forældet bid"
