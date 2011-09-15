@@ -103,12 +103,12 @@ def main():
 
         popatch.version_of_podiff(fileobject, new=opts.new)
 
-    if len(args) != 2:
-        option_parser.error('In patching mode popatch takes exactly two '
+    else:
+        # Patching mode
+        if len(args) != 2:
+            option_parser.error('In patching mode popatch takes exactly two '
                              'arguments')
-
-    # Patching mode
-    print 'Sorry, patching mode is not yet implemented'
+        print 'Sorry, patching mode is not yet implemented'
 
 if __name__ == '__main__':
     main()
