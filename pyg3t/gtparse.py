@@ -282,7 +282,7 @@ class Message(object):
         lines = []
         lines.extend(self.comments)
         if self.flags:
-            lines.append('#, %s\n' % ', '.join(self.flags))
+            lines.append('#, %s' % ', '.join(self.flags))
         #lines.extend('# %s' % comment for comment in self.translatorcomments)
         #lines.extend('#. %s' % comment for comment in self.extractedcomments)
         #lines.extend('#: %s' % comment for comment in self.referencecomments)
@@ -324,9 +324,18 @@ class ObsoleteMessage(Message):
 
     def tostring(self):
         string = Message.tostring(self)
-        lines = string.splitlines()
+        lines = []
+
+        # And now the ugliest hack in the history of computing
+        #
+        # Anything that doesn't already have a '#~ ' in front of it gets
+        # one now.
+        for line in string.splitlines():
+            if not line.startswith('#~ '):
+                line = '#~ %s' % line
+            lines.append(line)
         # XXX does not re-wrap if line is too long
-        return '\n'.join('#~ %s' % line for line in lines)
+        return '\n'.join(lines)
         
 #   def __init__(self, comments, meta=None):
 #        self.comments = comments
@@ -400,17 +409,18 @@ class UnimplementedPoSyntaxError(NotImplementedError):
 #def whole_chunk_iter(input):
 
 def consume_lines(nextline, input, startpattern, continuepattern):
-    if not nextline.startswith(startpattern):
+    if startpattern.match(nextline) is None:
+    #if not nextline.startswith(startpattern):
         #print 'pat=%s; line=%s' % (repr(startpattern), repr(nextline))
         #lines = input.pop_lines()
         #print 'lines'
         #print '----'
         #for line in lines:
         #    print line
-        raise PoSyntaxError()#XXXX
+        raise PoSyntaxError(repr(nextline))#XXXX
     lines = [nextline]
     for nextline in input:
-        if nextline.startswith(continuepattern):
+        if continuepattern.match(nextline):#.startswith(continuepattern):
             lines.append(nextline)
         else:
             break
@@ -420,24 +430,31 @@ def consume_lines(nextline, input, startpattern, continuepattern):
 
 def extract_string(lines, header):
     line = lines[0]
-    if not line.startswith(header + ' "'):
+    match = header.match(line)
+    if not match:
         raise PoSyntaxError('%s not found.  Line was: %s' % (header, line))
-    # get e.g. 'hello' from the line 'msgid "hello"'
-    headerline = line[len(header) + 2:-2]
+    
+    # get e.g. 'hello' from the line 'msgid "hello"', so skip 2 characters
+    end = match.end()
+    assert line[end] == '"'
+    headerline = line[end + 1:-2]
     
     # get 'hello' from line '"hello"'
     otherlines = [line[1:-2] for line in lines[1:]]
     return ''.join([headerline] + otherlines)
 
-linepatterns = dict(comment='#',
-                    msgctxt='msgctxt "',
-                    msgid='msgid',
-                    msgid_plural='msgid_plural',
-                    msgstr='msgstr',
-                    msgstr_plural='msgstr[%d]',
-                    continuation='"')
-obsolete_linepatterns = dict([(key, '#~ ' + value) 
-                              for key, value in linepatterns.items()])
+linepatternstrings = dict(comment=r'#[\s,\.:\|]',
+                          msgctxt=r'msgctxt ',
+                          msgid=r'msgid ',
+                          msgid_plural=r'msgid_plural ',
+                          msgstr=r'msgstr ',
+                          msgstr_plural=r'msgstr\[\d\] ',
+                          continuation=r'"')
+linepatterns = dict([(key, re.compile(value))
+                     for key, value in linepatternstrings.items()])
+obsolete_base_pattern = re.compile(r'#~')
+obsolete_linepatterns = dict([(key, re.compile(r'#~ ' + value)) 
+                              for key, value in linepatternstrings.items()])
 
 def get_message_chunks(input):
     input = LineNumberIterator(input)
@@ -449,7 +466,7 @@ def get_message_chunks(input):
 
         
 
-        is_obsolete = line.startswith('#~ ')
+        is_obsolete = line.startswith('#~')
         msgdata['is_obsolete'] = is_obsolete
         if is_obsolete:
             patterns = obsolete_linepatterns
@@ -467,13 +484,12 @@ def get_message_chunks(input):
             string = extract_string(lines, header)
             return nextline, string
 
-        if line.startswith(patterns['comment']):
+        if patterns['comment'].match(line):
             line, comments = _consume_lines(line, input, 
                                             patterns['comment'], 
                                             patterns['comment'])
         else:
             comments = []
-
         flags = []
         normalcomments = []
         for comment in comments:
@@ -485,6 +501,12 @@ def get_message_chunks(input):
         msgdata['flags'] = []
         for flags1 in flags:
             msgdata['flags'].extend(flags1.split(', '))
+
+        if line.startswith('#~'): 
+            # Aha!  It was an obsolete all along!
+            # Must read all remaining lines as obsolete...
+            is_obsolete = True
+            patterns = obsolete_linepatterns
 
         #commenttypes = ['# ', '#. ', '#: ', '#, ', '#| msgid ', '#| msgctxt ']
 
@@ -498,12 +520,12 @@ def get_message_chunks(input):
         #            typed_comments[key].append(comment[len(key):])
         
         #msgdata['typedcomments'] = typed_comments
-
-        if line.startswith(patterns['msgctxt']):
+        
+        if patterns['msgctxt'].match(line):
             line, msgctxt = _extract_string(line, input, patterns['msgctxt'])
             msgdata['msgctxt'] = msgctxt # XXX remember to take care of this
 
-        if line.startswith(patterns['msgid']):
+        if patterns['msgid'].match(line):
             line, msgid = _extract_string(line, input, patterns['msgid'])
             msgdata['msgid'] = msgid
             msgdata['lineno'] = input.lineno
@@ -512,21 +534,20 @@ def get_message_chunks(input):
         #    assert rawlines[-1].startswith('#~') # obsolete
         #    yield msgdata
         #    continue # XXXXXXX
-
-        if line.startswith(patterns['msgid_plural']):
+        
+        if patterns['msgid_plural'].match(line):#
             line, msgid_plural = _extract_string(line, input, 
                                                  patterns['msgid_plural'])
             msgdata['msgid_plural'] = msgid_plural
             
             nmsgstr = 0
             msgstrs = []
-            pluralpattern = patterns['msgstr_plural'] % nmsgstr
-            while line.startswith(pluralpattern):
+            pluralpattern = patterns['msgstr_plural']
+            while pluralpattern.match(line):#line.startswith(pluralpattern):
                 line, msgstr = _extract_string(line, input, 
                                                pluralpattern)
                 msgstrs.append(msgstr)
                 nmsgstr += 1
-                pluralpattern = patterns['msgstr_plural'] % nmsgstr
             msgdata['msgstrs'] = msgstrs
         else:
             line, msgstr = _extract_string(line, input, patterns['msgstr'])
