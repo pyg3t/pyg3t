@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import sys
+import StringIO
 from optparse import OptionParser
 from pyg3t import __version__
 
@@ -26,11 +27,11 @@ class PoPatch:
     out the new or old versions of the content in a podiff
     """
 
-    def __init__(self, out):
+    def __init__(self, out=None):
         """ Initialize variables """
-        self.out = out
+        self.out = out if out is not None else sys.stdout
 
-    def version_of_podiff(self, fileobject, new=True):
+    def version_of_podiff(self, fileobject, new=True, output_object=None):
         """ This function produces either the new or the old version of a
         the podiff content.
 
@@ -38,9 +39,11 @@ class PoPatch:
         fileobject     is the file object to read from
         new            boolean new or old version
         """
+        out = output_object if output_object is not None else self.out
+        
         for line in fileobject.readlines():
             if line.startswith('\n'):
-                print >> self.out, line,
+                print >> out, line,
             elif line.startswith('--') or\
                     line.startswith(' =') or\
                     line.startswith(' N') or\
@@ -50,12 +53,26 @@ class PoPatch:
             elif line.startswith(' ') or\
                     (line.startswith('+') and new) or\
                     (line.startswith('-') and not new):
-                print >> self.out, line[1:],
+                print >> out, line[1:],
             else:
                 print >> sys.stderr, ('The input file is not a proper podiff '
                                       'file. The conflicting line is:\n' +
                                       line)
                 raise SystemExit(1)
+        
+        return out if output_object is not None else None
+
+    def version_of_podiff_as_stringio(self, fileobject, new=True):
+        """ This function produces either the new or the old version of a
+        the podiff content and returns it as a fileio object
+
+        Parameters:
+        fileobject     is the file object to read from
+        new            boolean new or old version
+        """
+
+        out = StringIO.StringIO()
+        return self.version_of_podiff(fileobject, new=new, output_object=out)
 
 def __build_parser():
     description = ('Patches a podiff into the original po file or shows '
@@ -86,7 +103,18 @@ def main():
     option_parser = __build_parser()
     opts, args = option_parser.parse_args()
 
-    popatch = PoPatch(sys.stdout)
+    if opts.output is not None:
+        try:
+            popatch = PoPatch(open(opts.output, 'w'))
+        except IOError, err:
+            print >> sys.stderr, ('Could not open the output file for writing.'
+                                  ' open() gave the following error:')
+            print >> sys.stderr, err
+            raise SystemExit(3)
+    else:
+        popatch = PoPatch()
+
+
     
     # Display version of podiff mode
     if opts.new is not None:
