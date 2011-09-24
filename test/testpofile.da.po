@@ -127,7 +127,15 @@ msgid "this message has no comments!  Also starting character mismatch"
 msgstr "Denne besked har ingen kommentarer!  Også uoverensstemmelse med "
 "starttegn"
 
+# Dansk vokal som første bogstav
+msgid "Open file"
+msgstr "Åbn fil"
+
 # A lot of the files from GNOME are even uglier, they have obsolete
 # messages where the translator created comment has the ordinary prefix
 #~ msgid "A ugly obsolete chunk"
 #~ msgstr "En grim forældet bid"
+
+#~| msgid "Previous msgid in a obsolote"
+#~ msgid "Yikes"
+#~ msgstr "Giver problemer"
