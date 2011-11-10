@@ -136,6 +136,19 @@ msgstr "Åbn fil"
 #~ msgid "A ugly obsolete chunk"
 #~ msgstr "En grim forældet bid"
 
-#~| msgid "Previous msgid in a obsolote"
+#~| msgid "Previous msgid in a obsolete"
 #~ msgid "Yikes"
 #~ msgstr "Giver problemer"
+
+#~ # Multiline obsolete
+#~ # Lewis Carroll
+#~ msgid ""
+#~ "And as in uffish thought he stood,\n"
+#~ "  The Jabberwock, with eyes of flame,\n"
+#~ "Came whiffling through the tulgey wood,\n"
+#~ "   And burbled as it came!\n"
+#~ msgstr ""
+#~ "Og som han stod i grumbligt sindelag,\n"
+#~ "   Kom Jabbervokken, med flammende øjne,\n"
+#~ "Hvifflende gennem den tulglige skov,\n"
+#~ "   Og burblede da den kom!\n"

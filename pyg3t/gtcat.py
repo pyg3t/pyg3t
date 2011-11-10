@@ -50,6 +50,7 @@ def main():
                 print msg.tostring().decode(src_encoding).encode(dst_encoding)
             for obs in cat.obsoletes:
                 print obs.decode(src_encoding).encode(dst_encoding),
+                # ^ XXX is it really meant not to print newline?
                 #print obs.tostring().decode(src_encoding).encode(dst_encoding)
         else:
             for msg in cat:
