@@ -137,32 +137,31 @@ class Message(object):
     * comments
     * msgid (possibly plural)
     * msgstr(s)
-    * miscellaneous informations (line count, translation status)"""
+    * miscellaneous informations (flags, translation status)"""
 
     is_obsolete = False
 
-    def __init__(self, msgid, msgstr=None, msgid_plural=None,
+    def __init__(self, msgid, msgstr, msgid_plural=None,
                  msgctxt=None, comments=None, meta=None,
                  flags=None):
         """Create a Message, representing one message from a message catalog.
-        
-        All strings are assumed to be unicode.  XXX or are they?
         
         Parameters:
          * msgid: string
          * msgstr: string, or list of strings for plurals
          * msgid_plural: None, or a string if there are plurals
          * msgctxt: None, or a string if there is a message context
-         * comments: list of newline-terminated strings (use [] if None)
-         
-         The two last arguments specify information that pertains to
-         the file from which the message was loaded.  If the Message
-         is not based on a file, these should be None.  rawlines is
-         the original representation from an input file, if the
-         original representation must be remembered.  lineno is the
-         line number of the msgid in the file from which it was
-         loaded.
+         * comments: list of newline-terminated strings ([] or None if none)
+         * meta: dict of optional metadata (linenumber, raw text from po-file)
+         * flags: an iterable of strings specififying flags ('fuzzy', etc.)
 
+         If this message was loaded from a file using the parse() function,
+         the meta dictionary will contain the following keys:
+          * 'lineno': the original line number of the message in the po-file
+          * 'encoding': the encoding of the po-file
+          * 'rawlines': the original text in the po-file as a a list of
+                        newline-terminated lines
+         
          It is understood that the properties of a Message may be
          changed programmatically so as to render it inconsistent with
          its rawlines and/or lineno.
@@ -182,15 +181,10 @@ class Message(object):
             comments = []
         self.comments = comments
         
-        # The fuzzy flag is whether fuzzy is specified in the
+        # The fuzzy flag is whether fuzzy is specified in the flag
         # comments.  It is ignored if the message has an empty
         # translation.
-        self._flags = set(flags)
-        #self.fuzzyflag = False
-        #for comment in comments:
-        #    if comment.startswith('#, ') and 'fuzzy' in comment:
-        #        self.fuzzyflag = True
-        #        break
+        self.flags = set(flags)
         
         self.msgctxt = msgctxt
 
@@ -221,10 +215,6 @@ class Message(object):
     # is not translated, then the message *should* logically be
     # considered untranslated, but this is left for tools like poabc
     # to warn abount.
-
-    @property
-    def flags(self):
-        return self._flags
 
     @property
     def untranslated(self):
@@ -310,13 +300,35 @@ class Message(object):
                               comments=list(self.comments),
                               meta=self.meta.copy(), flags=self.flags.copy())
 
+    def decode(self):
+        encoding = self.meta['encoding']
+        msgvars = vars(self)
+        
+        kwargs = {}
+        for key in ['comments', 'msgstrs', 'flags']:
+            kwargs[key] = [string.decode(encoding) for string in msgvars[key]]
+        kwargs['msgstr'] = kwargs.pop('msgstrs')
+        for key in ['msgid', 'msgid_plural', 'msgctxt']:
+            if msgvars[key] is None:
+                kwargs[key] = None
+            else:
+                kwargs[key] = msgvars[key].decode(encoding)
+        meta = msgvars['meta'].copy()
+        meta['representation'] = 'unicode'
+        kwargs['meta'] = meta
+        return self.__class__(**kwargs)
+
     def check(self):
-        assert isinstance(self.msgid, basestring)
+        if self.meta.get('representation') == 'unicode':
+            stringtype = unicode
+        else:
+            stringtype = basestring
+        assert isinstance(self.msgid, stringtype)
         for msgstr in self.msgstrs:
-            assert isinstance(msgstr, basestring)
+            assert isinstance(msgstr, stringtype)
         assert self.msgid_plural is None or isinstance(self.msgid_plural, 
-                                                       basestring)
-            
+                                                       stringtype)
+
 
 class ObsoleteMessage(Message):
     

@@ -179,6 +179,7 @@ class POABC:
             return ['Untranslated message']
         if msg.isfuzzy:
             return ['Fuzzy message']
+        msg = msg.decode()
         msgid, msgstr, warnings1 = self.check_stringpair(msg, msg.msgid,
                                                          msg.msgstr)
         warnings.extend(warnings1)
