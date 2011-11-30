@@ -501,13 +501,15 @@ def get_message_chunks(input):
         normalcomments = []
         for comment in comments:
             if comment.startswith('#, '):
-                flags.extend(comment[3:].split(', '))
+                flags.extend(comment[3:].split(','))
             else:
                 normalcomments.append(comment)
         msgdata['comments'] = normalcomments
-        msgdata['flags'] = []
-        for flags1 in flags:
-            msgdata['flags'].extend(flags1.split(', '))
+        msgdata['flags'] = [flag.strip() for flag in flags]
+        #for flags1 in flags:
+            #if len(flags1.split(', ')) != 1:
+            #    sdkfjsdfkj
+        #    msgdata['flags'].extend(flags1.split(', '))
 
         if line.startswith('#~'): 
             # Aha!  It was an obsolete all along!

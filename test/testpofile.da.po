@@ -33,16 +33,16 @@ msgid "Delete contents of disk"
 msgstr "Slet ikke diskens indhold"
 
 # Message context
+#: contextheavy.c:17
+msgctxt "cross the road joke"
+msgid "Why did the physicist cross the road"
+msgstr ""
+
+# Message context in comment
 #: french.c:7
 #| msgctxt "light bulb joke"
 #| msgid "How many software translators does it take to change a light bulb?"
 msgid "How many French people does it take to change a light bulb?"
-msgstr ""
-
-# The msgctxt can also be there without being a comment
-#: contextheavy.c:17
-msgctxt "cross the road joke"
-msgid "Why did the physicist cross the road"
 msgstr ""
 
 # Plurals untranslated
@@ -148,7 +148,7 @@ msgstr "Åbn fil"
 #~ "Came whiffling through the tulgey wood,\n"
 #~ "   And burbled as it came!\n"
 #~ msgstr ""
-#~ "Og som han stod i grumbligt sindelag,\n"
+#~ "Og som han stod i begrumblet sind,\n"
 #~ "   Kom Jabbervokken, med flammende øjne,\n"
-#~ "Hvifflende gennem den tulglige skov,\n"
+#~ "Hvifflende gennem den tulgige skov,\n"
 #~ "   Og burblede da den kom!\n"

@@ -27,3 +27,7 @@ class Colorizer:
 
     def colorize(self, string):
         return colorize(string, self.color)
+
+class NullDevice:
+    def write(self, txt):
+        pass
