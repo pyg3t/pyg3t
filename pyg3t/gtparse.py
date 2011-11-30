@@ -270,9 +270,11 @@ class Message(object):
 
     def tostring(self): # maybe add line length argument for wrapping?
         lines = []
-        lines.extend(self.comments)
+        lines.extend([c for c in self.comments if not c.startswith('#|')])
         if self.flags:
             lines.append('#, %s' % ', '.join(self.flags))
+            lines.append('\n')
+        lines.extend([c for c in self.comments if c.startswith('#|')])
         #lines.extend('# %s' % comment for comment in self.translatorcomments)
         #lines.extend('#. %s' % comment for comment in self.extractedcomments)
         #lines.extend('#: %s' % comment for comment in self.referencecomments)
