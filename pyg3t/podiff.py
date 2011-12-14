@@ -142,13 +142,16 @@ class PoDiff:
         new_cat    new catalog (Used to get the filename for the line number
                    header)
         """
-        # Check if the there is a reason to diff
+
+        # Check if the there is a reason to diff.
+        # NOTE: Last line says we always show header
         if old_msg.isfuzzy is not new_msg.isfuzzy or\
                 old_msg.msgstrs != new_msg.msgstrs or\
-                old_msg.get_comments('# ') != new_msg.get_comments('# '):
+                old_msg.get_comments('# ') != new_msg.get_comments('# ') or\
+                new_msg.msgid == "":
 
             if self.show_line_numbers:
-                print >> self.out, self.__header(new_msg, fname)
+                print >> self.out, self.__print_lineno(new_msg, fname)
 
             # Make the diff
             if enc != (None, None):
@@ -160,9 +163,21 @@ class PoDiff:
 
             diff = list(unified_diff(old_lines, new_msg.meta['rawlines'],
                                      n=10000))
-            # Print the result, without the 3 lines of header
-            print >> self.out, ''.join(diff[3:])
-            self.number_of_diff_chunks += 1
+
+            if len(diff) == 0 and new_msg.msgid == "":
+                self.__print_header(new_msg)
+            else:
+                # Print the result, without the 3 lines of header
+                print >> self.out, ''.join(diff[3:])
+                
+            if new_msg.msgid != "":
+                self.number_of_diff_chunks += 1
+
+    def __print_header(self, msg):
+        """ Prints out the header when there is no diff in it """
+        for line in msg.meta['rawlines']:
+            print >> self.out, ' ' + line,
+        print >> self.out
 
     def diff_one_msg(self, msg, is_new, fname=None, enc=(None,None)):
         """Produce diff if only one entry is present
@@ -173,7 +188,7 @@ class PoDiff:
         is_new     boolean
         """
         if self.show_line_numbers:
-            print >> self.out, self.__header(msg, fname)
+            print >> self.out, self.__print_lineno(msg, fname)
 
         # Make the diff
         if enc != (None, None) and not is_new:
@@ -192,7 +207,7 @@ class PoDiff:
         print >> self.out, ''.join(diff[3:])#.encode('utf8')
         self.number_of_diff_chunks += 1
             
-    def __header(self, msg, fname=None):
+    def __print_lineno(self, msg, fname=None):
         """Print line number and file name header for diff of msg pairs"""
         lineno = msg.meta['lineno'] if 'lineno' in msg.meta else 'N/A'
         return ('--- Line %d (%s) ' % (lineno, fname)).ljust(32, '-')
