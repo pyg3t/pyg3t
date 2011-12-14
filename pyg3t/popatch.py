@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import sys
 import StringIO
 from optparse import OptionParser
-from pyg3t import __version__
+from pyg3t import __version__, gtparse
 
 class PoPatch:
     """ PoPatch contains methods for patching a podiff into a pofile or to
@@ -62,17 +62,19 @@ class PoPatch:
         
         return out if output_object is not None else None
 
-    def version_of_podiff_as_stringio(self, fileobject, new=True):
+    def version_of_podiff_as_msg_catalog(self, fileobject, new=True):
         """ This function produces either the new or the old version of a
-        the podiff content and returns it as a fileio object
+        the podiff content and returns it as a message catalog object
 
         Parameters:
         fileobject     is the file object to read from
         new            boolean new or old version
         """
 
-        out = StringIO.StringIO()
-        return self.version_of_podiff(fileobject, new=new, output_object=out)
+        #out = StringIO.StringIO()
+        #out = self.version_of_podiff(fileobject, new=new, output_object=out)
+        #return gtparse.parse(out)
+        raise NotImplementedError()
 
 def __build_parser():
     description = ('Patches a podiff into the original po file or shows '
@@ -88,7 +90,7 @@ def __build_parser():
                           version=__version__)
 
     parser.add_option('-o', '--output',
-                      help='file to send the diff output to, instead of '
+                      help='file to send the output to, instead of '
                       'standard out')
     parser.add_option('-n', '--new', action='store_true', #default=False,
                       help='Do not patch, but show new version of podiff')
@@ -103,6 +105,7 @@ def main():
     option_parser = __build_parser()
     opts, args = option_parser.parse_args()
 
+    # Define file as output if given and writeable
     if opts.output is not None:
         try:
             popatch = PoPatch(open(opts.output, 'w'))
@@ -119,7 +122,7 @@ def main():
     # Display version of podiff mode
     if opts.new is not None:
         if len(args) != 1:
-            option_parser.error('with -m of -n popatch takes exactly one '
+            option_parser.error('with -m or -n popatch takes exactly one '
                                  'argument')
         try:
             fileobject = sys.stdin if args[0] == '-' else open(args[0])
