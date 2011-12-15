@@ -48,11 +48,9 @@ def main():
             assert len(header.msgstrs) == 1
             
             for msg in cat:
-                print msg.tostring().decode(src_encoding).encode(dst_encoding)
+                print msg.decode().tostring().encode(dst_encoding)
             for obs in cat.obsoletes:
-                print obs.decode(src_encoding).encode(dst_encoding),
-                # ^ XXX is it really meant not to print newline?
-                #print obs.tostring().decode(src_encoding).encode(dst_encoding)
+                print obs.decode().tostring().encode(dst_encoding)
         else:
             for msg in cat:
                 print msg.tostring()
