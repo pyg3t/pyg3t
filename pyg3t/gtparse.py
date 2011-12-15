@@ -128,6 +128,7 @@ class Catalog(object):
     
     def get_fuzzy(self):
         return self.filter(Message.isfuzzy)
+    
 
 class Message(object):
     """This class represents a po-file entry. 
@@ -171,10 +172,8 @@ class Message(object):
 
         if isinstance(msgstr, basestring):
             assert msgid_plural is None
-            self.msgstr = msgstr
             self.msgstrs = [msgstr]
         else:
-            self.msgstr = msgstr[0]
             self.msgstrs = list(msgstr)
         
         if comments is None:
@@ -184,6 +183,8 @@ class Message(object):
         # The fuzzy flag is whether fuzzy is specified in the flag
         # comments.  It is ignored if the message has an empty
         # translation.
+        if flags is None:
+            flags = set()
         self.flags = set(flags)
         
         self.msgctxt = msgctxt
@@ -215,6 +216,10 @@ class Message(object):
     # is not translated, then the message *should* logically be
     # considered untranslated, but this is left for tools like poabc
     # to warn abount.
+
+    @property
+    def msgstr(self):
+        return self.msgstrs[0]
 
     @property
     def untranslated(self):

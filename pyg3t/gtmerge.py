@@ -15,10 +15,14 @@ def build_parser():
                  help='use msgmerge for fuzzy matching.')
     mode_opts = OptionGroup(p, 'Merge modes')
     
-    modes = ['left', 'right']#, 'launchpad', 'versionport']
+    modes = ['left', 'right', 'translationproject']
+    #, 'launchpad', 'versionport']
     text = dict(left='prefer translations from MSGSTR_FILE in conflicts '
                 '(default).',
                 right='prefer translations from MSGID_FILE in conflicts.',
+                translationproject='merge MSGSTR_FILE into all MSGID_FILES '
+                'and write to separate files.  Useful for merging to many '
+                'older versions on translationproject.org',
                 launchpad='transfer as many strings as possible, '
                 'keeping header of MSGID_FILE '
                 'compatible with upload to Launchpad.',
@@ -36,74 +40,116 @@ def build_parser():
     #             help='')
     return p
 
-def merge_msg(src, dst):
-    # oooh.  This must know the different types of comments...
-    # only translator comments should be transferred
-    # and fuzzy state must be correct, but that's supposed to be
-    # taken care of by gtparse
+def merge_msg(strmsg, idmsg):
+    strcomments = [comment for comment in strmsg.comments
+                   if comment.startswith('# ') or comment == '#\n']
+    idcomments = [comment for comment in idmsg.comments
+                  if not comment.startswith('# ')
+                  and not comment == '#\n'
+                  and not comment.startswith('#|')]
+    # This will remove #|-comments
     
-    # XXXXXXXX comments and stuff
-    #transferable_comments = [comment for comment in src.comments
-    #                         if comment.startswith(
-    
-    srccomments = [comment for comment in src.comments
-                   if comment.startswith('# ')]
-    dstcomments = [comment for comment in dst.comments
-                   if not comment.startswith('# ')]
-    
-    flags = set(dst.flags.copy())
-    if 'fuzzy' in src.flags:
+    flags = idmsg.flags.copy()
+    if 'fuzzy' in flags:
+        flags.remove('fuzzy')
+    if 'fuzzy' in strmsg.flags:
         flags.add('fuzzy')
     
-    assert len(src.msgstrs) == len(dst.msgstrs)
-    return Message(dst.msgid, src.msgstrs, dst.msgid_plural,
-                   dst.msgctxt, srccomments + dstcomments,
+    assert len(strmsg.msgstrs) == len(idmsg.msgstrs)
+    return Message(idmsg.msgid, strmsg.msgstrs, idmsg.msgid_plural,
+                   idmsg.msgctxt, strcomments + idcomments,
                    flags)
 
-def merge(cat1, cat2, overwrite=True):
+def merge(msgstrcat, msgidcat, overwrite=True, fname='<unknown>'):
+    msgstrdict = msgstrcat.dict()
+    
     newmsgs = []
-    for dstmsg in cat2:
-        if dstmsg in cat1:
-            srcmsg = cat1.get(dstmsg)
-            state = srcmsg.state + dstmsg.state
-            if ((overwrite and state in ['uu', 'ff', 'tt'])
-                or state in ['fu', 'tu', 'tf']):
-                msg = merge_msg(srcmsg, dstmsg)
-            else:
-                msg = dstmsg.copy()
-        else: # yuck
-            msg = dstmsg.copy()
+    for msg in msgidcat:
+        if msg.key in msgstrdict:
+            msg2 = msgstrdict[msg.key]
+            if not msg2.istranslated:
+                continue
+            if len(msg.msgstrs) != len(msg2.msgstrs):
+                continue
+            if overwrite or not msg.istranslated:
+                msg = merge_msg(msg2, msg)
         newmsgs.append(msg)
-        msg.check()
-    assert cat1.encoding == cat2.encoding
-    return Catalog('-', cat1.encoding, newmsgs)
+    return Catalog(fname, msgidcat.encoding, newmsgs)
+
 
 def main():
     p = build_parser()
     opts, args = p.parse_args()
-    if len(args) != 2:
-        p.error('Expected two arguments, got %d' % len(args))
-    fname1, fname2 = args
+    if opts.mode != 'translationproject':
+        if len(args) != 2:
+            p.error('Expected two arguments, got %d' % len(args))
+        fname1, fname2 = args
 
-    if opts.msgmerge:
-        msgmerge = Popen(['msgmerge', fname1, fname2], 
-                         stdout=PIPE,
-                         stderr=PIPE)
-        cat1 = parse(msgmerge.stdout)
+        if opts.msgmerge:
+            msgmerge = Popen(['msgmerge', fname1, fname2], 
+                             stdout=PIPE,
+                             stderr=PIPE)
+            cat1 = parse(msgmerge.stdout)
+        else:
+            cat1 = parse(open(fname1))
+        cat2 = parse(open(fname2))
+
+        if opts.mode == 'left':
+            overwrite = True
+        else:
+            assert opts.mode == 'right'
+            overwrite = False
+            # XXX more complicated modes?
+
+        cat = merge(cat1, cat2, overwrite)
+        for msg in cat:
+            print msg#.tostring()
+        #for line in cat1.obsoletes:
+        #    print line, # XXX keep which obsoletes?
+        # obsoletes must also be unique, and must not clash with existing msgs
     else:
-        cat1 = parse(open(fname1))
-    cat2 = parse(open(fname2))
+        # mode is 'translationproject'
+        msgstrfile = args[0]
+        msgidfiles = args[1:]
+        strcat = parse(open(msgstrfile))
+        for msgidfile in msgidfiles:
+            idcat = parse(open(msgidfile))
+            if not os.path.exists('merge'):
+                os.mkdir('merge')
+            if not os.path.isdir('merge'):
+                raise IOError('Cannot create directory \'merge\'')
+            dstfname = 'merge/%s' % os.path.split(msgidfile)[1]
+            dstcat = merge(strcat, idcat, overwrite=True, fname=dstfname)
 
-    if opts.mode == 'left':
-        overwrite = True
-    else:
-        assert opts.mode == 'right'
-        overwrite = False
-        # XXX more complicated modes?
+            idheader = idcat.header
+            dstheader = dstcat.header
 
-    cat = merge(cat1, cat2, overwrite)
-    for msg in cat:
-        print msg#.tostring()
-    #for line in cat1.obsoletes:
-    #    print line, # XXX keep which obsoletes?
-    # obsoletes must also be unique, and must not clash with existing msgs
+            def header2dict(header):
+                ordered_keys = []
+                headerdict = {}
+                assert header.msgstr.endswith('\\n')
+                for line in header.msgstr.split('\\n')[:-1]:
+                    key, value = line.split(': ', 1)
+                    ordered_keys.append(key)
+                    headerdict[key] = value
+                return ordered_keys, headerdict
+            
+            ordered_keys, dstheaderdict = header2dict(dstheader)
+            idheaderdict = header2dict(idheader)[1]
+
+            id_version = msgidfile.rsplit('.', 2)[0]
+            dstheaderdict['Project-Id-Version'] = id_version
+            dstheaderdict['POT-Creation-Date'] = \
+                idheaderdict['POT-Creation-Date']
+            
+            newheaderlines = []
+            for key in ordered_keys:
+                newheaderlines.append(': '.join([key, dstheaderdict[key]]))
+            newheaderlines.append('')
+            assert not dstheader.hasplurals
+            dstheader.msgstrs[0] = '\\n'.join(newheaderlines)
+
+            fd = open(dstfname, 'w')
+            for msg in dstcat:
+                print >> fd, msg
+            fd.close()
