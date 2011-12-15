@@ -44,7 +44,8 @@ def main():
             line = line.replace('charset=%s' % src_encoding, 
                                 'charset=%s' % dst_encoding)
             lines[i] = line
-            header.msgstr = '\\n'.join(lines)
+            header.msgstrs[0] = '\\n'.join(lines)
+            assert len(header.msgstrs) == 1
             
             for msg in cat:
                 print msg.tostring().decode(src_encoding).encode(dst_encoding)

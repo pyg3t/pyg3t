@@ -12,15 +12,22 @@ OUT=output.txt
 
 echo -n > $OUT
 
+echo gtgrep
 gtgrep -i hello -s hej $FILE >> $OUT
 
+echo poabc
 poabc $FILE >> $OUT
 poabc sdfkjsdfkj 2> /dev/null
 
+echo gtxml
 gtxml $FILE >> $OUT
 
+echo podiff
 podiff --relax $DIFF1 $DIFF2 >> $OUT
 # Podiff test for files with different encodings
-gtcat --encode ISO-8859-1 old.po|podiff -r - new.po
 
+echo gtcat
+gtcat --encode ISO-8859-1 old.po|podiff -r - new.po > /dev/null
+
+echo poselect
 poselect -ft $FILE >> $OUT
