@@ -31,3 +31,6 @@ gtcat --encode ISO-8859-1 old.po|podiff -r - new.po > /dev/null
 
 echo poselect
 poselect -ft $FILE >> $OUT
+
+echo gtcheckargs
+gtcheckargs $FILE >> $OUT

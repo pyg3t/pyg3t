@@ -229,3 +229,6 @@ def main():
         print 'Found 1 error.'
     else:
         print 'Found %d errors.' % errcount
+
+    exitcode = int(errcount > 0)
+    sys.exit(exitcode)

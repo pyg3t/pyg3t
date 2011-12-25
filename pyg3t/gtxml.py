@@ -161,6 +161,8 @@ def main():
         print '-' * 78
         print 'Total errors', total_badcount
 
+    exitcode = int(total_badcount > 0)
+    sys.exit(exitcode)
 
 if __name__ == '__main__':
-    main()
+    exitcode = main()

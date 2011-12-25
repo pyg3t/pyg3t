@@ -131,6 +131,18 @@ msgstr "Denne besked har ingen kommentarer!  Også uoverensstemmelse med "
 msgid "Open file"
 msgstr "Åbn fil"
 
+# Command line options
+msgid ""
+"  -c, --coffee=AMOUNT    Make AMOUNT of coffee.\n"
+"      --bacon=SLICES     Get SLICES slices of bacon.\n"
+msgstr ""
+"  -c, --coffee=MÆNGDE    Lav MÆNGDE kaffe.\n"
+"      --bacon=SKIVER     Få fat i SKIVER skiver bacon.\n"
+
+# Command line options with faulty translation
+msgid "  -c, --coffee=AMOUNT    Make AMOUNT of coffee"
+msgstr "      --coffee=MÆNGDE    Lav MÆNGDE kaffe"
+
 # A lot of the files from GNOME are even uglier, they have obsolete
 # messages where the translator created comment has the ordinary prefix
 #~ msgid "A ugly obsolete chunk"
