@@ -1,3 +1,5 @@
+import sys
+
 colors = {'blue': '0;34',
           'light red': '1;31',
           'light purple': '1;35',
@@ -31,3 +33,12 @@ class Colorizer:
 class NullDevice:
     def write(self, txt):
         pass
+
+def getfiles(args):
+    for arg in args:
+        if arg == '-':
+            name = '<stdin>'
+            yield name, sys.stdin
+        else:
+            fd = open(arg)
+            yield arg, fd

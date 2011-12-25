@@ -2,6 +2,7 @@ import sys
 from optparse import OptionParser, OptionGroup
 
 from pyg3t import __version__
+from pyg3t.util import getfiles
 from pyg3t.gtparse import parse
 
 
@@ -149,17 +150,13 @@ def main():
     p = build_parser()
     opts, args = p.parse_args()
 
-    argc = len(args)
-    if argc == 0:
-        src = sys.stdin
-    elif argc == 1:
-        try:
-            src = open(args[0])
-        except IOError, err:
-            p.error(err)
-    else:
-        p.error('Please specify either one file or no files.')
-
+    if len(args) == 0:
+        args = ['-']
+    
+    is_multifile = len(args) > 1
+    
+    files = getfiles(args)
+    
     selectors = []
     if opts.translated:
         selectors.append(TranslatedSelector())
@@ -186,21 +183,32 @@ def main():
     if opts.line_number:
         printer = LineNumberMsgPrinter(printer)
 
-    cat = parse(src)
-    selected = poselect.select(cat)
+    for fname, fd in files:
+        try:
+            cat = parse(fd)
+        except IOError, m:
+            p.error(m)
+        selected = poselect.select(cat)
 
-    if opts.count:
-        print len(list(selected))
-    elif opts.msgid_letter_count:
-        print sum([len(msg.msgid) for msg in selected])
-    elif opts.msgid_word_count:
-        print sum([len(msg.msgid.split()) for msg in selected])
-    else:
-        for msg in selected:
-            printer.write(msg)
+        def printcount(count):
+            if is_multifile:
+                print '%s: %d' % (fname.rjust(24), count)
+            else:
+                print count
 
-    
+        if opts.count:
+            printcount(len(list(selected)))
+        elif opts.msgid_letter_count:
+            printcount(sum([len(msg.msgid) for msg in selected]))
+        elif opts.msgid_word_count:
+            printcount(sum([len(msg.msgid.split()) for msg in selected]))
+        else:
+            for msg in selected:
+                printer.write(msg)
+
+
     if opts.summary:
+        print
         print 'Summary'
         print '-------'
         print '%16s %d' % ('Total analysed', counter.total)
@@ -210,4 +218,4 @@ def main():
             print '%16s %d' % (selector.name, selector.count)
         print
         if len(selectors) > 1:
-            print '%16s %d' % ('Total found', counter.count)
+            print '%16s %d' % ('Total selected', counter.count)

@@ -118,7 +118,8 @@ def main():
                 os.mkdir('merge')
             if not os.path.isdir('merge'):
                 raise IOError('Cannot create directory \'merge\'')
-            dstfname = 'merge/%s' % os.path.split(msgidfile)[1]
+            basefname = os.path.split(msgidfile)[1]
+            dstfname = 'merge/%s' % basefname
             dstcat = merge(strcat, idcat, overwrite=True, fname=dstfname)
 
             idheader = idcat.header
@@ -137,7 +138,7 @@ def main():
             ordered_keys, dstheaderdict = header2dict(dstheader)
             idheaderdict = header2dict(idheader)[1]
 
-            id_version = msgidfile.rsplit('.', 2)[0]
+            id_version = basefname.rsplit('.', 2)[0]
             dstheaderdict['Project-Id-Version'] = id_version
             dstheaderdict['POT-Creation-Date'] = \
                 idheaderdict['POT-Creation-Date']
