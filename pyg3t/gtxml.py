@@ -41,7 +41,7 @@ class GTXMLChecker(xml.sax.handler.ContentHandler):
         except xml.sax.SAXParseException:
             return True # msgid is probably not supposed to be xml
         for msgstr in msg.msgstrs:
-            if not isinstance(msgid, unicode):
+            if not isinstance(msgstr, unicode):
                 msgstr = msgstr.decode(encoding)
             self.check_string(msgstr)
         return True
@@ -109,7 +109,7 @@ class MultiFileMsgPrinter(MsgPrinter):
     def get_header(self, filename, msg, err):
         if filename == '-':
             filename = '<stdin>'
-        return '%s, line %d: %s' % (filename, msg.linenumber, err)
+        return '%s, line %d: %s' % (filename, msg.meta['lineno'], err)
 
 
 class SilentMsgPrinter:

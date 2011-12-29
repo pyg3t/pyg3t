@@ -513,29 +513,12 @@ def get_message_chunks(input):
                 normalcomments.append(comment)
         msgdata['comments'] = normalcomments
         msgdata['flags'] = [flag.strip() for flag in flags]
-        #for flags1 in flags:
-            #if len(flags1.split(', ')) != 1:
-            #    sdkfjsdfkj
-        #    msgdata['flags'].extend(flags1.split(', '))
 
         if line.startswith('#~'): 
             # Aha!  It was an obsolete all along!
             # Must read all remaining lines as obsolete...
             is_obsolete = True
             patterns = obsolete_linepatterns
-
-        #commenttypes = ['# ', '#. ', '#: ', '#, ', '#| msgid ', '#| msgctxt ']
-
-        #typed_comments = {}
-        #for key in commenttypes:
-        #    typed_comments[key] = []
-
-        #for comment in comments:
-        #    for key in commenttypes:
-        #        if comment.startswith(key):
-        #            typed_comments[key].append(comment[len(key):])
-        
-        #msgdata['typedcomments'] = typed_comments
         
         if patterns['msgctxt'].match(line):
             line, msgctxt = _extract_string(line, input, patterns['msgctxt'])
@@ -545,12 +528,6 @@ def get_message_chunks(input):
             line, msgid = _extract_string(line, input, patterns['msgid'])
             msgdata['msgid'] = msgid
             msgdata['lineno'] = input.lineno
-        #else:
-        #    raise PoSyntaxError('No msgid for some reason!')
-        
-        #    assert rawlines[-1].startswith('#~') # obsolete
-        #    yield msgdata
-        #    continue # XXXXXXX
         
         if patterns['msgid_plural'].match(line):#
             line, msgid_plural = _extract_string(line, input, 
@@ -560,7 +537,7 @@ def get_message_chunks(input):
             nmsgstr = 0
             msgstrs = []
             pluralpattern = patterns['msgstr_plural']
-            while pluralpattern.match(line):#line.startswith(pluralpattern):
+            while line is not None and pluralpattern.match(line):
                 line, msgstr = _extract_string(line, input, 
                                                pluralpattern)
                 msgstrs.append(msgstr)

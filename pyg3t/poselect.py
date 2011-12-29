@@ -98,7 +98,7 @@ class LineNumberMsgPrinter:
         self.printer = printer
     
     def write(self, msg):
-        print 'Line %d' % msg.linenumber
+        print 'Line %d' % msg.meta['lineno']
         self.printer.write(msg)
 
 
