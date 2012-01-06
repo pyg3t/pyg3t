@@ -5,101 +5,76 @@
 import sys
 import re
 from optparse import OptionParser, OptionGroup
-import operator
 
 from pyg3t import __version__
 from pyg3t.gtparse import parse
 from pyg3t.util import Colorizer
 
 
-class NullFilter:
-    def filter(self, string):
-        return string
-
-class SubstitutionFilter:
-    def __init__(self, pattern):
-        self.pattern = pattern
-
-    def filter(self, string):
-        return re.sub(self.pattern, '', string)
-
-
 class GTGrep:
     def __init__(self, msgid_pattern='', msgstr_pattern='',
-                 comment_pattern='',
-                 invert_msgid_match=False, invert_msgstr_match=False,
-                 ignorecase=True, filter=None, boolean_operator=None):
-        self.msgid_pattern_string = msgid_pattern
-        self.msgstr_pattern_string = msgstr_pattern
-        self.comment_pattern_string = comment_pattern
+                 msgctxt_pattern='', comment_pattern='',
+                 ignorecase=True, filterpattern=None):
+
+        self.patterns = dict(msgid=msgid_pattern,
+                             msgstr=msgstr_pattern,
+                             msgctxt=msgctxt_pattern,
+                             comment=comment_pattern)
         
         flags = 0
         if ignorecase:
             flags |= re.IGNORECASE
-        try:
-            self.msgid_pattern = self.re_compile(msgid_pattern, flags)
-        except re.error, err:
-            raise re.error('bad msgid pattern "%s": %s' % (msgid_pattern, err))
-
+        
         # One should think that we should use re.LOCALE as a compile
         # flag, at least for the msgstr.  This, however, is not the
         # case, because it'll screw up unicode upper/lowercase
         # handling.
-        try:
-            self.msgstr_pattern = self.re_compile(msgstr_pattern, flags)
-        except re.error, err:
-            raise re.error('bad msgstr pattern "%s": %s' % (msgstr_pattern, 
+
+        def re_compile(pattern, name):
+            try:
+                return re.compile(pattern, re.UNICODE|flags)
+            except re.error, err:
+                raise re.error('bad %s pattern "%s": %s' % (name,
+                                                            pattern,
                                                             err))
-        try:
-            self.comment_pattern = self.re_compile(comment_pattern, flags)
-        except re.error, err:
-            raise re.error('bad comment pattern "%s": %s' % (comment_pattern,
-                                                             err))
+        
+        self.msgstr_pattern = re_compile(msgstr_pattern, 'msgstr')
+        self.msgid_pattern = re_compile(msgid_pattern, 'msgid')
+        self.msgctxt_pattern = re_compile(msgctxt_pattern, 'msgctxt')
+        self.comment_pattern = re_compile(comment_pattern, 'comment')
 
-
-        if invert_msgid_match:
-            self.imatch = self.invert
+        if filterpattern is None:
+            def filter(string):
+                return string
         else:
-            self.imatch = bool
-        if invert_msgstr_match:
-            self.smatch = self.invert
-        else:
-            self.smatch = bool
-
-        if filter is None:
-            filter = NullFilter()
+            def filter(string):
+                return filter.sub('', string)
         self.filter = filter
-
-        if boolean_operator is None:
-            boolean_operator = operator.and_
-        self.boolean_operator = boolean_operator
-
-    def re_compile(self, pattern, flags=0):
-        return re.compile(pattern, re.UNICODE|flags)
     
-    def invert(self, result):
-        return not bool(result)
-
     def check(self, msg):
-        imatch = False # whether msgid matches
-        smatch = False # whether msgstr matches
-
-        encoding = msg.meta['encoding']
-
-        filter = self.filter.filter
+        msg = msg.decode()
         
-        msgid = msg.msgid.decode(encoding)
-        imatch = self.imatch(re.search(self.msgid_pattern, filter(msgid)))
+        def search(pattern, string):
+            return re.search(pattern, self.filter(string))
         
-        if msg.hasplurals:
-            msgid_plural = msg.msgid_plural.decode(encoding)
-            imatch |= self.imatch(re.search(self.msgid_pattern, 
-                                            filter(msgid_plural)))
+        for comment in msg.comments:
+            if search(self.comment_pattern, comment):
+                return True
+        
+        if msg.has_context and search(self.msgctxt_pattern, msg.msgctxt):
+            return True
+        
+        if search(self.msgid_pattern, msg.msgid):
+            return True
+        
+        if msg.hasplurals and search(self.msgid_pattern, msg.msgid_plural):
+            return True
+        
         for msgstr in msg.msgstrs:
-            msgstr = msgstr.decode(encoding)
-            smatch |= self.smatch(re.search(self.msgstr_pattern, 
-                                            filter(msgstr)))
-        return self.boolean_operator(imatch, smatch)
+            if search(self.msgstr_pattern, msgstr):
+                return True
+        
+        return False
 
     def search_iter(self, msgs):
         for msg in msgs:
@@ -120,11 +95,14 @@ def build_parser():
     match = OptionGroup(parser, 'Matching options')
     output = OptionGroup(parser, 'Output options')
     
-    match.add_option('-i', '--msgid', default='', metavar='PATTERN',
+    match.add_option('-i', '--msgid', default=MATCH_NOTHING, metavar='PATTERN',
                      help='pattern for matching msgid')
-    match.add_option('-s', '--msgstr', default='', metavar='PATTERN',
+    match.add_option('-s', '--msgstr', default=MATCH_NOTHING, 
+                     metavar='PATTERN',
                      help='pattern for matching msgstr')
-    match.add_option('--comment', default='', metavar='PATTERN',
+    match.add_option('--msgctxt', default=MATCH_NOTHING, metavar='PATTERN',
+                     help='pattern for matching msgctxt')
+    match.add_option('--comment', default=MATCH_NOTHING, metavar='PATTERN',
                      help='pattern for matching comments')
     
     match.add_option('-I', '--invert-msgid-match', action='store_true',
@@ -163,26 +141,34 @@ def args_iter(args, parser): # open sequentially as needed
             parser.error(err)
         yield arg, fd
 
+MATCH_NOTHING = '(?!)'
 
 def main():
     parser = build_parser()
     opts, args = parser.parse_args()
     
-    utf8 = 'UTF-8'
+    charset = 'UTF-8' # yuck
     
-    msgid_pattern = opts.msgid.decode(utf8)
-    msgstr_pattern = opts.msgstr.decode(utf8)
-    comment_pattern = opts.comment.decode(utf8)
-    boolean_operator = None
-    if msgid_pattern == msgstr_pattern == '':
+    msgid_pattern = opts.msgid.decode(charset)
+    msgstr_pattern = opts.msgstr.decode(charset)
+    msgctxt_pattern = opts.msgctxt.decode(charset)
+    comment_pattern = opts.comment.decode(charset)
+    
+    if not any(pattern != MATCH_NOTHING for pattern in [msgid_pattern,
+                                                        msgstr_pattern,
+                                                        msgctxt_pattern,
+                                                        comment_pattern]):
         try:
-            msgid_pattern = msgstr_pattern = args.pop(0).decode(utf8)
+            pattern = args.pop(0).decode(charset)
         except IndexError:
             print >> sys.stderr, 'No pattern, no files'
             raise SystemExit(17)
         else:
-            boolean_operator = operator.or_
-
+            msgid_pattern = pattern
+            msgstr_pattern = pattern
+            msgctxt_pattern = pattern
+            comment_pattern = pattern
+    
     argc = len(args)
     
     multifile_mode = (argc > 1)
@@ -203,24 +189,26 @@ def main():
     else:
         inputs = args_iter(args, parser)
 
-    filter = None
+    filterpattern = None
     if opts.filter:
         try:
-            pattern = re.compile('[%s]' % opts.filtered_chars)
+            filterpattern = re.compile('[%s]' % opts.filtered_chars)
         except re.error, err:
             parser.error('Bad filter pattern "%s": %s' % (opts.filtered_chars,
                                                           err))
-        filter = SubstitutionFilter(pattern)
+
+    if opts.invert_msgid_match:
+        msgid_pattern = '(?!%s)' % msgid_pattern
+    if opts.invert_msgstr_match:
+        msgstr_pattern = '(?!%s)' % msgstr_pattern
 
     try:
         grep = GTGrep(msgid_pattern=msgid_pattern,
                       msgstr_pattern=msgstr_pattern,
+                      msgctxt_pattern=msgctxt_pattern,
                       comment_pattern=comment_pattern,
-                      invert_msgid_match=opts.invert_msgid_match,
-                      invert_msgstr_match=opts.invert_msgstr_match,
-                      ignorecase=not opts.case, 
-                      filter=filter,
-                      boolean_operator=boolean_operator)
+                      ignorecase=not opts.case,
+                      filterpattern=filterpattern)
     except re.error, err:
         parser.error(err)
 
@@ -247,7 +235,7 @@ def main():
                     print format_linenumber(filename, msg)
                 elif multifile_mode:
                     print 'File:', filename
-                print msg.tostring()#.encode('utf8')
+                print msg.tostring()
 
         if opts.fancy:
             # It's a bit hairy to do this properly, so we'll just make a hack
@@ -259,26 +247,24 @@ def main():
                     matchstring = match_object.group()
                     return self.colorize(matchstring)
 
-            ihighlighter = MatchColorizer('light blue')
-            shighlighter = MatchColorizer('light green')
+            highlighter = MatchColorizer('light blue')
+            
+            match_any = u'|'.join([comment_pattern,
+                                   msgctxt_pattern,
+                                   msgid_pattern,
+                                   msgstr_pattern])
+            any_pattern = re.compile(match_any)
 
             for msg in matches:
                 string = msg.tostring()
-                if grep.msgid_pattern_string:
-                    string = re.sub(grep.msgid_pattern,
-                                    ihighlighter.colorize_match, 
-                                    string)
-                if grep.msgstr_pattern_string:
-                    string = re.sub(grep.msgstr_pattern,
-                                    shighlighter.colorize_match,
-                                    string)
-
+                string = re.sub(match_any, highlighter.colorize_match, string)
+                
                 if opts.line_numbers:
                     print format_linenumber(filename, msg)
                 # Encode before print ensures there'll be no screwups if stdout
                 # has None encoding (in a pipe, for example)
                 # Maybe we should wrap stdout with something which recodes
-                print string.encode('utf8')
+                print string
 
     if opts.count and multifile_mode:
         print 'Found %d matches in %d files' % (global_matchcount, argc)
