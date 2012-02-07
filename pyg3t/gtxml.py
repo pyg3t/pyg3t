@@ -5,6 +5,7 @@ import xml.sax
 from optparse import OptionParser
 
 from pyg3t.gtparse import parse
+from pyg3t.util import Colorizer
 
 
 class GTXMLChecker(xml.sax.handler.ContentHandler):
@@ -66,12 +67,14 @@ def build_parser():
                    
     parser = OptionParser(usage=usage, description=description)
     parser.add_option('-s', '--summary', action='store_true',
-                      help=('write only whether each FILE passes or fails, '
-                            'and the number of valid and invalid strings '
-                            'for each file.'))
+                      help='write only whether each FILE passes or fails, '
+                      'and the number of valid and invalid strings '
+                      'for each file.')
+    parser.add_option('-c', '--color', action='store_true',
+                      help='print warnings for fuzzy messages aside from '
+                      'just translated messages.')
     parser.add_option('-f', '--fuzzy', action='store_true',
-                      help=('print warnings for fuzzy messages aside from '
-                            'just translated messages.'))
+                      help='highlight errors using color')
     return parser
 
 
@@ -93,7 +96,7 @@ def get_inputfiles(args, parser):
 
 class MsgPrinter:
     def get_header(self, filename, msg, err):
-        return 'At line %d: %s' % (msg.meta['lineno'], err)
+        return 'At line %d: %s' % (msg.meta['lineno'], err.getMessage())
         
     def write_msg(self, msgstring, err):
         print msgstring
@@ -109,7 +112,8 @@ class MultiFileMsgPrinter(MsgPrinter):
     def get_header(self, filename, msg, err):
         if filename == '-':
             filename = '<stdin>'
-        return '%s, line %d: %s' % (filename, msg.meta['lineno'], err)
+        return '%s, line %d: %s' % (filename, msg.meta['lineno'], 
+                                    err.getMessage())
 
 
 class SilentMsgPrinter:
@@ -131,12 +135,31 @@ class SilentFileSummarizer:
     def write(self, filename, totalcount, badcount):
         pass
 
+colorizer = Colorizer('light red')
+def colorize_errors(msg, err):
+    errmsg = str(err)
+    #startpattern = '<unknown>:1:'
+    #assert errmsg.startswith(startpattern)
+    #charno = int(errmsg[len(startpattern):].split(':', 1)[0])
+    charno = err.getColumnNumber() - len('<xml>')
+    # XXX what about plurals
+    for i, msgstr in enumerate(msg.msgstrs):
+        color_start_index = max(charno - 3, 0)
+        color_end_index = min(charno + 3, len(msgstr))
+        part1 = msgstr[:color_start_index]
+        part2 = msgstr[color_start_index:color_end_index]
+        part3 = msgstr[color_end_index:]
+        msgstr = ''.join([part1, colorizer.colorize(part2), part3])
+        msg.msgstrs[i] = msgstr
+
 
 def main():
     parser = build_parser()
     opts, args = parser.parse_args()
     
     gtxml = GTXMLChecker()
+
+    color = opts.color
 
     if opts.summary:
         msgprinter = SilentMsgPrinter()
@@ -158,6 +181,8 @@ def main():
             cat = [msg for msg in cat if msg.istranslated]
         badcount = 0
         for bad_msg, err in gtxml.check_msgs(cat):
+            if color:
+                colorize_errors(bad_msg, err)
             msgprinter.write(filename, bad_msg, err)
             badcount += 1
         fileprinter.write(filename, len(cat), badcount)
