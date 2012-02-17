@@ -192,7 +192,7 @@ def main():
 
         def printcount(count):
             if is_multifile:
-                print '%s: %d' % (fname.rjust(24), count)
+                print '%6d  %s' % (count, fname)
             else:
                 print count
 
