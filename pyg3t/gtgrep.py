@@ -12,15 +12,10 @@ from pyg3t.util import Colorizer
 
 
 class GTGrep:
-    def __init__(self, msgid_pattern='', msgstr_pattern='',
-                 msgctxt_pattern='', comment_pattern='',
+    def __init__(self, msgid_pattern=None, msgstr_pattern=None,
+                 msgctxt_pattern=None, comment_pattern=None,
                  ignorecase=True, filterpattern=None):
 
-        self.patterns = dict(msgid=msgid_pattern,
-                             msgstr=msgstr_pattern,
-                             msgctxt=msgctxt_pattern,
-                             comment=comment_pattern)
-        
         flags = 0
         if ignorecase:
             flags |= re.IGNORECASE
@@ -38,43 +33,64 @@ class GTGrep:
                                                             pattern,
                                                             err))
         
-        self.msgstr_pattern = re_compile(msgstr_pattern, 'msgstr')
-        self.msgid_pattern = re_compile(msgid_pattern, 'msgid')
-        self.msgctxt_pattern = re_compile(msgctxt_pattern, 'msgctxt')
-        self.comment_pattern = re_compile(comment_pattern, 'comment')
-
         if filterpattern is None:
             def filter(string):
                 return string
         else:
             def filter(string):
-                return filter.sub('', string)
+                return filterpattern.sub('', string)
         self.filter = filter
-    
+
+        tests = []
+        
+        def search(pattern, string):
+            return pattern.search(self.filter(string))
+        
+        if msgid_pattern is not None:
+            msgid_pattern = re_compile(msgid_pattern, 'msgid')
+            def checkmsgid(msg):
+                if search(msgid_pattern, msg.msgid):
+                    return True
+                if msg.hasplurals and search(msgid_pattern,
+                                             msg.msgid_plural):
+                    return True
+                return False
+            tests.append(checkmsgid)
+        
+        if msgstr_pattern is not None:
+            msgstr_pattern = re_compile(msgstr_pattern, 'msgstr')
+            def checkmsgstr(msg):
+                for msgstr in msg.msgstrs:
+                    if search(msgstr_pattern, msgstr):
+                        return True
+                return False
+            tests.append(checkmsgstr)
+        
+        if comment_pattern is not None:
+            comment_pattern = re_compile(comment_pattern, 'comment')
+            def checkcomments(msg):
+                for comment in msg.comments:
+                    if search(comment_pattern, comment):
+                        return True
+                return False
+            tests.append(checkcomments)
+        
+        if msgctxt_pattern is not None:
+            msgctxt_pattern = re_compile(msgctxt_pattern, 'msgctxt')
+            def checkmsgctxt(msg):
+                return msg.has_context and search(msgctxt_pattern, 
+                                                  msg.msgctxt)
+            tests.append(checkmsgctxt)
+        
+        self.tests = tests
+        
     def check(self, msg):
         msg = msg.decode()
         
-        def search(pattern, string):
-            return re.search(pattern, self.filter(string))
-        
-        for comment in msg.comments:
-            if search(self.comment_pattern, comment):
-                return True
-        
-        if msg.has_context and search(self.msgctxt_pattern, msg.msgctxt):
-            return True
-        
-        if search(self.msgid_pattern, msg.msgid):
-            return True
-        
-        if msg.hasplurals and search(self.msgid_pattern, msg.msgid_plural):
-            return True
-        
-        for msgstr in msg.msgstrs:
-            if search(self.msgstr_pattern, msgstr):
-                return True
-        
-        return False
+        for test in self.tests:
+            if not test(msg):
+                return False
+        return True
 
     def search_iter(self, msgs):
         for msg in msgs:
@@ -88,21 +104,20 @@ def build_parser():
                    'strings match a particular pattern.  '
                    'If no FILE is provided, read from stdin.')
 
-    usage = '%prog [OPTIONS] [FILE]'
+    usage = '%prog [OPTIONS] [PATTERN] [FILE...]'
     parser = OptionParser(usage=usage, description=description,
                           version=__version__)
     
     match = OptionGroup(parser, 'Matching options')
     output = OptionGroup(parser, 'Output options')
     
-    match.add_option('-i', '--msgid', default=MATCH_NOTHING, metavar='PATTERN',
+    match.add_option('-i', '--msgid', metavar='PATTERN',
                      help='pattern for matching msgid')
-    match.add_option('-s', '--msgstr', default=MATCH_NOTHING, 
-                     metavar='PATTERN',
+    match.add_option('-s', '--msgstr', metavar='PATTERN',
                      help='pattern for matching msgstr')
-    match.add_option('--msgctxt', default=MATCH_NOTHING, metavar='PATTERN',
+    match.add_option('--msgctxt', metavar='PATTERN',
                      help='pattern for matching msgctxt')
-    match.add_option('--comment', default=MATCH_NOTHING, metavar='PATTERN',
+    match.add_option('--comment', metavar='PATTERN',
                      help='pattern for matching comments')
     
     match.add_option('-I', '--invert-msgid-match', action='store_true',
@@ -141,33 +156,32 @@ def args_iter(args, parser): # open sequentially as needed
             parser.error(err)
         yield arg, fd
 
-MATCH_NOTHING = '(?!)'
-
 def main():
     parser = build_parser()
     opts, args = parser.parse_args()
     
     charset = 'UTF-8' # yuck
     
-    msgid_pattern = opts.msgid.decode(charset)
-    msgstr_pattern = opts.msgstr.decode(charset)
-    msgctxt_pattern = opts.msgctxt.decode(charset)
-    comment_pattern = opts.comment.decode(charset)
+    patterns = {}
+    for key in ['msgid', 'msgstr', 'msgctxt', 'comment']:
+        pattern = getattr(opts, key)
+        if pattern is not None:
+            patterns[key] = pattern.decode(charset)
     
-    if not any(pattern != MATCH_NOTHING for pattern in [msgid_pattern,
-                                                        msgstr_pattern,
-                                                        msgctxt_pattern,
-                                                        comment_pattern]):
+    if not patterns:
         try:
             pattern = args.pop(0).decode(charset)
         except IndexError:
-            print >> sys.stderr, 'No pattern, no files'
+            parser.error('No PATTERNs given')
             raise SystemExit(17)
         else:
-            msgid_pattern = pattern
-            msgstr_pattern = pattern
-            msgctxt_pattern = pattern
-            comment_pattern = pattern
+            patterns['msgid'] = pattern
+            patterns['msgstr'] = pattern
+
+    if opts.invert_msgid_match and 'msgid' in patterns:
+        patterns['msgid'] = '(?!%s)' % patterns['msgid']
+    if opts.invert_msgstr_match and 'msgstr' in patterns:
+        patterns['msgstr'] = '(?!%s)' % patterns['msgstr']
     
     argc = len(args)
     
@@ -197,16 +211,11 @@ def main():
             parser.error('Bad filter pattern "%s": %s' % (opts.filtered_chars,
                                                           err))
 
-    if opts.invert_msgid_match:
-        msgid_pattern = '(?!%s)' % msgid_pattern
-    if opts.invert_msgstr_match:
-        msgstr_pattern = '(?!%s)' % msgstr_pattern
-
     try:
-        grep = GTGrep(msgid_pattern=msgid_pattern,
-                      msgstr_pattern=msgstr_pattern,
-                      msgctxt_pattern=msgctxt_pattern,
-                      comment_pattern=comment_pattern,
+        grep = GTGrep(msgid_pattern=patterns.get('msgid'),
+                      msgstr_pattern=patterns.get('msgstr'),
+                      msgctxt_pattern=patterns.get('msgctxt'),
+                      comment_pattern=patterns.get('comment'),
                       ignorecase=not opts.case,
                       filterpattern=filterpattern)
     except re.error, err:
