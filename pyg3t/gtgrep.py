@@ -14,7 +14,8 @@ from pyg3t.util import Colorizer
 class GTGrep:
     def __init__(self, msgid_pattern=None, msgstr_pattern=None,
                  msgctxt_pattern=None, comment_pattern=None,
-                 ignorecase=True, filterpattern=None):
+                 ignorecase=True, filterpattern=None,
+                 match_all=True):
 
         flags = 0
         if ignorecase:
@@ -82,16 +83,24 @@ class GTGrep:
                                                   msg.msgctxt)
             tests.append(checkmsgctxt)
         
-        self.tests = tests
-        
-    def check(self, msg):
-        msg = msg.decode()
-        
-        for test in self.tests:
-            if not test(msg):
+        if match_all:
+            def check(msg):
+                for test in tests:
+                    if not test(msg):
+                        return False
+                return True
+        else: # match any
+            def check(msg):
+                for test in tests:
+                    if test(msg):
+                        return True
                 return False
-        return True
 
+        self._check = check
+
+    def check(self, msg):
+        return self._check(msg.decode())
+    
     def search_iter(self, msgs):
         for msg in msgs:
             matches = self.check(msg)
@@ -168,6 +177,8 @@ def main():
         if pattern is not None:
             patterns[key] = pattern.decode(charset)
     
+    match_all = True
+
     if not patterns:
         try:
             pattern = args.pop(0).decode(charset)
@@ -177,6 +188,9 @@ def main():
         else:
             patterns['msgid'] = pattern
             patterns['msgstr'] = pattern
+            patterns['msgctxt'] = pattern
+            patterns['comment'] = pattern
+            match_all = False
 
     if opts.invert_msgid_match and 'msgid' in patterns:
         patterns['msgid'] = '(?!%s)' % patterns['msgid']
@@ -217,7 +231,8 @@ def main():
                       msgctxt_pattern=patterns.get('msgctxt'),
                       comment_pattern=patterns.get('comment'),
                       ignorecase=not opts.case,
-                      filterpattern=filterpattern)
+                      filterpattern=filterpattern,
+                      match_all=match_all)
     except re.error, err:
         parser.error(err)
 
@@ -258,15 +273,16 @@ def main():
 
             highlighter = MatchColorizer('light blue')
             
-            match_any = u'|'.join([comment_pattern,
-                                   msgctxt_pattern,
-                                   msgid_pattern,
-                                   msgstr_pattern])
-            any_pattern = re.compile(match_any)
+            match_highlight_pattern = u'|'.join([comment_pattern,
+                                                 msgctxt_pattern,
+                                                 msgid_pattern,
+                                                 msgstr_pattern])
+            match_highlight_pattern = re.compile(match_highlight_pattern)
 
             for msg in matches:
                 string = msg.tostring()
-                string = re.sub(match_any, highlighter.colorize_match, string)
+                string = re.sub(match_highlight_pattern, 
+                                highlighter.colorize_match, string)
                 
                 if opts.line_numbers:
                     print format_linenumber(filename, msg)
