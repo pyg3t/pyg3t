@@ -49,6 +49,7 @@ from pyg3t.gtparse import parse
 from pyg3t import __version__
 ##############################################################################
 
+
 class PoDiff:
 
     """Description of the PoDiff class"""
@@ -109,7 +110,7 @@ class PoDiff:
         # present in old file
         if full_diff:
             dict_new_cat = new_cat.dict()
-            only_old = [key for key in dict_old_cat if key not in 
+            only_old = [key for key in dict_old_cat if key not in
                         dict_new_cat]
 
             for key in only_old:
@@ -120,7 +121,7 @@ class PoDiff:
 
     def diff_catalogs_strict(self, old_cat, new_cat):
         """Diff catalogs strict. I.e. enforce common base
-        
+
         Keywords:
         old_cat    old catalog
         new_cat    new catalog
@@ -133,7 +134,7 @@ class PoDiff:
                                enc=encoding)
         self.print_status()
 
-    def diff_two_msgs(self, old_msg, new_msg, fname=None, enc=(None,None)):
+    def diff_two_msgs(self, old_msg, new_msg, fname=None, enc=(None, None)):
         """Produce diff between two messages
 
         Keywords:
@@ -143,10 +144,17 @@ class PoDiff:
                    header)
         """
 
+        # re-encode old_msg.msgstrs for comparison
+        if enc != (None, None):
+            re_enc_old_msgstrs = [line.decode(enc[0]).encode(enc[1])
+                                  for line in old_msg.msgstrs]
+        else:
+            re_enc_old_msgstrs = old_msg.msgstrs
+
         # Check if the there is a reason to diff.
         # NOTE: Last line says we always show header
         if old_msg.isfuzzy is not new_msg.isfuzzy or\
-                old_msg.msgstrs != new_msg.msgstrs or\
+                re_enc_old_msgstrs != new_msg.msgstrs or\
                 old_msg.get_comments('# ') != new_msg.get_comments('# ') or\
                 new_msg.msgid == "":
 
@@ -169,7 +177,7 @@ class PoDiff:
             else:
                 # Print the result, without the 3 lines of header
                 print >> self.out, ''.join(diff[3:])
-                
+
             if new_msg.msgid != "":
                 self.number_of_diff_chunks += 1
 
@@ -179,7 +187,7 @@ class PoDiff:
             print >> self.out, ' ' + line,
         print >> self.out
 
-    def diff_one_msg(self, msg, is_new, fname=None, enc=(None,None)):
+    def diff_one_msg(self, msg, is_new, fname=None, enc=(None, None)):
         """Produce diff if only one entry is present
 
         Keywords:
@@ -197,16 +205,15 @@ class PoDiff:
         else:
             msg_lines = msg.meta['rawlines']
 
-
         if is_new:
             diff = list(unified_diff('', msg_lines, n=10000))
         else:
             diff = list(unified_diff(msg_lines, '', n=10000))
 
         # Print the result without the 3 lines of header
-        print >> self.out, ''.join(diff[3:])#.encode('utf8')
+        print >> self.out, ''.join(diff[3:])  # .encode('utf8')
         self.number_of_diff_chunks += 1
-            
+
     def __print_lineno(self, msg, fname=None):
         """Print line number and file name header for diff of msg pairs"""
         lineno = msg.meta['lineno'] if 'lineno' in msg.meta else 'N/A'
@@ -221,6 +228,7 @@ class PoDiff:
         print >> self.out, bar
 
 ##############################################################################
+
 
 def __build_parser():
     description = ('Prints the difference between two po-FILES in pieces '
@@ -255,6 +263,8 @@ def __build_parser():
     return parser
 
 ##############################################################################
+
+
 def main():
     """The main function loads the files and outputs the diff"""
 
@@ -284,14 +294,14 @@ def main():
 
     # Get PoDiff instanse
     podiff = PoDiff(out, opts.line_numbers)
-    
+
     # Load files into catalogs
     try:
         if args[0] == '-':
             cat_old = parse(sys.stdin)
         else:
             cat_old = parse(open(args[0]))
-            
+
         if args[1] == '-':
             cat_new = parse(sys.stdin)
         else:
@@ -318,7 +328,7 @@ def main():
         podiff.diff_catalogs_strict(cat_old, cat_new)
 
     return
-  
+
 ##############################################################################
 if __name__ == '__main__':
     main()
