@@ -144,18 +144,21 @@ class PoDiff:
                    header)
         """
 
-        # re-encode old_msg.msgstrs for comparison
+        # re-encode old_msg.msgstrs and -.get_comments('# ') for comparison
         if enc != (None, None):
             re_enc_old_msgstrs = [line.decode(enc[0]).encode(enc[1])
                                   for line in old_msg.msgstrs]
+            re_enc_old_comments = [line.decode(enc[0]).encode(enc[1])
+                                  for line in old_msg.get_comments('# ')]
         else:
             re_enc_old_msgstrs = old_msg.msgstrs
+            re_enc_old_comments = old_msg.get_comments('# ')
 
         # Check if the there is a reason to diff.
         # NOTE: Last line says we always show header
         if old_msg.isfuzzy is not new_msg.isfuzzy or\
                 re_enc_old_msgstrs != new_msg.msgstrs or\
-                old_msg.get_comments('# ') != new_msg.get_comments('# ') or\
+                re_enc_old_comments != new_msg.get_comments('# ') or\
                 new_msg.msgid == "":
 
             if self.show_line_numbers:
