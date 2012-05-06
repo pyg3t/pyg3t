@@ -62,16 +62,13 @@ def merge_msg(strmsg, idmsg):
 
 def merge(msgstrcat, msgidcat, overwrite=True, fname='<unknown>'):
     msgstrdict = msgstrcat.dict()
-    
     newmsgs = []
     for msg in msgidcat:
         if msg.key in msgstrdict:
             msg2 = msgstrdict[msg.key]
-            if not msg2.istranslated:
-                continue
-            if len(msg.msgstrs) != len(msg2.msgstrs):
-                continue
-            if overwrite or not msg.istranslated:
+            if not msg2.istranslated or len(msg.msgstrs) != len(msg2.msgstrs):
+                pass
+            elif overwrite or not msg.istranslated:
                 msg = merge_msg(msg2, msg)
         newmsgs.append(msg)
     return Catalog(fname, msgidcat.encoding, newmsgs)
