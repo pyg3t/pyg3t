@@ -57,8 +57,9 @@ def merge_msg(strmsg, idmsg):
     
     assert len(strmsg.msgstrs) == len(idmsg.msgstrs)
     return Message(idmsg.msgid, strmsg.msgstrs, idmsg.msgid_plural,
-                   idmsg.msgctxt, strcomments + idcomments,
-                   flags)
+                   msgctxt=idmsg.msgctxt, comments=strcomments + idcomments,
+                   meta=idmsg.meta, flags=flags)
+
 
 def merge(msgstrcat, msgidcat, overwrite=True, fname='<unknown>'):
     msgstrdict = msgstrcat.dict()
