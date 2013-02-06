@@ -14,6 +14,8 @@ from pyg3t.util import Colorizer
 class GTGrep:
     def __init__(self, msgid_pattern=None, msgstr_pattern=None,
                  msgctxt_pattern=None, comment_pattern=None,
+                 imsgid_pattern=None, imsgstr_pattern=None,
+                 imsgctxt_pattern=None, icomment_pattern=None,
                  ignorecase=True, filterpattern=None,
                  match_all=True):
 
@@ -43,54 +45,81 @@ class GTGrep:
         self.filter = filter
 
         tests = []
+        inversetests = []
         
         def search(pattern, string):
             return pattern.search(self.filter(string))
+
+        class Test:
+            def __init__(self, pattern):
+                self.pattern = pattern
+
+            def check(self, msg):
+                pass # override
+
+        def checkid(pattern, msg):
+            if search(pattern, msg.msgid):
+                return True
+            if msg.hasplurals and search(pattern, msg.msgid_plural):
+                return True
+            return False
+
+        def checkstr(pattern, msg):
+            for msgstr in msg.msgstrs:
+                if search(pattern, msgstr):
+                    return True
+            return False
+
+        def checkcomments(pattern, msg):
+            for comment in msg.comments:
+                if search(pattern, comment):
+                    return True
+            return False
         
+        def checkctxt(pattern, msg):
+            return msg.has_context and search(pattern, msg.msgctxt)
+
+        class Check:
+            def __init__(self, checkfunc, pattern, name):
+                self.checkfunc = checkfunc
+                self.pattern = re_compile(pattern, name)
+                
+            def __call__(self, msg):
+                return self.checkfunc(self.pattern, msg)
+
         if msgid_pattern is not None:
-            msgid_pattern = re_compile(msgid_pattern, 'msgid')
-            def checkmsgid(msg):
-                if search(msgid_pattern, msg.msgid):
-                    return True
-                if msg.hasplurals and search(msgid_pattern,
-                                             msg.msgid_plural):
-                    return True
-                return False
-            tests.append(checkmsgid)
-        
+            tests.append(Check(checkid, msgid_pattern, '--msgid'))
+        if imsgid_pattern is not None:
+            inversetests.append(Check(checkid, imsgid_pattern, '--imsgid'))
         if msgstr_pattern is not None:
-            msgstr_pattern = re_compile(msgstr_pattern, 'msgstr')
-            def checkmsgstr(msg):
-                for msgstr in msg.msgstrs:
-                    if search(msgstr_pattern, msgstr):
-                        return True
-                return False
-            tests.append(checkmsgstr)
-        
+            tests.append(Check(checkstr, msgstr_pattern, '--msgstr'))
+        if imsgstr_pattern is not None:
+            inversetests.append(Check(checkstr, imsgstr_pattern, '--imsgstr'))
         if comment_pattern is not None:
-            comment_pattern = re_compile(comment_pattern, 'comment')
-            def checkcomments(msg):
-                for comment in msg.comments:
-                    if search(comment_pattern, comment):
-                        return True
-                return False
-            tests.append(checkcomments)
-        
+            tests.append(Check(checkcomments, comment_pattern, '--comment'))
+        if icomment_pattern is not None:
+            inversetests.append(Check(checkcomments, icomment_pattern,
+                                  '--icomment'))
         if msgctxt_pattern is not None:
-            msgctxt_pattern = re_compile(msgctxt_pattern, 'msgctxt')
-            def checkmsgctxt(msg):
-                return msg.has_context and search(msgctxt_pattern, 
-                                                  msg.msgctxt)
-            tests.append(checkmsgctxt)
+            tests.append(Check(checkctxt, msgctxt_pattern, '--msgctxt'))
+        if imsgctxt_pattern is not None:
+            inversetests.append(Check(checkctxt, imsgctxt_pattern,
+                                      '--imsgctxt'))
         
         if match_all:
             def check(msg):
+                for test in inversetests:
+                    if test(msg):
+                        return False
                 for test in tests:
                     if not test(msg):
                         return False
                 return True
         else: # match any
             def check(msg):
+                for test in inversetests:
+                    if test(msg):
+                        return False
                 for test in tests:
                     if test(msg):
                         return True
@@ -122,17 +151,20 @@ def build_parser():
     
     match.add_option('-i', '--msgid', metavar='PATTERN',
                      help='pattern for matching msgid')
+    match.add_option('-I', '--imsgid', metavar='PATTERN',
+                     help='pattern for inverse matching of msgid')
     match.add_option('-s', '--msgstr', metavar='PATTERN',
                      help='pattern for matching msgstr')
+    match.add_option('-S', '--imsgstr', metavar='PATTERN',
+                     help='pattern for inverse matching of msgstr')
     match.add_option('--msgctxt', metavar='PATTERN',
                      help='pattern for matching msgctxt')
+    match.add_option('--imsgctxt', metavar='PATTERN',
+                     help='pattern for inverse matching of msgctxt')
     match.add_option('--comment', metavar='PATTERN',
                      help='pattern for matching comments')
-    
-    match.add_option('-I', '--invert-msgid-match', action='store_true',
-                     help='invert the sense of matching for msgids')
-    match.add_option('-S', '--invert-msgstr-match', action='store_true',
-                     help='invert the sense of matching for msgstrs')
+    match.add_option('--icomment', metavar='PATTERN',
+                     help='pattern for inverse matching of comments')
     match.add_option('-c', '--case', action='store_true',
                      help='use case sensitive matching')
     match.add_option('-f', '--filter', action='store_true', 
@@ -172,13 +204,15 @@ def main():
     charset = 'UTF-8' # yuck
     
     patterns = {}
-    for key in ['msgid', 'msgstr', 'msgctxt', 'comment']:
+    keys = ['msgid', 'msgstr', 'msgctxt', 'comment']
+    negative_keys = ['i' + key for key in keys]
+    for key in keys + negative_keys:
         pattern = getattr(opts, key)
         if pattern is not None:
             patterns[key] = pattern.decode(charset)
     
     match_all = True
-
+    
     if not patterns:
         try:
             pattern = args.pop(0).decode(charset)
@@ -192,11 +226,6 @@ def main():
             patterns['comment'] = pattern
             match_all = False
 
-    if opts.invert_msgid_match and 'msgid' in patterns:
-        patterns['msgid'] = '(?!%s)' % patterns['msgid']
-    if opts.invert_msgstr_match and 'msgstr' in patterns:
-        patterns['msgstr'] = '(?!%s)' % patterns['msgstr']
-    
     argc = len(args)
     
     multifile_mode = (argc > 1)
@@ -227,9 +256,13 @@ def main():
 
     try:
         grep = GTGrep(msgid_pattern=patterns.get('msgid'),
+                      imsgid_pattern=patterns.get('imsgid'),
                       msgstr_pattern=patterns.get('msgstr'),
+                      imsgstr_pattern=patterns.get('imsgstr'),
                       msgctxt_pattern=patterns.get('msgctxt'),
+                      imsgctxt_pattern=patterns.get('imsgctxt'),
                       comment_pattern=patterns.get('comment'),
+                      icomment_pattern=patterns.get('icomment'),
                       ignorecase=not opts.case,
                       filterpattern=filterpattern,
                       match_all=match_all)

@@ -135,9 +135,9 @@ class Message(object):
 
     Contains attributes that describe:
 
-    * comments
     * msgid (possibly plural)
     * msgstr(s)
+    * comments
     * miscellaneous informations (flags, translation status)"""
 
     is_obsolete = False
