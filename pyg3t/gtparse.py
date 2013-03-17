@@ -50,10 +50,21 @@ class TextWrapper:
         return lines
 wrapper = TextWrapper()
 
+def parse_header_data(msg):
+    headers = {}
+    for line in msg.msgstr.split(r'\n'):
+        if not line or line.isspace():
+            continue
+        key, value = line.split(':', 1)
+        key = key.strip()
+        value = value.strip()
+        headers[key] = value
+    return headers
 
 def _get_header(msgs):
     for msg in msgs:
         if msg.msgid == '':
+            msg.meta['headers'] = parse_header_data(msg)
             return msg
     else:
         raise ValueError('header not found in msgs')
@@ -75,6 +86,7 @@ class Catalog(object):
         self.msgs = _msgs
         self.obsoletes = obsoletes
         self.header = _get_header(self.msgs)
+        assert 'headers' in self.header.meta
 
     def dict(self):
         """Return a dict with the contents of this catalog.
