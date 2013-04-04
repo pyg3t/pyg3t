@@ -8,24 +8,40 @@ from pyg3t.gtparse import parse
 from pyg3t.util import Colorizer
 
 
-class GTXMLChecker(xml.sax.handler.ContentHandler):
+class SuspiciousTagsError(ValueError):
+    pass
+
+class XMLElementSet(xml.sax.handler.ContentHandler):
+    def __init__(self):
+        xml.sax.handler.ContentHandler.__init__(self)
+        self.elements = set()
+
+    def startElement(self, name, attrs):
+        self.elements.add(name)
+
+
+class GTXMLChecker:
     """XML parser class for checking bad xml in gettext translations.
 
     An msg is considered ill-formed if its msgid is valid xml while at
     least one msgstr is not.  Note that this is a heuristic; the msgid may
     happen to form valid xml by accident."""
-    def __init__(self):
-        xml.sax.handler.ContentHandler.__init__(self)
+    def __init__(self, compare_tags=False, known_tags=None):
+        self.compare_tags = compare_tags
+        if known_tags is None:
+            known_tags = set()
+        self.known_tags = set(known_tags)
     
     def _filter(self, string):
         # Surround the string with a root tag
         xml = u''.join([u'<xml>', string.replace(u'\\"', u'"'), u'</xml>'])
         return xml.encode('utf8')
     
-    def check_string(self, string):
+    def parse_xml_elements(self, string):
         xmlstring = self._filter(string)
-        xml.sax.parseString(xmlstring, self)
-        return True
+        elements = XMLElementSet()
+        xml.sax.parseString(xmlstring, elements)
+        return elements.elements
     
     def check_msg(self, msg):
         """Raise SAXParseException if msg is considered ill-formed."""
@@ -38,13 +54,20 @@ class GTXMLChecker(xml.sax.handler.ContentHandler):
         if not '<' in msgid:
             return True
         try:
-            self.check_string(msgid)
+            msgid_elements = self.parse_xml_elements(msgid)
         except xml.sax.SAXParseException:
             return True # msgid is probably not supposed to be xml
         for msgstr in msg.msgstrs:
             if not isinstance(msgstr, unicode):
                 msgstr = msgstr.decode(encoding)
-            self.check_string(msgstr)
+            msgstr_elements = self.parse_xml_elements(msgstr)
+
+        if self.compare_tags:
+            for tag in msgstr_elements:
+                if not (tag in msgid_elements or tag in self.known_tags):
+                    msg = u'Unrecognized element "%s" found in msgstr' % tag
+                    raise SuspiciousTagsError(msg)
+
         return True
     
     def check_msgs(self, msgs):
@@ -52,7 +75,7 @@ class GTXMLChecker(xml.sax.handler.ContentHandler):
         for msg in msgs:
             try:
                 self.check_msg(msg)
-            except xml.sax.SAXParseException, err:
+            except (xml.sax.SAXParseException, SuspiciousTagsError), err:
                 yield msg, err
 
 
@@ -71,10 +94,19 @@ def build_parser():
                       'and the number of valid and invalid strings '
                       'for each file.')
     parser.add_option('-c', '--color', action='store_true',
+                      help='highlight errors using color')
+    parser.add_option('-f', '--fuzzy', action='store_true',
                       help='print warnings for fuzzy messages aside from '
                       'just translated messages.')
-    parser.add_option('-f', '--fuzzy', action='store_true',
-                      help='highlight errors using color')
+    parser.add_option('-t', '--tags', action='store_true',
+                      help='print warnings when a translated message uses a '
+                      'tag not found in the untranslated message')
+    parser.add_option('--dump-tags', action='store_true',
+                      help='write xml tags from untranslated messages to '
+                      'stdout.  Suppress normal output.')
+    parser.add_option('--tags-from', metavar='FILE',
+                      help='print warnings about any tags not listed in FILE.'
+                      '  FILE might contain output from --dump-tags.')
     return parser
 
 
@@ -96,14 +128,15 @@ def get_inputfiles(args, parser):
 
 class MsgPrinter:
     def get_header(self, filename, msg, err):
-        return 'At line %d: %s' % (msg.meta['lineno'], err.getMessage())
+        return 'At line %d: %s' % (msg.meta['lineno'], err.args[0])
+                                   
         
     def write_msg(self, msgstring, err):
         print msgstring
 
     def write(self, filename, msg, err):
         header = self.get_header(filename, msg, err)
-        print header
+        print header.encode(msg.meta['encoding'])
         print '-' * min(78, len(header))
         self.write_msg(msg.tostring(), err)
 
@@ -113,7 +146,7 @@ class MultiFileMsgPrinter(MsgPrinter):
         if filename == '-':
             filename = '<stdin>'
         return '%s, line %d: %s' % (filename, msg.meta['lineno'], 
-                                    err.getMessage())
+                                    err.args[0])
 
 
 class SilentMsgPrinter:
@@ -156,8 +189,29 @@ def colorize_errors(msg, err):
 def main():
     parser = build_parser()
     opts, args = parser.parse_args()
-    
-    gtxml = GTXMLChecker()
+
+    known_tags = []
+    if opts.tags_from:
+        known_tags = open(opts.tags_from).read().split()
+
+    gtxml = GTXMLChecker(opts.tags, known_tags)
+
+    # Special mode to dump all tags and do nothing else
+    if opts.dump_tags:
+        tags = set()
+        for filename, input in get_inputfiles(args, parser):
+            cat = parse(input)
+            enc = cat.encoding
+            def addtags(string):
+                tags.update(gtxml.parse_xml_elements(string.decode(enc)))
+            encoding = cat.encoding
+            for msg in cat:
+                addtags(msg.msgid)
+                if msg.hasplurals:
+                    addtags(msg.msgid_plural)
+        for tag in tags:
+            print tag
+        return
 
     color = opts.color
 
@@ -196,4 +250,4 @@ def main():
     sys.exit(exitcode)
 
 if __name__ == '__main__':
-    exitcode = main()
+    main()

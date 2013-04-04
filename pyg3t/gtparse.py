@@ -55,7 +55,13 @@ def parse_header_data(msg):
     for line in msg.msgstr.split(r'\n'):
         if not line or line.isspace():
             continue
-        key, value = line.split(':', 1)
+        tokens = line.split(':', 1)
+        try:
+            key, value = tokens
+        except ValueError:
+            key = tokens[0]
+            value = '' # This should probably not be the case but isn't ugly
+            # enough to complain extremely loudly about by default
         key = key.strip()
         value = value.strip()
         headers[key] = value

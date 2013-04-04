@@ -143,6 +143,10 @@ msgstr ""
 msgid "  -c, --coffee=AMOUNT    Make AMOUNT of coffee"
 msgstr "      --coffee=MÆNGDE    Lav MÆNGDE kaffe"
 
+# Correct XML using unknown tags in msgstr
+msgid "<blink>Button</blink>"
+msgstr "<blinke>Knap</blinke>"
+
 # A lot of the files from GNOME are even uglier, they have obsolete
 # messages where the translator created comment has the ordinary prefix
 #~ msgid "A ugly obsolete chunk"
@@ -163,4 +167,4 @@ msgstr "      --coffee=MÆNGDE    Lav MÆNGDE kaffe"
 #~ "Og som han stod i begrumblet sind,\n"
 #~ "   Kom Jabbervokken, med flammende øjne,\n"
 #~ "Hvifflende gennem den tulgige skov,\n"
-#~ "   Og burblede da den kom!\n"
+#~ "   Og burblede som den kom!\n"
