@@ -61,34 +61,48 @@ def compare_headers(headers1, headers2):
             print '  was: %s' % headers1[key]
             print '  now: %s' % headers2[key]
 
-    check('Project-Id-Version')
-    
-    date1, date2 = get('POT-Creation-Date')
-    if date1 != date2:
-        d1 = parse_date(date1)
-        d2 = parse_date(date2)
-        if d1 < d2:
-            print 'Template of second file is more recent'
-        else:
-            print 'Template of first file is more recent'
+    # Special treatment for some of the most informative headers.
+    # If anything goes wrong we will just defer them to later
+    # (by retaining them in headers_to_do)
+    try:
+        check('Project-Id-Version')
+    except KeyError:
+        pass
     else:
-        print 'Template creation dates coincide'
+        header_done('Project-Id-Version')
     
-    date1, date2 = get('PO-Revision-Date')
-    if date1 != date2:
-        d1 = parse_date(date1)
-        d2 = parse_date(date2)
-        if d1 < d2:
-            print 'Translations in second file were revised more recently'
-        else:
-            print 'Translations in first file were revised more recently'
+    try:
+        date1, date2 = get('POT-Creation-Date')
+    except KeyError:
+        pass
     else:
-        print 'Translation revision dates coincide'
+        if date1 != date2:
+            d1 = parse_date(date1)
+            d2 = parse_date(date2)
+            if d1 < d2:
+                print 'Template of second file is more recent'
+            else:
+                print 'Template of first file is more recent'
+        else:
+            print 'Template creation dates coincide'
+        header_done('POT-Creation-Date')
 
-    for header in ['Project-Id-Version', 'POT-Creation-Date',
-                   'PO-Revision-Date']:
-        header_done(header)
-
+    try:
+        date1, date2 = get('PO-Revision-Date')
+    except KeyError:
+        pass
+    else:
+        if date1 != date2:
+            d1 = parse_date(date1)
+            d2 = parse_date(date2)
+            if d1 < d2:
+                print 'Translations in second file were revised more recently'
+            else:
+                print 'Translations in first file were revised more recently'
+        else:
+            print 'Translation revision dates coincide'
+        header_done('PO-Revision-Date')
+    
     def process_header(header):
         if header in headers_done:
             return # already handled
