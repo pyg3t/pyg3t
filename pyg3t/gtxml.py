@@ -14,11 +14,10 @@ class SuspiciousTagsError(ValueError):
 class XMLElementSet(xml.sax.handler.ContentHandler):
     def __init__(self):
         xml.sax.handler.ContentHandler.__init__(self)
-        self.elements = set()
+        self.elements = []
 
     def startElement(self, name, attrs):
-        self.elements.add(name)
-
+        self.elements.append(name)
 
 class GTXMLChecker:
     """XML parser class for checking bad xml in gettext translations.
@@ -41,7 +40,10 @@ class GTXMLChecker:
         xmlstring = self._filter(string)
         elements = XMLElementSet()
         xml.sax.parseString(xmlstring, elements)
-        return elements.elements
+        # The first one will be <xml>...</xml> which we use to enclose all
+        # strings, and should be ignored.  This is also why self.elements
+        # can't (simply) be a set right away
+        return set(elements.elements[1:])
     
     def check_msg(self, msg):
         """Raise SAXParseException if msg is considered ill-formed."""
@@ -106,7 +108,8 @@ def build_parser():
                       'stdout.  Suppress normal output.')
     parser.add_option('--tags-from', metavar='FILE',
                       help='print warnings about any tags not listed in FILE.'
-                      '  FILE might contain output from --dump-tags.')
+                      '  FILE might contain output from --dump-tags.'
+                      '  Implies --tags.')
     return parser
 
 
@@ -194,7 +197,8 @@ def main():
     if opts.tags_from:
         known_tags = open(opts.tags_from).read().split()
 
-    gtxml = GTXMLChecker(opts.tags, known_tags)
+    check_tags = opts.tags or opts.tags_from
+    gtxml = GTXMLChecker(check_tags, known_tags)
 
     # Special mode to dump all tags and do nothing else
     if opts.dump_tags:
@@ -203,7 +207,10 @@ def main():
             cat = parse(input)
             enc = cat.encoding
             def addtags(string):
-                tags.update(gtxml.parse_xml_elements(string.decode(enc)))
+                try:
+                    tags.update(gtxml.parse_xml_elements(string.decode(enc)))
+                except xml.sax.SAXParseException:
+                    pass # don't add tags if msgid is not valid xml
             encoding = cat.encoding
             for msg in cat:
                 addtags(msg.msgid)
