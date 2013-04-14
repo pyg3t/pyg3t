@@ -162,7 +162,7 @@ class Message(object):
 
     def __init__(self, msgid, msgstr, msgid_plural=None,
                  msgctxt=None, comments=None, meta=None,
-                 flags=None):
+                 flags=None, previous_msgid=None):
         """Create a Message, representing one message from a message catalog.
         
         Parameters:
@@ -211,10 +211,10 @@ class Message(object):
         # someone changed the fuzzy flag programmatically.  We should
         # make it so the printed comments will be generated from the
         # programmed representation of the flags
+        #
+        # XXX Or maybe we already do that?
         
-        # XXX TODO:
-        # previous_msgid, has_previous_msgid
-        self.previous_msgid = None
+        self.previous_msgid = previous_msgid
         if meta is None:
             meta = {}
         self.meta = meta
@@ -379,7 +379,7 @@ class ObsoleteMessage(Message):
 def is_wrappable(declaration, string):
     if len(string) + len(declaration) > 75:
         return True
-    newlineindex = string.find('\\n')
+    newlineindex = string.find(r'\n')
     
     # Don't wrap if newline is only at end of string
     if newlineindex > 0 and not newlineindex == len(string) - 2:
@@ -390,9 +390,10 @@ def wrap(declaration, string):
     if is_wrappable(declaration, string):
         tokens = []
         tokens.append('%s ""\n' % declaration)
-        linetokens = string.split('\\n')
+        # XXX this will make a newline in the case \\n also
+        linetokens = string.split(r'\n')
         for i, token in enumerate(linetokens[:-1]):
-            linetokens[i] += '\\n' # grrr
+            linetokens[i] += r'\n' # grrr
         for linetoken in linetokens:
             lines = wrapper.wrap(linetoken)
             for line in lines:
@@ -469,7 +470,9 @@ linepatternstrings = dict(comment=r'(#~ )?#[\s,\.:\|]|#~[,\.:\|]',
                           msgid_plural=r'(#~ )?msgid_plural ',
                           msgstr=r'(#~ )?msgstr ',
                           msgstr_plural=r'(#~ )?msgstr\[\d\] ',
-                          continuation=r'(#~ )?"')
+                          continuation=r'(#~ )?"',
+                          prevmsgid_start=r'#\| msgid ',
+                          prevmsgid_continuation=r'#\| "')
 linepatterns = dict([(key, re.compile(value))
                      for key, value in linepatternstrings.items()])
 obsolete_linepatterns = dict([(key, re.compile(r'#~( ?)' + value))
@@ -524,7 +527,15 @@ def get_message_chunks(input):
         
         flags = []
         normalcomments = []
-        for comment in comments:
+        for i, comment in enumerate(comments):
+            if patterns['prevmsgid_start'].match(comment):
+                prevmsgid_lines = iter(comments[i + 1:])
+                _, lines = consume_lines(comment, prevmsgid_lines, 
+                                         patterns['prevmsgid_start'],
+                                         patterns['prevmsgid_continuation'])
+                prevmsgid = extract_string(lines, 
+                                           patterns['prevmsgid_start'], 4)
+                msgdata['prevmsgid'] = prevmsgid
             if comment.startswith('#, '):
                 flags.extend(comment[3:].split(','))
             else:
@@ -633,6 +644,7 @@ def parse(input):
                              msgstr=msgstr, # (includes any plurals)
                              msgid_plural=chunk.get('msgid_plural'),
                              msgctxt=chunk.get('msgctxt'),
+                             previous_msgid=chunk.get('prevmsgid'),
                              comments=chunk['comments'],
                              flags=chunk['flags'],
                              meta=meta))

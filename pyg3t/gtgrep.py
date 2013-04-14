@@ -306,10 +306,9 @@ def main():
 
             highlighter = MatchColorizer('light blue')
             
-            match_highlight_pattern = u'|'.join([comment_pattern,
-                                                 msgctxt_pattern,
-                                                 msgid_pattern,
-                                                 msgstr_pattern])
+            match_highlight_pattern = u'|'.join([pattern
+                                                 for pattern
+                                                 in patterns.values()])
             match_highlight_pattern = re.compile(match_highlight_pattern)
 
             for msg in matches:

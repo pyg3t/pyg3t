@@ -56,4 +56,3 @@ def main():
                 print msg.tostring()
             for obs in cat.obsoletes:
                 print obs.tostring()
-                #print obs.tostring()

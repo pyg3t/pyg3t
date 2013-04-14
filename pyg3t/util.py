@@ -16,12 +16,20 @@ colors = {'blue': '0;34',
           'light gray': '0;37',
           'white': '1;37',
           'red': '0;31',
+          'old': '1;31;41', # To do: proper names
+          'new': '1;33;42',
           None: None}
 
 def colorize(string, id):
     if id is None:
         return string
-    return '\x1b[%sm%s\x1b[0m' % (id, string)
+    tokens = []
+    for line in string.split('\n'):
+        if len(line) > 0:
+            line = '\x1b[%sm%s\x1b[0m' % (id, line)
+        tokens.append(line)
+    return '\n'.join(tokens)
+
 
 class Colorizer:
     def __init__(self, colorname):
