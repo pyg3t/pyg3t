@@ -38,7 +38,7 @@ class FancyFormat:
         return '%s%s' % (self.oldcolor.colorize(old), 
                          self.newcolor.colorize(new))
     def equal(self, string):
-        return string#.replace('\\n', '\\n\n')#self.boringcolor.colorize(string)
+        return string
 
 def diff(old, new, formatter):
     oldwords = tokenizer.findall(old)
@@ -46,7 +46,6 @@ def diff(old, new, formatter):
 
     def isgarbage(string):
         return string.replace('\\n', '').isspace()
-        #return string.isspace()
 
     differ = SequenceMatcher(isgarbage, a=oldwords, b=newwords)
     
@@ -65,7 +64,10 @@ def diff(old, new, formatter):
     return ''.join(words)
 
 def main():
-    p = OptionParser()
+    usage = '%prog [OPTION] POFILE'
+    description = 'Print wordwise diff of msgid and previous msgid ' \
+        'entries in gettext message catalogs.'
+    p = OptionParser(usage=usage, description=description)
     p.add_option('--fancy', action='store_true',
                  help='use colors to highlight changes')
     p.add_option('--include-translated', action='store_true',
@@ -78,7 +80,8 @@ def main():
     else:
         formatter = DefaultFormat()
     
-    assert len(args) == 1
+    if len(args) != 1:
+        p.error('Only a single file expected; got %d' % len(args))
     cat = parse(open(args[0]))
     for msg in cat:
         if not msg.has_previous_msgid:
@@ -99,4 +102,3 @@ def main():
         newmsgid = msg.msgid.replace('\\n', '\\n\n')
         difference = diff(oldmsgid, newmsgid, formatter)
         print difference.rstrip('\n')
-        #print repr(difference[-50:])

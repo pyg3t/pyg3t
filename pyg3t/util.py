@@ -16,8 +16,8 @@ colors = {'blue': '0;34',
           'light gray': '0;37',
           'white': '1;37',
           'red': '0;31',
-          'old': '1;31;41', # To do: proper names
-          'new': '1;33;42',
+          'old': '1;31;41', # To do: proper names, reorganize
+          'new': '1;33;42', # These are used by gtprevmsgdiff
           None: None}
 
 def colorize(string, id):
