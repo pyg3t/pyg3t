@@ -67,7 +67,7 @@ class PoDiff:
         self.number_of_diff_chunks = 0
         self.show_line_numbers = show_line_numbers
 
-    def catalogs_has_common_base(self, old_cat, new_cat):
+    def catalogs_have_common_base(self, old_cat, new_cat):
         """Check if catalogs has common base
 
         Keywords:
@@ -319,7 +319,7 @@ def main():
     if opts.relax or opts.full:
         podiff.diff_catalogs_relaxed(cat_old, cat_new, opts.full)
     else:
-        if not podiff.catalogs_has_common_base(cat_old, cat_new):
+        if not podiff.catalogs_have_common_base(cat_old, cat_new):
             option_parser.error('Cannot work with files with dissimilar base, '
                                 'unless the relax option (-r) or the full '
                                 'options (-f) is used.\n\nNOTE: This is not '
