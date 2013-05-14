@@ -49,12 +49,14 @@ class GTXMLChecker:
         """Raise SAXParseException if msg is considered ill-formed."""
         encoding = msg.meta['encoding']
         msgid = msg.msgid
+        if len(msgid) == 0:
+            return True
         # XXX figure out a way to know a priori whether the message
         # needs to be decoded
         if not isinstance(msgid, unicode):
             msgid = msgid.decode(encoding)
-        if not '<' in msgid:
-            return True
+        #if not '<' in msgid:
+        #    return True
         try:
             msgid_elements = self.parse_xml_elements(msgid)
         except xml.sax.SAXParseException:
