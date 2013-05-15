@@ -1,6 +1,7 @@
 import re
 import codecs
 from optparse import OptionParser
+from util import pyg3tmain
 
 from gtparse import parse
 
@@ -14,8 +15,9 @@ def build_parser():
                  dest='encoding',
                  help='convert FILEs to ENCODING and update header')
     return p
-    
 
+
+@pyg3tmain
 def main():
     p = build_parser()
     

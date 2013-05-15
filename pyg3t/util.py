@@ -50,3 +50,14 @@ def getfiles(args):
         else:
             fd = open(arg)
             yield arg, fd
+
+
+# Decorator for all main functions in pyg3t
+def pyg3tmain(main):
+    def main_decorator():
+        try:
+            main()
+        except KeyboardInterrupt:
+            print >> sys.stderr, 'Interrupted by keyboard'
+            raise SystemExit(1)
+    return main_decorator

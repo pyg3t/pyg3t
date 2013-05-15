@@ -7,6 +7,7 @@ from optparse import OptionParser
 
 from pyg3t.gtparse import parse
 from pyg3t.gtxml import GTXMLChecker
+from pyg3t.util import pyg3tmain
 from pyg3t import __version__
 import xml.sax
 
@@ -228,6 +229,7 @@ def header(linenumber):
     return ('--- Line %d ' % linenumber).ljust(32, '-')
 
 
+@pyg3tmain
 def main():
     cmdparser = build_parser()
     opts, args = cmdparser.parse_args()

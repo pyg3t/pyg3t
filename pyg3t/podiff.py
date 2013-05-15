@@ -47,6 +47,7 @@ from optparse import OptionParser
 from difflib import unified_diff
 from pyg3t.gtparse import parse
 from pyg3t import __version__
+from pyg3t.util import pyg3tmain
 ##############################################################################
 
 
@@ -268,6 +269,7 @@ def __build_parser():
 ##############################################################################
 
 
+@pyg3tmain
 def main():
     """The main function loads the files and outputs the diff"""
 

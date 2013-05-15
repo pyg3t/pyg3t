@@ -2,7 +2,7 @@ import sys
 from optparse import OptionParser, OptionGroup
 
 from pyg3t import __version__
-from pyg3t.util import getfiles
+from pyg3t.util import getfiles, pyg3tmain
 from pyg3t.gtparse import parse
 
 
@@ -146,6 +146,7 @@ def build_parser():
     return parser
 
 
+@pyg3tmain
 def main():
     p = build_parser()
     opts, args = p.parse_args()

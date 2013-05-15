@@ -21,7 +21,7 @@ import sys
 from StringIO import StringIO
 from optparse import OptionParser
 from pyg3t import gtparse, __version__
-
+from pyg3t.util import pyg3tmain
 
 class PoPatch:
     """ PoPatch contains methods for patching a podiff into a pofile or to
@@ -131,6 +131,7 @@ def __build_parser():
     return parser
 
 
+@pyg3tmain
 def main():
     """ PoPatch main function in script mode """
 

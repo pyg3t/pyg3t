@@ -3,6 +3,8 @@ from subprocess import Popen, PIPE
 from optparse import OptionParser, OptionGroup
 
 from pyg3t.gtparse import parse, Message, Catalog
+from pyg3t.util import pyg3tmain
+
 
 def build_parser():
     usage = '%prog [OPTION...] MSGSTR_FILE MSGID_FILE...'
@@ -75,6 +77,7 @@ def merge(msgstrcat, msgidcat, overwrite=True, fname='<unknown>'):
     return Catalog(fname, msgidcat.encoding, newmsgs)
 
 
+@pyg3tmain
 def main():
     p = build_parser()
     opts, args = p.parse_args()

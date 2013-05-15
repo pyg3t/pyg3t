@@ -8,7 +8,7 @@ from optparse import OptionParser, OptionGroup
 
 from pyg3t import __version__
 from pyg3t.gtparse import parse
-from pyg3t.util import Colorizer
+from pyg3t.util import Colorizer, pyg3tmain
 
 
 class GTGrep:
@@ -197,6 +197,8 @@ def args_iter(args, parser): # open sequentially as needed
             parser.error(err)
         yield arg, fd
 
+
+@pyg3tmain
 def main():
     parser = build_parser()
     opts, args = parser.parse_args()
@@ -325,7 +327,3 @@ def main():
 
     if opts.count and multifile_mode:
         print 'Found %d matches in %d files' % (global_matchcount, argc)
-
-
-if __name__ == '__main__':
-    main()
