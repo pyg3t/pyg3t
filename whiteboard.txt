@@ -1,0 +1,20 @@
+### podiff
+
+Succes criteria:
+================
+(v) ignore false diff by default
+(v) use python difflib
+     allow for custom diff output format
+(v) allow for files with different base, i.e. diff against newer version
+(v)   via relax option
+    multiple file diff
+(v) allow for definition of output file
+(v)  check that it is not the same as one of the input files
+(v) Give option for line numbers
+    Use optionparser.error for error messages
+
+
+Implementation:
+===============
+In the future, hopefully the catalog class will have the ability to change its
+own encoding, then I should change the encoding support here to use that

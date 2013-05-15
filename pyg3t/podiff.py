@@ -18,44 +18,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 
-"""
-podiff whiteboard
-
-Succes criteria:
-================
-(v) ignore false diff by default
-(v) use python difflib
-     allow for custom diff output format
-(v) allow for files with different base, i.e. diff against newer version
-(v)   via relax option
-    multiple file diff
-(v) allow for definition of output file
-(v)  check that it is not the same as one of the input files
-(v) Give option for line numbers
-    Use optionparser.error for error messages
-
-
-Implementation:
-===============
-In the future, hopefully the catalog class will have the ability to change its
-own encoding, then I should change the encoding support here to use that
-"""
-
-
 import sys
 from optparse import OptionParser
 from difflib import unified_diff
 from pyg3t.gtparse import parse
 from pyg3t import __version__
 from pyg3t.util import pyg3tmain
-##############################################################################
 
 
 class PoDiff:
 
     """Description of the PoDiff class"""
 
-    def __init__(self, out, show_line_numbers=False):
+    def __init__(self, out, show_line_numbers=False, colors=False):
         """Initialize class variables
 
         Keywords:
@@ -67,8 +42,10 @@ class PoDiff:
         self.out = out
         self.number_of_diff_chunks = 0
         self.show_line_numbers = show_line_numbers
+        self.colors = colors
 
-    def catalogs_have_common_base(self, old_cat, new_cat):
+    @staticmethod
+    def catalogs_have_common_base(old_cat, new_cat):
         """Check if catalogs has common base
 
         Keywords:
@@ -218,23 +195,23 @@ class PoDiff:
         print >> self.out, ''.join(diff[3:])  # .encode('utf8')
         self.number_of_diff_chunks += 1
 
-    def __print_lineno(self, msg, fname=None):
+    @staticmethod
+    def __print_lineno(msg, fname=None):
         """Print line number and file name header for diff of msg pairs"""
         lineno = msg.meta['lineno'] if 'lineno' in msg.meta else 'N/A'
         return ('--- Line %d (%s) ' % (lineno, fname)).ljust(32, '-')
 
     def print_status(self):
         """Print the number of diff pieces that have been output"""
-        bar = ' ' + '=' * 77
-        print >> self.out, bar
-        print >> self.out, " Number of messages: %d" %\
+        sep = ' ' + '=' * 77
+        print >> self.out, sep
+        print >> self.out, " Number of messages: %d" % \
             self.number_of_diff_chunks
-        print >> self.out, bar
-
-##############################################################################
+        print >> self.out, sep
 
 
 def __build_parser():
+    """ Builds the options """
     description = ('Prints the difference between two po-FILES in pieces '
                    'of diff output that pertain to one original string. '
                    )
@@ -264,13 +241,14 @@ def __build_parser():
     parser.add_option('-f', '--full', action='store_true', default=False,
                       help='like --relax but show the full diff including the '
                       'entries that are only present in the original file')
+    parser.add_option('-c', '--color', action='store_true', default=False,
+                      help='make a wordwise diff and use markers to highlight '
+                      'it')
     return parser
-
-##############################################################################
 
 
 @pyg3tmain
-def main():
+def main():  # pylint: disable-msg=R0912
     """The main function loads the files and outputs the diff"""
 
     option_parser = __build_parser()
@@ -298,7 +276,7 @@ def main():
         out = sys.stdout
 
     # Get PoDiff instanse
-    podiff = PoDiff(out, opts.line_numbers)
+    podiff = PoDiff(out, opts.line_numbers, opts.color)
 
     # Load files into catalogs
     try:
@@ -333,7 +311,3 @@ def main():
         podiff.diff_catalogs_strict(cat_old, cat_new)
 
     return
-
-##############################################################################
-if __name__ == '__main__':
-    main()

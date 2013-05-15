@@ -191,10 +191,6 @@ def main():
         if infile not in [None, sys.stdin]:
             infile.close()
 
-
-if __name__ == '__main__':
-    main()
-
 #    def version_of_podiff_as_msg_catalog(self, fileobject, new=True):
 #        """ This function produces either the new or the old version of a
 #        the podiff content and returns it as a message catalog object
