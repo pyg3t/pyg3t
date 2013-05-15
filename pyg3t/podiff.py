@@ -29,7 +29,7 @@ class PoDiff:
 
     """Description of the PoDiff class"""
 
-    def __init__(self, out, show_line_numbers=False):
+    def __init__(self, out, show_line_numbers=False, colors=False):
         """Initialize class variables
 
         Keywords:
@@ -41,6 +41,7 @@ class PoDiff:
         self.out = out
         self.number_of_diff_chunks = 0
         self.show_line_numbers = show_line_numbers
+        self.colors = colors
 
     @staticmethod
     def catalogs_have_common_base(old_cat, new_cat):
@@ -239,6 +240,9 @@ def __build_parser():
     parser.add_option('-f', '--full', action='store_true', default=False,
                       help='like --relax but show the full diff including the '
                       'entries that are only present in the original file')
+    parser.add_option('-c', '--color', action='store_true', default=False,
+                      help='make a wordwise diff and use markers to highlight '
+                      'it')
     return parser
 
 
@@ -270,7 +274,7 @@ def main():  # pylint: disable-msg=R0912
         out = sys.stdout
 
     # Get PoDiff instanse
-    podiff = PoDiff(out, opts.line_numbers)
+    podiff = PoDiff(out, opts.line_numbers, opts.color)
 
     # Load files into catalogs
     try:
