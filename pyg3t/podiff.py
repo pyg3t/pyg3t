@@ -25,6 +25,7 @@ from pyg3t.gtparse import parse
 from pyg3t import __version__
 from pyg3t.gtdifflib import FancyWDiffFormat
 from pyg3t.gtdifflib import diff as wdiff
+from pyg3t.util import pyg3tmain
 
 
 class PoDiff:
@@ -295,6 +296,7 @@ def __build_parser():
     return parser
 
 
+@pyg3tmain
 def main():  # pylint: disable-msg=R0912
     """The main function loads the files and outputs the diff"""
 
@@ -358,7 +360,3 @@ def main():  # pylint: disable-msg=R0912
         podiff.diff_catalogs_strict(cat_old, cat_new)
 
     return
-
-
-if __name__ == '__main__':
-    main()

@@ -1,7 +1,9 @@
 from optparse import OptionParser
 from pyg3t.gtparse import parse, wrap
 from pyg3t.gtdifflib import DefaultWDiffFormat, FancyWDiffFormat, diff
+from pyg3t.util import pyg3tmain
 
+@pyg3tmain
 def main():
     usage = '%prog [OPTION] POFILE'
     description = 'Print wordwise diff of msgid and previous msgid ' \

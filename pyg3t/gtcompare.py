@@ -2,6 +2,7 @@ from optparse import OptionParser
 from dateutil.parser import parse as parse_date
 
 from pyg3t.gtparse import parse
+from pyg3t.util import pyg3tmain
 
 
 def build_parser():
@@ -276,7 +277,7 @@ def compare(cat1, cat2):
     #    return set(msgstrs)
     
 
-
+@pyg3tmain
 def main():
     parser = build_parser()
     opts, args = parser.parse_args()

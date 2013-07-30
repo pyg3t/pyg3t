@@ -5,7 +5,7 @@ import xml.sax
 from optparse import OptionParser
 
 from pyg3t.gtparse import parse
-from pyg3t.util import Colorizer
+from pyg3t.util import Colorizer, pyg3tmain
 
 
 class SuspiciousTagsError(ValueError):
@@ -190,7 +190,7 @@ def colorize_errors(msg, err):
         msgstr = ''.join([part1, colorizer.colorize(part2), part3])
         msg.msgstrs[i] = msgstr
 
-
+@pyg3tmain
 def main():
     parser = build_parser()
     opts, args = parser.parse_args()
@@ -256,7 +256,4 @@ def main():
         print 'Total errors', total_badcount
 
     exitcode = int(total_badcount > 0)
-    sys.exit(exitcode)
-
-if __name__ == '__main__':
-    main()
+    raise SystemExit(exitcode)

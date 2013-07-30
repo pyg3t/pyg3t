@@ -3,7 +3,7 @@ import re
 from optparse import OptionParser
 
 from pyg3t.gtparse import parse
-from pyg3t.util import NullDevice
+from pyg3t.util import NullDevice, pyg3tmain
 
 
 description = """Check translations of command-line options in po-files."""
@@ -193,7 +193,7 @@ class OptionChecker:
         print >> self.debug, ('OK : Line %d. ' % msg.meta['lineno']).ljust(78, 
                                                                            '-')
         
-
+@pyg3tmain
 def main():
     parser = build_parser()
     opts, args = parser.parse_args()
