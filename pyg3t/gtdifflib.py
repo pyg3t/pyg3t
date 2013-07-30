@@ -4,7 +4,7 @@ from pyg3t.util import Colorizer
 
 #tokenizer = re.compile(r'\s+|\S+')
 #tokenizer = re.compile(r'\\n|\w+|\W+')
-tokenizer = re.compile(r'\w+|\W+')
+tokenizer = re.compile(r'\w+|\W+', flags=re.UNICODE)
 
 class DefaultWDiffFormat:
     def insert(self, string):
