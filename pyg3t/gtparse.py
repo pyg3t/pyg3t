@@ -146,7 +146,7 @@ class Catalog(object):
     
     def get_fuzzy(self):
         return self.filter(Message.isfuzzy)
-    
+
 
 class Message(object):
     """This class represents a po-file entry. 
@@ -386,6 +386,7 @@ def is_wrappable(declaration, string):
         return True
     return False
 
+
 def wrap(declaration, string):
     if is_wrappable(declaration, string):
         tokens = []
@@ -412,6 +413,8 @@ class LineNumberIterator:
         self.input = input
         self.lines = []
         self.iter = iter(self)
+        self.last_lines = []
+        self.max_last_lines = 12
     
     def pop_lines(self):
         lines = self.lines
@@ -420,25 +423,47 @@ class LineNumberIterator:
     def __iter__(self):
         for line in self.input:
             self.lineno += 1
+            self.last_lines.append(line)
+            if len(self.last_lines) > self.max_last_lines:
+                self.last_lines.pop(0)
             if line.isspace():
                 continue
             yield line
     def next(self):
         return self.iter.next()
 
-class PoSyntaxError(ValueError):
+
+class PoError(ValueError):
+    """Error raised by the parser containing user-friendly error messages."""
+    def __init__(self, errmsg, lineno=None,
+                 original_error=None,
+                 last_lines=None):
+        ValueError.__init__(self, errmsg)
+        self.lineno = lineno
+        self.errmsg = errmsg
+        self.original_error = original_error
+        self.last_lines = last_lines
+
+    def format(self):
+        if self.lineno is None:
+            return 'Syntax error: %s' % self.errmsg
+        else:
+            return 'Syntax error near line %d: %s' % (self.lineno, self.errmsg)
+
+
+class BadSyntaxError(ValueError):
+    """Error raised by subroutines when they cannot figure out what to do."""
     pass
 
 
-# Exception for cases we don't support
 class UnimplementedPoSyntaxError(NotImplementedError):
+    """Exception for syntactical features we don't support."""
     pass
-
 
 
 def consume_lines(nextline, input, startpattern, continuepattern):
     if startpattern.match(nextline) is None:
-        raise PoSyntaxError(repr(nextline))
+        raise BadSyntaxError
     lines = [nextline]
     for nextline in input:
         if continuepattern.match(nextline):
@@ -449,11 +474,12 @@ def consume_lines(nextline, input, startpattern, continuepattern):
         nextline = None # EOF
     return nextline, lines
 
+
 def extract_string(lines, header, continuationlength):
     line = lines[0]
     match = header.match(line)
     if not match:
-        raise PoSyntaxError('%s not found.  Line was: %s' % (header, line))
+        raise BadSyntaxError
     
     # get e.g. 'hello' from the line 'msgid "hello"', so skip 2 characters
     end = match.end()
@@ -479,113 +505,128 @@ obsolete_linepatterns = dict([(key, re.compile(r'#~( ?)' + value))
                               for key, value in linepatternstrings.items()])
 
 
-def get_message_chunks(input):
-    input = LineNumberIterator(input)
-    line = input.next()
-    while True:
-        msgdata = {}
-        rawlines = []
-        msgdata['rawlines'] = rawlines
+class PoParser:
+    def __init__(self, input):
+        self._input = input
+        self.input = LineNumberIterator(input)
+        self.last_chunk = None
+        self.last_lines = []
 
-        def _consume_lines(nextline, input, startpattern, continuepattern):
-            try:
-                nextline, lines = consume_lines(nextline, input, startpattern, 
-                                                continuepattern)
-            except PoSyntaxError, e:
-                # generate sensible error output
-                raise
-            rawlines.extend(lines)
-            return nextline, lines
-        def _extract_string(nextline, input, header):
-            nextline, lines = _consume_lines(nextline, input, header,
-                                             patterns['continuation'])
-            continuationlength = 1
-            if lines[-1].startswith('#~ "'):
-                continuationlength = 4
-            string = extract_string(lines, header, continuationlength)
-            return nextline, string
+    def get_message_chunks(self):
+        input = self.input
+        line = input.next()
+        #self.last_lines.append(line)
+        if len(self.last_lines) > 12:
+            self.last_lines.pop()
+        while True:
+            msgdata = {}
+            rawlines = []
+            msgdata['rawlines'] = rawlines
 
-
-        patterns = linepatterns
-        
-        if patterns['comment'].match(line):
-            line, comments = _consume_lines(line, input, 
-                                            patterns['comment'], 
-                                            patterns['comment'])
-        else:
-            comments = []
-
-        if line.startswith('#~'):
-            # Yuck!  Comments were not obsolete, but actual msgid was.
-            is_obsolete = True
-            patterns = obsolete_linepatterns
-        else:
-            is_obsolete = False
-        
-        # At least now we are sure whether it's really obsolete
-        msgdata['is_obsolete'] = is_obsolete
-        
-        flags = []
-        normalcomments = []
-        for i, comment in enumerate(comments):
-            if patterns['prevmsgid_start'].match(comment):
-                prevmsgid_lines = iter(comments[i + 1:])
-                _, lines = consume_lines(comment, prevmsgid_lines, 
-                                         patterns['prevmsgid_start'],
-                                         patterns['prevmsgid_continuation'])
-                prevmsgid = extract_string(lines, 
-                                           patterns['prevmsgid_start'], 4)
-                msgdata['prevmsgid'] = prevmsgid
-            if comment.startswith('#, '):
-                flags.extend(comment[3:].split(','))
-            else:
-                normalcomments.append(comment)
-        msgdata['comments'] = normalcomments
-        msgdata['flags'] = [flag.strip() for flag in flags]
-
-        if line.startswith('#~'): 
-            # Aha!  It was an obsolete all along!
-            # Must read all remaining lines as obsolete...
-            is_obsolete = True
-            patterns = obsolete_linepatterns
-        
-        if patterns['msgctxt'].match(line):
-            line, msgctxt = _extract_string(line, input, patterns['msgctxt'])
-            msgdata['msgctxt'] = msgctxt # XXX remember to take care of this
-
-        if patterns['msgid'].match(line):
-            line, msgid = _extract_string(line, input, patterns['msgid'])
-            msgdata['msgid'] = msgid
-            msgdata['lineno'] = input.lineno
-        
-        if patterns['msgid_plural'].match(line):#
-            line, msgid_plural = _extract_string(line, input, 
-                                                 patterns['msgid_plural'])
-            msgdata['msgid_plural'] = msgid_plural
+            def _consume_lines(nextline, input, startpattern, continuepattern):
+                try:
+                    nextline, lines = consume_lines(nextline, input,
+                                                    startpattern, 
+                                                    continuepattern)
+                except BadSyntaxError as error:
+                    msg = 'Unrecognized syntax while parsing line %d' \
+                        % input.lineno
+                    newerror = PoError(msg,
+                                       lineno=input.lineno,
+                                       original_error=error,
+                                       last_lines=input.last_lines)
+                    raise newerror
+                rawlines.extend(lines)
+                return nextline, lines
+            def _extract_string(nextline, input, header):
+                nextline, lines = _consume_lines(nextline, input, header,
+                                                 patterns['continuation'])
+                continuationlength = 1
+                if lines[-1].startswith('#~ "'):
+                    continuationlength = 4
+                string = extract_string(lines, header, continuationlength)
+                return nextline, string
             
-            nmsgstr = 0
-            msgstrs = []
-            pluralpattern = patterns['msgstr_plural']
-            while line is not None and pluralpattern.match(line):
-                line, msgstr = _extract_string(line, input, 
-                                               pluralpattern)
-                msgstrs.append(msgstr)
-                nmsgstr += 1
-            msgdata['msgstrs'] = msgstrs
-        else:
-            line, msgstr = _extract_string(line, input, patterns['msgstr'])
-            msgdata['msgstr'] = msgstr
-        yield msgdata
-        if line is None:
-            return
+            patterns = linepatterns
 
-# XXX lineno should be input.lineno + len(comments)
+            if patterns['comment'].match(line):
+                line, comments = _consume_lines(line, input,
+                                                patterns['comment'],
+                                                patterns['comment'])
+            else:
+                comments = []
 
+            if line.startswith('#~'):
+                # Yuck!  Comments were not obsolete, but actual msgid was.
+                is_obsolete = True
+                patterns = obsolete_linepatterns
+            else:
+                is_obsolete = False
+
+            # At least now we are sure whether it's really obsolete
+            msgdata['is_obsolete'] = is_obsolete
+
+            flags = []
+            normalcomments = []
+            for i, comment in enumerate(comments):
+                if patterns['prevmsgid_start'].match(comment):
+                    prevmsgid_lines = iter(comments[i + 1:])
+                    _, lines = consume_lines(comment, prevmsgid_lines, 
+                                             patterns['prevmsgid_start'],
+                                             patterns['prevmsgid_continuation'])
+                    prevmsgid = extract_string(lines, 
+                                               patterns['prevmsgid_start'], 4)
+                    msgdata['prevmsgid'] = prevmsgid
+                if comment.startswith('#, '):
+                    flags.extend(comment[3:].split(','))
+                else:
+                    normalcomments.append(comment)
+            msgdata['comments'] = normalcomments
+            msgdata['flags'] = [flag.strip() for flag in flags]
+
+            if line.startswith('#~'): 
+                # Aha!  It was an obsolete all along!
+                # Must read all remaining lines as obsolete...
+                is_obsolete = True
+                patterns = obsolete_linepatterns
+
+            if patterns['msgctxt'].match(line):
+                line, msgctxt = _extract_string(line, input, patterns['msgctxt'])
+                msgdata['msgctxt'] = msgctxt # XXX remember to take care of this
+
+            if patterns['msgid'].match(line):
+                line, msgid = _extract_string(line, input, patterns['msgid'])
+                msgdata['msgid'] = msgid
+                msgdata['lineno'] = input.lineno
+
+            if patterns['msgid_plural'].match(line):#
+                line, msgid_plural = _extract_string(line, input, 
+                                                     patterns['msgid_plural'])
+                msgdata['msgid_plural'] = msgid_plural
+
+                nmsgstr = 0
+                msgstrs = []
+                pluralpattern = patterns['msgstr_plural']
+                while line is not None and pluralpattern.match(line):
+                    line, msgstr = _extract_string(line, input, 
+                                                   pluralpattern)
+                    msgstrs.append(msgstr)
+                    nmsgstr += 1
+                msgdata['msgstrs'] = msgstrs
+            else:
+                line, msgstr = _extract_string(line, input, patterns['msgstr'])
+                msgdata['msgstr'] = msgstr
+            self.last_chunk = msgdata
+            yield msgdata
+            if line is None:
+                return
         
-def chunk_iter(input, include_obsoletes=False):
-    return get_message_chunks(input)
+    def chunk_iter(self, include_obsoletes=False):
+        return self.get_message_chunks()
 
 def parse(input):
+    parser = PoParser(input)
+    
     try:
         fname = input.name
     except AttributeError:
@@ -593,19 +634,20 @@ def parse(input):
 
     chunks = []
     obsoletes = []
-    
-    for chunk in chunk_iter(input, include_obsoletes=True):
+
+    chunk = None
+    for chunk in parser.chunk_iter(include_obsoletes=True):
         if chunk['is_obsolete']:
             obsoletes.append(chunk)
         else:
             chunks.append(chunk)
-
+    
     for chunk in chunks:
         if chunk['msgid'] == '':
             header = chunk
             break
     else:
-        raise PoSyntaxError('Header not found')
+        raise PoError('Header not found')
 
     for line in header['msgstr'].split('\\n'):
         if line.startswith('Content-Type:'):

@@ -1,4 +1,9 @@
 import sys
+from pyg3t.gtparse import PoError
+# will this eventually become a circular import?
+# Maybe PoSyntaxError should be defined un util so that all modules
+# can use util without util using any of them
+
 
 colors = {'blue': '0;34',
           'light red': '1;31',
@@ -60,4 +65,14 @@ def pyg3tmain(main):
         except KeyboardInterrupt:
             print >> sys.stderr, 'Interrupted by keyboard'
             raise SystemExit(1)
+        except PoError as err:
+            maxlength = len('%d' % err.lineno)
+            print >> sys.stderr, err.errmsg
+            print >> sys.stderr, '-' * len(err.errmsg)
+            lineoffset = 1 + err.lineno - len(err.last_lines)
+            for i, line in enumerate(err.last_lines):
+                lineno = lineoffset + i
+                print >> sys.stderr, ('%d' % lineno).rjust(maxlength), line,
+            print >> sys.stderr
+            raise SystemExit(-1)
     return main_decorator
