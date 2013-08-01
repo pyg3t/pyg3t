@@ -29,7 +29,7 @@ class PoPatch:
     """
 
     def __init__(self, out=None):
-        """ Initialize variables
+        """Initialize variables.
 
         Keyword argument:
         out            output file object
@@ -37,8 +37,7 @@ class PoPatch:
         self.out = out if out is not None else sys.stdout
 
     def version_of_podiff(self, fileobject, new=True, output_object=None):
-        """ This function produces either the new or the old version of a
-        the podiff content.
+        """Extract either the new or the old version from a podiff.
 
         Argument:
         fileobject     file object to the diff file
@@ -173,7 +172,7 @@ def main():
         # Patching mode
         if len(args) != 2:
             option_parser.error('In patching mode popatch takes exactly two '
-                             'arguments')
+                                'arguments')
         try:
             infile0 = sys.stdin if args[0] == '-' else open(args[0])
             infile1 = sys.stdin if args[1] == '-' else open(args[1])
