@@ -23,6 +23,8 @@ from optparse import OptionParser
 from difflib import unified_diff
 from pyg3t.gtparse import parse
 from pyg3t import __version__
+from pyg3t.gtdifflib import FancyWDiffFormat
+from pyg3t.gtdifflib import diff as wdiff
 from pyg3t.util import pyg3tmain
 
 
@@ -30,7 +32,7 @@ class PoDiff:
 
     """Description of the PoDiff class"""
 
-    def __init__(self, out, show_line_numbers=False, colors=False):
+    def __init__(self, out, show_line_numbers=False, color=False):
         """Initialize class variables
 
         Keywords:
@@ -42,7 +44,9 @@ class PoDiff:
         self.out = out
         self.number_of_diff_chunks = 0
         self.show_line_numbers = show_line_numbers
-        self.colors = colors
+        self.color = color
+        if self.color:
+            self.wdiff_formatter = FancyWDiffFormat()
 
     @staticmethod
     def catalogs_have_common_base(old_cat, new_cat):
@@ -134,13 +138,17 @@ class PoDiff:
 
         # Check if the there is a reason to diff.
         # NOTE: Last line says we always show header
-        if old_msg.isfuzzy is not new_msg.isfuzzy or\
+        if old_msg.isfuzzy != new_msg.isfuzzy or\
                 re_enc_old_msgstrs != new_msg.msgstrs or\
                 re_enc_old_comments != new_msg.get_comments('# ') or\
                 new_msg.msgid == "":
 
             if self.show_line_numbers:
                 print >> self.out, self.__print_lineno(new_msg, fname)
+
+            if self.color:
+                self.diff_two_msgs_color(old_msg, new_msg, enc)
+                return
 
             # Make the diff
             if enc != (None, None):
@@ -161,6 +169,47 @@ class PoDiff:
 
             if new_msg.msgid != "":
                 self.number_of_diff_chunks += 1
+
+    def diff_two_msgs_color(self, old_msg, new_msg, enc=(None, None)):
+        """ doc string """
+        old_msg = old_msg.decode()
+        new_msg = new_msg.decode()
+
+        #for msg in [old_msg, new_msg]:
+            #msg.msgid = msg.msgid.replace('\\n', '\\n\n')
+            #if msg.previous_msgid is not None:
+                #msg.previous_msgid = \
+                    #msg.previous_msgid.replace('\\n', '\\n\n')
+            #msg.msgstrs = [msgstr.replace('\\n', '\\n\n') for msgstr in msg.msgstrs]
+
+        new_msg.comments = wdiff('XXX'.join(old_msg.comments), 'XXX'.join(new_msg.comments), self.wdiff_formatter).split('XXX')
+        if new_msg.has_context:
+            assert old_msg.has_context
+            new_msg.msgctxt = wdiff(old_msg.msgctxt, new_msg.msgctxt, self.wdiff_formatter)
+        new_msg.msgid = wdiff(old_msg.msgid, new_msg.msgid, self.wdiff_formatter)
+        if new_msg.has_plurals:
+            assert old_msg.has_plurals
+            new_msg.msgid_plural = wdiff(old_msg.msgid_plural, new_msg.msgid_plural, self.wdiff_formatter)
+        
+        assert len(old_msg.msgstrs) == len(new_msg.msgstrs)
+        for i, (msgstr1, msgstr2) in enumerate(zip(old_msg.msgstrs, new_msg.msgstrs)):
+            new_msg.msgstrs[i] = wdiff(msgstr1, msgstr2, self.wdiff_formatter)
+        
+        #old = str(old_msg)
+        #if enc != (None, None):
+        #    old = old.decode(enc[0]).encode(enc[1], 'replace')
+        #diff1 = wdiff('\n'.join(old_msg.comments), '\n'.join(new_msg.comments), self.wdiff_formatter)
+        #diff2 = wdiff(old_msg.msgstr, new_msg.msgstr, self.wdiff_formatter)
+        #print repr(old_msg.tostring())
+        #print repr(new_msg.tostring())    
+        #diff = wdiff(old_msg.tostring(), new_msg.tostring(), self.wdiff_formatter)
+
+        print >> self.out, new_msg.tostring().encode('utf8')
+        #print >> self.out, diff1.encode('utf8')
+        #print >> self.out, 'msgstr "%s"' % diff2.encode('utf8')
+
+        if new_msg.msgid != "":
+            self.number_of_diff_chunks += 1
 
     def __print_header(self, msg):
         """ Prints out the header when there is no diff in it """
