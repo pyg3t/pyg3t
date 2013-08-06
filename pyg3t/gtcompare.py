@@ -120,11 +120,12 @@ def compare_headers(headers1, headers2):
                 assert not header in headers1 and not header in headers2
         header_done(header)
 
-    for header in known_headers:
+    # Copy the list as process_header makes changes to the list
+    for header in list(known_headers):
         process_header(header)
     
     # The remaining ones which are "unknown"
-    for header in headers_to_do:
+    for header in list(headers_to_do):
         process_header(header)
 
 
