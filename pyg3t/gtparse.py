@@ -19,10 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import codecs
 import re
-from textwrap import TextWrapper
 
-wordseparator = re.compile(r'(\s+)')
-
+#from textwrap import TextWrapper
 #wrapper = TextWrapper(width=77,
 #                      replace_whitespace=False,
 #                      expand_tabs=False,
@@ -31,24 +29,27 @@ wordseparator = re.compile(r'(\s+)')
 # Built-in textwrapper doesn't support the drop_whitespace=False
 # option before 2.6, and it's sort of nice to support 2.5 still.
 # So this is sort of equivalent to the TextWrapper
-class TextWrapper:
-    def wrap(self, text):
-        chunks = iter(wordseparator.split(text))
-        lines = []
-        tokens = []
-        chars = 0
-        for chunk in chunks:
-            if chars + len(chunk) > 77:
-                lines.append(''.join(tokens))
-                tokens = []
-                chars = 0
-            if len(chunk) > 0:
-                tokens.append(chunk)
-                chars += len(chunk)
-        if tokens:
-            lines.append(''.join(tokens))
-        return lines
-wrapper = TextWrapper()
+
+def chunkwrap(chunks):
+    lines = []
+    tokens = []
+    chars = 0
+    for chunk in chunks:
+        if chars + len(chunk) > 77:
+            yield ''.join(tokens)
+            #lines.append(''.join(tokens))
+            tokens = []
+            chars = 0
+        if len(chunk) > 0:
+            tokens.append(chunk)
+            chars += len(chunk)
+    if tokens:
+        yield ''.join(tokens)
+
+wordseparator = re.compile(r'(\s+)')
+def wrap(text):
+    chunks = iter(wordseparator.split(text))
+    return list(chunkwrap(chunks))
 
 def parse_header_data(msg):
     headers = {}
@@ -291,28 +292,27 @@ class Message(object):
             raise KeyError('No raw lines for this Message')
         return ''.join(self.meta['rawlines'])
 
+    def flagstostring(self):
+        if self.flags:
+            return '#, %s\n' % ', '.join(sorted(self.flags))
+        else:
+            return ''
+
     def tostring(self): # maybe add line length argument for wrapping?
         lines = []
         lines.extend([c for c in self.comments if not c.startswith('#|')])
         if self.flags:
-            lines.append('#, %s' % ', '.join(self.flags))
-            lines.append('\n')
+            lines.append(self.flagstostring())
         lines.extend([c for c in self.comments if c.startswith('#|')])
-        #lines.extend('# %s' % comment for comment in self.translatorcomments)
-        #lines.extend('#. %s' % comment for comment in self.extractedcomments)
-        #lines.extend('#: %s' % comment for comment in self.referencecomments)
-        #lines.append('#, %s' % ', '.join(flag for flat in self.flags))
-        # XXX #| msgctxt
-        # XXX #| msgid
         if self.has_context:
-            lines.append(wrap('msgctxt', self.msgctxt))
-        lines.append(wrap('msgid', self.msgid))
+            lines.append(wrap_declaration('msgctxt', self.msgctxt))
+        lines.append(wrap_declaration('msgid', self.msgid))
         if self.hasplurals:
-            lines.append(wrap('msgid_plural', self.msgid_plural))
+            lines.append(wrap_declaration('msgid_plural', self.msgid_plural))
             for i, msgstr in enumerate(self.msgstrs):
-                lines.append(wrap('msgstr[%d]' % i, msgstr))
+                lines.append(wrap_declaration('msgstr[%d]' % i, msgstr))
         else:
-            lines.append(wrap('msgstr', self.msgstr))
+            lines.append(wrap_declaration('msgstr', self.msgstr))
         string = ''.join(lines)
         return string
 
@@ -387,7 +387,7 @@ def is_wrappable(declaration, string):
     return False
 
 
-def wrap(declaration, string):
+def wrap_declaration(declaration, string):
     if is_wrappable(declaration, string):
         tokens = []
         tokens.append('%s ""\n' % declaration)
@@ -396,7 +396,7 @@ def wrap(declaration, string):
         for i, token in enumerate(linetokens[:-1]):
             linetokens[i] += r'\n' # grrr
         for linetoken in linetokens:
-            lines = wrapper.wrap(linetoken)
+            lines = wrap(linetoken)
             for line in lines:
                 tokens.append('"')
                 tokens.append(line)
@@ -433,14 +433,19 @@ class LineNumberIterator:
         return self.iter.next()
 
 
+class PoHeaderError(ValueError):
+    pass
+
+
 class PoError(ValueError):
     """Error raised by the parser containing user-friendly error messages."""
-    def __init__(self, errmsg, lineno=None,
+    def __init__(self, errmsg, fname=None, lineno=None,
                  original_error=None,
                  last_lines=None):
         ValueError.__init__(self, errmsg)
-        self.lineno = lineno
         self.errmsg = errmsg
+        self.fname = fname
+        self.lineno = lineno
         self.original_error = original_error
         self.last_lines = last_lines
 
@@ -647,7 +652,7 @@ def parse(input):
             header = chunk
             break
     else:
-        raise PoError('Header not found')
+        raise PoHeaderError('Header not found')
 
     for line in header['msgstr'].split('\\n'):
         if line.startswith('Content-Type:'):
