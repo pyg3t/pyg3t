@@ -1,9 +1,127 @@
+import re
 from optparse import OptionParser
 from StringIO import StringIO
+from difflib import SequenceMatcher
 
 from popatch import PoPatch
-from pyg3t.gtparse import parse, wrap, wrapper
-from pyg3t.gtdifflib import diff, FancyWDiffFormat
+from pyg3t.gtparse import parse, wrap, chunkwrap
+from pyg3t.util import Colorizer
+
+
+def print_msg_diff(differ, oldmsg, newmsg):
+    oldcomments = ''.join(oldmsg.comments)
+    newcomments = ''.join(newmsg.comments)
+    print differ.diff(oldcomments, newcomments)
+    if oldmsg.flags or newmsg.flags:
+        print differ.diff(oldmsg.flagstostring()[:-1], # ignore last newline
+                          newmsg.flagstostring()[:-1])
+    if oldmsg.has_context or newmsg.has_context:
+        print differ.maybe_wrapdiff('msgctxt', oldmsg.msgctxt, newmsg.msgctxt)
+    print differ.maybe_wrapdiff('msgid', oldmsg.msgid, newmsg.msgid)
+    if oldmsg.hasplurals or newmsg.hasplurals:
+        print differ.maybe_wrapdiff('msgid_plural', oldmsg.msgid_plural,
+                                    newmsg.msgid_plural)
+    if len(oldmsg.msgstrs) == 1:
+        print differ.maybe_wrapdiff('msgstr', oldmsg.msgstr, newmsg.msgstr)
+    else:
+        for i, (oldmsgstr, newmsgstr) in enumerate(zip(oldmsg.msgstrs, 
+                                                       newmsg.msgstrs)):
+            print differ.maybe_wrapdiff('msgstr[%d]' % i, oldmsgstr, newmsgstr)
+
+
+class MSGDiffer:
+    def __init__(self):
+        self.tokenizer = re.compile(r'\\.|\s+|[^ \\\t\n\r\f\v]+',
+                                    flags=re.UNICODE)
+        self.equalcolor = Colorizer(None)
+        self.oldcolor = Colorizer('old')
+        self.newcolor = Colorizer('new')
+        self.maxlinelength = 100
+
+    def difftokens(self, old, new):
+        oldwords = self.tokenizer.findall(old)
+        newwords = self.tokenizer.findall(new)
+
+        def isgarbage(string):
+            return string.isspace() #False
+        differ = SequenceMatcher(isgarbage, a=oldwords, b=newwords)
+
+        words = []
+        colors = []
+
+        def append(tokens, color):
+            for token in tokens:
+                words.append(token)
+                colors.append(color)
+
+        for op, s1beg, s1end, s2beg, s2end in differ.get_opcodes():
+            w1 = oldwords[s1beg:s1end]
+            w2 = newwords[s2beg:s2end]
+
+            if op == 'equal':
+                append(w1, self.equalcolor)
+            elif op == 'insert':
+                append(w2, self.newcolor)
+            elif op == 'replace':
+                append(w1, self.oldcolor)
+                append(w2, self.newcolor)
+            elif op == 'delete':
+                append(w1, self.oldcolor)
+        return words, colors
+
+    def diff(self, old, new):
+        words, colors = self.difftokens(old, new)
+        return self.colorize(words, colors)
+
+    def colorize(self, words, colors):
+        return ''.join(color.colorize(w)
+                       for color, w in zip(colors, words)).strip()
+
+    def maybe_wrapdiff(self, header, old, new):
+        words, colors = self.difftokens(old, new)
+        length = len(header) + 3 + sum(len(w) for w in words)
+        if length < self.maxlinelength and not any(r'\n' in w for w in words):
+            words = [header, ' "'] + words + ['"\n']
+            colors = [self.equalcolor, self.equalcolor] + colors + \
+                [self.equalcolor]
+            return self.colorize(words, colors)
+        else:
+            return self.wrapdiff(header, old, new)
+
+    def wrapdiff(self, header, old, new):
+        words, colors = self.difftokens(old, new)
+        
+        newwords = []
+        newcolors = []
+
+        def newappend(w, color):
+            newwords.append(w)
+            newcolors.append(color)
+
+        newappend('%s ""\n' % header, self.equalcolor)
+        nchars = 0
+
+        for w, c in zip(words, colors):
+            lenw = len(w)
+            if nchars == 0:
+                newappend('"', self.equalcolor)
+                nchars = 1
+            elif nchars + lenw > self.maxlinelength:
+                newappend('"\n"', self.equalcolor)
+                nchars = 1
+            newappend(w, c)
+            nchars += len(w)
+            if w.endswith('\\n'):# and c != red:
+                newappend('"\n', self.equalcolor)
+                nchars = 0
+        
+        if nchars > 0:
+            newappend('"', self.equalcolor)
+        # XXX len(words) == 0 should not happen when we have to wrap
+        #if len(words) == 0 or not w.endswith('\\n'):
+        #    newappend(quote, yellow)
+
+        return self.colorize(newwords, newcolors)
 
 
 def main():
@@ -28,60 +146,19 @@ def main():
     print >> inputfd, fd.read()
     
     cats = []
-    #texts = []
+    
     for isnew in [False, True]:
         inputfd.seek(0)
-        #fileobj, isnew in [[oldfile, False], [newfile, True]]:
         outfd = StringIO()
         popatch.version_of_podiff(inputfd, new=isnew, output_object=outfd)
         outfd.seek(0)
-        #texts.append(outfd.read())
         cat = parse(outfd)
         cats.append(cat)
 
     oldcat, newcat = cats
 
-    fmt = FancyWDiffFormat()
+    differ = MSGDiffer()
     
-    def mkdiff(old, new):
-        return diff(old, new, fmt)
-    def wrapdiff(declaration, old, new):
-        if old is None:
-            old = ''
-        if new is None:
-            new = ''
-        return mkdiff(wrap(declaration, old), wrap(declaration, new))
-
-    #def wrap(text):
-    #    return '\n'.join(wrapper.wrap(text))
-
-    for oldmsg, newmsg in zip(oldcat, newcat):
-        #print mkdiff(''.join(oldmsg.comments), ''.join(newmsg.comments)),
-        
-        # wrappings might be different and introduce confusion
-        # but it might be better than not wrapping at all
-        if oldmsg.has_context or newmsg.has_context:
-            print wrapdiff('msgctxt', oldmsg.msgctxt, newmsg.msgctxt)
-        print wrapdiff('msgid', oldmsg.msgid, newmsg.msgid),
-        if oldmsg.hasplurals or newmsg.hasplurals:
-            print wrapdiff('msgid_plural', oldmsg.msgid_plural,
-                           newmsg.msgid_plural),
-        assert len(oldmsg.msgstrs) == len(newmsg.msgstrs)
-        if len(oldmsg.msgstrs) == 1:
-            print wrapdiff('msgstr', oldmsg.msgstr, newmsg.msgstr),
-        else:
-            for i, (oldmsgstr, newmsgstr) in enumerate(zip(oldmsg.msgstrs, 
-                                                           newmsg.msgstrs)):
-                print wrapdiff('msgstr[%d]' % i, oldmsgstr, newmsgstr),
+    for oldmsg, newmsg in zip(*cats):
+        print_msg_diff(differ, oldmsg, newmsg)
         print
-        
-    #oldcat, newcat = cats
-    #oldtext, newtext = texts
-    #thediff = diff(oldtext, newtext, fmt)
-    #print thediff
-    #print 'hello'
-    #print oldfile
-    
-
-    #cat = parse(fname)
-    
