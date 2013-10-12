@@ -1,5 +1,5 @@
 import sys
-from pyg3t.gtparse import PoError
+from pyg3t.gtparse import PoError, PoHeaderError
 # will this eventually become a circular import?
 # Maybe PoSyntaxError should be defined un util so that all modules
 # can use util without util using any of them
@@ -74,5 +74,9 @@ def pyg3tmain(main):
                 lineno = lineoffset + i
                 print >> sys.stderr, ('%d' % lineno).rjust(maxlength), line,
             print >> sys.stderr
+            raise SystemExit(-1)
+        except PoHeaderError as err:
+            for arg in err.args:
+                print >> sys.stderr, arg
             raise SystemExit(-1)
     return main_decorator
