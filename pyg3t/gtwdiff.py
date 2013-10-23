@@ -5,7 +5,7 @@ from difflib import SequenceMatcher
 
 from popatch import PoPatch
 from pyg3t.gtparse import parse, wrap, chunkwrap
-from pyg3t.util import Colorizer
+from pyg3t.util import Colorizer, pyg3tmain
 
 
 def print_msg_diff(differ, oldmsg, newmsg):
@@ -69,13 +69,16 @@ class MSGDiffer:
                 append(w1, self.oldcolor)
         return words, colors
 
+    def colorize(self, words, colors):
+        # XXX the actual way we do things, it sometimes adds
+        # a trailing newline.  This we will justs strip away here.
+        # Which is a bit illogical and confusing, admittedly
+        return ''.join(color.colorize(w)
+                       for color, w in zip(colors, words)).strip()
+
     def diff(self, old, new):
         words, colors = self.difftokens(old, new)
         return self.colorize(words, colors)
-
-    def colorize(self, words, colors):
-        return ''.join(color.colorize(w)
-                       for color, w in zip(colors, words)).strip()
 
     def maybe_wrapdiff(self, header, old, new):
         words, colors = self.difftokens(old, new)
@@ -124,10 +127,15 @@ class MSGDiffer:
         return self.colorize(newwords, newcolors)
 
 
+@pyg3tmain
 def main():
     usage = '%prog [OPTION] PODIFF'
     description = 'Generate word-wise podiff from ordinary podiff'
     p = OptionParser(usage=usage, description=description)
+    p.add_option('--previous', action='store_true',
+                 help='display changes inferred from previous msgid'
+                 ' in comment (i.e. #| msgid)'
+                 ' as if they were actual changes to msgid')
     opts, args = p.parse_args()
     
     if len(args) != 1:
@@ -159,6 +167,21 @@ def main():
 
     differ = MSGDiffer()
     
+    if len(oldcat) != len(newcat): # XXX not very general
+        parser.error('The catalogs have different length.  Not supported '
+                     'by gtwdiff as of now')
+
     for oldmsg, newmsg in zip(*cats):
+        if opts.previous:
+            if oldmsg.has_previous_msgid:
+                if oldmsg.msgid != newmsg.msgid:
+                    parser.error('Old and new msgids differ!  This is not '
+                                 'supported with the --previous option')
+                oldmsg.msgid = oldmsg.previous_msgid
+
+        # Unfortunately the metadata is not restored when patching
+        # The method format_linenumber should produce whatever podiff
+        # normally produces.
+        #print format_linenumber(newmsg.meta['lineno'], newcat.fname)
         print_msg_diff(differ, oldmsg, newmsg)
         print
