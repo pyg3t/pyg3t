@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import sys
 import fileinput
 import itertools
@@ -7,7 +8,7 @@ from optparse import OptionParser
 
 from pyg3t.gtparse import parse
 from pyg3t.gtxml import GTXMLChecker
-from pyg3t.util import pyg3tmain
+from pyg3t.util import pyg3tmain, Encoder
 from pyg3t import __version__
 import xml.sax
 
@@ -180,7 +181,7 @@ class POABC:
             return ['Untranslated message']
         if msg.isfuzzy:
             return ['Fuzzy message']
-        msg = msg.decode()
+        #msg = msg.decode()
         msgid, msgstr, warnings1 = self.check_stringpair(msg, msg.msgid,
                                                          msg.msgstr)
         warnings.extend(warnings1)
@@ -238,13 +239,15 @@ def main():
         cmdparser.print_help()
         raise SystemExit(0)
     elif nargs > 1:
-        print >> sys.stderr, 'One file at a time, please.'
+        print('One file at a time, please.', file=sys.stderr)
         raise SystemExit(1)
     
     allfiles = fileinput.input(args)
     
     # XXX does this work with multiple files actually?
     cat = parse(allfiles)
+
+    out = Encoder(sys.stdout, cat.encoding)
 
     tests = []
     tests.append(PartiallyTranslatedPluralTest())
@@ -265,28 +268,31 @@ def main():
     warningcount = 0 # total number of warnings
     msgwarncount = 0 # number of msgs with at least one warning
 
-    try:
-        for msg, warnings in poabc.check_msgs(cat):
-            print header(msg.meta['lineno'])
-            warningcount += len(warnings)
-            msgwarncount += 1
-            for warning in warnings:
-                print warning
-            print msg.rawstring()
-    except IOError, err:
-        cmdparser.error(err)
+    #try:
+    for msg, warnings in poabc.check_msgs(cat):
+        print(header(msg.meta['lineno']), file=out)
+        warningcount += len(warnings)
+        msgwarncount += 1
+        for warning in warnings:
+            print(warning, file=out)
+        print(msg.rawstring(), file=out)
+    #except IOError, err:
+    #    print 'err', err
+    #    cmdparser.error(err)
         
     def fancyfmt(n):
         return '%d [%d%%]' % (n, round(100 * float(n) / poabc.msgcount))
 
     width = 50
-    print ' Summary '.center(width, '=')
-    print 'Number of messages: %d' % poabc.msgcount
-    print 'Translated messages: %s' % fancyfmt(poabc.translatedcount)
-    print 'Fuzzy messages: %s' % fancyfmt(poabc.fuzzycount)
-    print 'Untranslated messages: %s' % fancyfmt(poabc.untranslatedcount)
-    print 'Number of warnings: %d' % msgwarncount
-    print '=' * width
+    print(' Summary '.center(width, '='), file=out)
+    print('Number of messages: %d' % poabc.msgcount, file=out)
+    print('Translated messages: %s' % fancyfmt(poabc.translatedcount),
+          file=out)
+    print('Fuzzy messages: %s' % fancyfmt(poabc.fuzzycount), file=out)
+    print('Untranslated messages: %s' % fancyfmt(poabc.untranslatedcount),
+          file=out)
+    print('Number of warnings: %d' % msgwarncount, file=out)
+    print('=' * width, file=out)
 
 if __name__ == '__main__':
     main()

@@ -1,9 +1,11 @@
+from __future__ import print_function
 import os
+import sys
 from subprocess import Popen, PIPE
 from optparse import OptionParser, OptionGroup
 
 from pyg3t.gtparse import parse, Message, Catalog
-from pyg3t.util import pyg3tmain
+from pyg3t.util import pyg3tmain, Encoder
 
 
 def build_parser():
@@ -103,8 +105,9 @@ def main():
             # XXX more complicated modes?
 
         cat = merge(cat1, cat2, overwrite)
+        out = Encoder(sys.stdout, cat.encoding)
         for msg in cat:
-            print msg#.tostring()
+            print(msg.tostring(), file=out)#.tostring()
         #for line in cat1.obsoletes:
         #    print line, # XXX keep which obsoletes?
         # obsoletes must also be unique, and must not clash with existing msgs
@@ -151,7 +154,7 @@ def main():
             assert not dstheader.hasplurals
             dstheader.msgstrs[0] = '\\n'.join(newheaderlines)
 
-            fd = open(dstfname, 'w')
+            fd = Encoder(open(dstfname, 'w'), idcat.encoding)
             for msg in dstcat:
-                print >> fd, msg
+                print(msg, file=fd)
             fd.close()

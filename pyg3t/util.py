@@ -1,8 +1,17 @@
+from __future__ import print_function
 import sys
 from pyg3t.gtparse import PoError, PoHeaderError
 # will this eventually become a circular import?
 # Maybe PoSyntaxError should be defined un util so that all modules
 # can use util without util using any of them
+
+class Encoder:
+    def __init__(self, fd, encoding):
+        self.fd = fd
+        self.encoding = encoding
+        
+    def write(self, txt):
+        self.fd.write(txt.encode(encoding=self.encoding))
 
 
 colors = {'blue': '0;34',
@@ -63,20 +72,21 @@ def pyg3tmain(main):
         try:
             main()
         except KeyboardInterrupt:
-            print >> sys.stderr, 'Interrupted by keyboard'
+            print('Interrupted by keyboard', file=sys.stderr)
             raise SystemExit(1)
         except PoError as err:
             maxlength = len('%d' % err.lineno)
-            print >> sys.stderr, err.errmsg
-            print >> sys.stderr, '-' * len(err.errmsg)
+            print(err.errmsg, file=sys.stderr)
+            print('-' * len(err.errmsg), file=sys.stderr)
             lineoffset = 1 + err.lineno - len(err.last_lines)
             for i, line in enumerate(err.last_lines):
                 lineno = lineoffset + i
-                print >> sys.stderr, ('%d' % lineno).rjust(maxlength), line,
-            print >> sys.stderr
+                print(('%d' % lineno).rjust(maxlength), line, end='',
+                      file=sys.stderr)
+            print(file=sys.stderr)
             raise SystemExit(-1)
         except PoHeaderError as err:
             for arg in err.args:
-                print >> sys.stderr, arg
+                print(arg, file=sys.stderr)
             raise SystemExit(-1)
     return main_decorator

@@ -116,11 +116,11 @@ class Catalog(object):
     def __getitem__(self, index):
         return self.msgs[index]
     
-    def decode(self, encoding='utf8'):
+    def decode(self):
         # XXX not really implemented
-        msgs = [msg.decode(encoding) for msg in self]
-        obsoletes = [obs.decode(encoding) for obs in self.obsoletes]
-        cat = Catalog(self.fname, self.encoding, msgs, obsoletes)
+        msgs = [msg.decode() for msg in self]
+        obsoletes = [obs.decode() for obs in self.obsoletes]
+        cat = Catalog(self.fname, self.encoding, msgs + obsoletes)
         return cat
 
     def encode(self, encoding=None):
@@ -620,7 +620,7 @@ class PoParser:
                 msgdata['msgstrs'] = msgstrs
             else:
                 line, msgstr = _extract_string(line, input, patterns['msgstr'])
-                msgdata['msgstr'] = msgstr
+                msgdata['msgstrs'] = [msgstr]
             self.last_chunk = msgdata
             yield msgdata
             if line is None:
@@ -654,7 +654,7 @@ def parse(input):
     else:
         raise PoHeaderError('Header not found')
 
-    for line in header['msgstr'].split('\\n'):
+    for line in header['msgstrs'][0].split('\\n'):
         if line.startswith('Content-Type:'):
             break
     for token in line.split():
@@ -665,19 +665,16 @@ def parse(input):
     msgs = []
     for chunk in chunks + obsoletes:
         msgid = chunk['msgid']
+        msgstrs = chunk['msgstrs']
         
-        if 'msgstr' in chunk:
-            assert not 'msgid_plural' in chunk
-            msgstr = chunk['msgstr']
-        elif 'msgid_plural' in chunk:
-            msgstr = chunk['msgstrs']
-        else:
-            raise AssertionError('dictionary format acting up')
+        if len(msgstrs) > 1:
+            assert 'msgid_plural' in chunk
         
         comments = chunk['comments']
         rawlines = chunk['rawlines']
 
-        meta = dict(rawlines=chunk['rawlines'],
+        meta = dict(rawlines=[line.decode(encoding)
+                              for line in chunk['rawlines']],
                     lineno=chunk['lineno'],
                     fname=fname,
                     encoding=encoding)
@@ -687,21 +684,36 @@ def parse(input):
         else:
             msgclass = Message
 
-        msgs.append(msgclass(msgid=chunk['msgid'],
-                             msgstr=msgstr, # (includes any plurals)
-                             msgid_plural=chunk.get('msgid_plural'),
-                             msgctxt=chunk.get('msgctxt'),
-                             previous_msgid=chunk.get('prevmsgid'),
-                             comments=chunk['comments'],
-                             flags=chunk['flags'],
-                             meta=meta))
+        def dec(txt):
+            if isinstance(txt, basestring):
+                return txt.decode(encoding)
+            elif txt is None:
+                return None
+            else:
+                return txt.decode(encoding)
+
+        #print
+        #print type(msgstr)
+        #print repr(msgstr)
+        #print msgstr
+        #[dec(m) for m in msgstr]
+
+        msg = msgclass(msgid=dec(chunk['msgid']),
+                       msgstr=[dec(m) for m in msgstrs], # (includes plurals)
+                       msgid_plural=dec(chunk.get('msgid_plural')),
+                       msgctxt=dec(chunk.get('msgctxt')),
+                       previous_msgid=dec(chunk.get('prevmsgid')),
+                       comments=[dec(c) for c in chunk['comments']],
+                       flags=[dec(f) for f in chunk['flags']],
+                       meta=meta)
+        msgs.append(msg)
         
     #obsoletes = [ObsoleteMessage(obsolete['comments'], 
     #                             meta=dict(encoding=encoding, fname=fname))
     #                             for obsolete in obsoletes]
 
     cat = Catalog(fname, encoding, msgs)
-    return cat
+    return cat#.decode()
 
 
 # XXX When parsing, allow stuff like:

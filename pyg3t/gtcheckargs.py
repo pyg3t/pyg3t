@@ -1,9 +1,10 @@
+from __future__ import print_function
 import sys
 import re
 from optparse import OptionParser
 
 from pyg3t.gtparse import parse
-from pyg3t.util import NullDevice, pyg3tmain
+from pyg3t.util import NullDevice, pyg3tmain, Encoder
 
 
 description = """Check translations of command-line options in po-files."""
@@ -89,7 +90,7 @@ class OptionChecker:
         msgidline = msgidline.lstrip()
         if len(msgidline) > strlen:
             msgidline = '%s...' % msgidline[:strlen - 2]
-        print >> self.debug, '"%26s": %s' % (msgidline, text)
+        print('"%26s": %s' % (msgidline, text), file=self.debug)
 
     def get_options(self, string):
         # For each option we make a *group*.  The group consists of
@@ -137,7 +138,7 @@ class OptionChecker:
         return options1
 
     def checkoptions(self, msg):
-        msg = msg.decode()
+        #msg = msg.decode()
         if not msg.istranslated:
             return
 
@@ -190,8 +191,10 @@ class OptionChecker:
                 if msgid_fits and not msgstr_fits:
                     raise BadOption('Lines longer than 80 characters')
             # XXX check subsequent indent
-        print >> self.debug, ('OK : Line %d. ' % msg.meta['lineno']).ljust(78, 
-                                                                           '-')
+        #print >> self.debug, ('OK : Line %d. ' % msg.meta['lineno']).ljust(78, 
+        #                                                                   '-')
+        print(('OK : Line %d. ' % msg.meta['lineno']).ljust(78, '-'),
+              file=self.debug)
         
 @pyg3tmain
 def main():
@@ -202,9 +205,10 @@ def main():
 
     debug = None
     if opts.diagnostics:
-        debug = sys.stdout
+        debug = Encoder(sys.stdout, 'utf8')
 
     checker = OptionChecker(debugfile=debug)
+    out = Encoder(sys.stdout, 'utf8')
     
     for arg in args:
         fd = open(arg)
@@ -219,16 +223,16 @@ def main():
                 if not opts.quiet:
                     string = 'Line %d: %s' % (msg.meta['lineno'], e.args[0])
                     if opts.diagnostics:
-                        print >> checker.debug, ('ERR: %s ' 
-                                                 % string).ljust(78, '-')
+                        print(('ERR: %s '
+                               % string).ljust(78, '-'), file=checker.debug)
                     else:
-                        print string
-                        print '-' * len(string)
-                        print msg.tostring()
+                        print(string, file=out)
+                        print('-' * len(string), file=out)
+                        print(msg.tostring(), file=out)
     if errcount == 1:
-        print 'Found 1 error.'
+        print('Found 1 error.', file=out)
     else:
-        print 'Found %d errors.' % errcount
+        print('Found %d errors.' % errcount, file=out)
 
     exitcode = int(errcount > 0)
     sys.exit(exitcode)

@@ -2,13 +2,14 @@
 
 """Perform grep-like operations on message catalogs."""
 
+from __future__ import print_function
 import sys
 import re
 from optparse import OptionParser, OptionGroup
 
 from pyg3t import __version__
 from pyg3t.gtparse import parse
-from pyg3t.util import Colorizer, pyg3tmain
+from pyg3t.util import Colorizer, pyg3tmain, Encoder
 
 
 class GTGrep:
@@ -128,7 +129,8 @@ class GTGrep:
         self._check = check
 
     def check(self, msg):
-        return self._check(msg.decode())
+        #return self._check(msg.decode())
+        return self._check(msg)
     
     def search_iter(self, msgs):
         for msg in msgs:
@@ -204,6 +206,7 @@ def main():
     opts, args = parser.parse_args()
     
     charset = 'UTF-8' # yuck
+    out = Encoder(sys.stdout, charset)
     
     patterns = {}
     keys = ['msgid', 'msgstr', 'msgctxt', 'comment']
@@ -284,17 +287,17 @@ def main():
                 nmatches_str = colorizer.colorize(str(nmatches))
             else:
                 nmatches_str = str(nmatches)
-            print ('%s:' % filename).rjust(40), nmatches_str
+            print(('%s:' % filename).rjust(40), nmatches_str, file=out)
             global_matchcount += nmatches
             continue
 
         if not opts.fancy:
             for msg in matches:
                 if opts.line_numbers:
-                    print format_linenumber(filename, msg)
+                    print(format_linenumber(filename, msg), file=out)
                 elif multifile_mode:
-                    print 'File:', filename
-                print msg.tostring()
+                    print('File:', filename, file=out)
+                print(msg.tostring(), file=out)
 
         if opts.fancy:
             # It's a bit hairy to do this properly, so we'll just make a hack
@@ -319,11 +322,12 @@ def main():
                                 highlighter.colorize_match, string)
                 
                 if opts.line_numbers:
-                    print format_linenumber(filename, msg)
+                    print(format_linenumber(filename, msg), file=out)
                 # Encode before print ensures there'll be no screwups if stdout
                 # has None encoding (in a pipe, for example)
                 # Maybe we should wrap stdout with something which recodes
-                print string
+                print(string, file=out)
 
     if opts.count and multifile_mode:
-        print 'Found %d matches in %d files' % (global_matchcount, argc)
+        print('Found %d matches in %d files' % (global_matchcount, argc),
+              file=out)

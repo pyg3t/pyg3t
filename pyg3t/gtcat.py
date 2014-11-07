@@ -1,7 +1,10 @@
+from __future__ import print_function
+import sys
 import re
 import codecs
 from optparse import OptionParser
-from util import pyg3tmain
+from itertools import chain
+from util import pyg3tmain, Encoder
 
 from gtparse import parse
 
@@ -48,13 +51,18 @@ def main():
             lines[i] = line
             header.msgstrs[0] = '\\n'.join(lines)
             assert len(header.msgstrs) == 1
-            
-            for msg in cat:
-                print msg.decode().tostring().encode(dst_encoding)
-            for obs in cat.obsoletes:
-                print obs.decode().tostring().encode(dst_encoding)
         else:
-            for msg in cat:
-                print msg.tostring()
-            for obs in cat.obsoletes:
-                print obs.tostring()
+            dst_encoding = cat.encoding
+        
+        out = Encoder(sys.stdout, dst_encoding)
+        for msg in chain(cat, cat.obsoletes):
+            print(msg.tostring(), file=out)
+            #for msg in cat:
+            #    print(msg.decode().tostring().encode(dst_encoding))
+            #for obs in cat.obsoletes:
+            #    print(obs.decode().tostring().encode(dst_encoding))
+        #else:
+        #    for msg in cat:
+        #        print(msg.tostring())
+        #    for obs in cat.obsoletes:
+        #        print(obs.tostring())

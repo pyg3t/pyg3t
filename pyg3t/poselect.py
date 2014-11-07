@@ -1,8 +1,9 @@
+from __future__ import print_function
 import sys
 from optparse import OptionParser, OptionGroup
 
 from pyg3t import __version__
-from pyg3t.util import getfiles, pyg3tmain
+from pyg3t.util import getfiles, pyg3tmain, Encoder
 from pyg3t.gtparse import parse
 
 
@@ -88,18 +89,20 @@ class PoSelect:
                 yield msg
 
 
-class MsgPrinter:
-    def write(self, msg):
-        print msg.tostring()
+#class MsgPrinter:
+#    def __init__(self, fd):
+#        self.fd = fd
+#    def write(self, msg):
+#        print >> self.fd, msg.tostring()
 
 
-class LineNumberMsgPrinter:
-    def __init__(self, printer):
-        self.printer = printer
-    
-    def write(self, msg):
-        print 'Line %d' % msg.meta['lineno']
-        self.printer.write(msg)
+#class LineNumberMsgPrinter:
+#    def __init__(self, printer):
+#        self.printer = printer
+#    
+#    def write(self, msg):
+#        print 'Line %d' % msg.meta['lineno']
+#        self.printer.write(msg)
 
 
 def build_parser():
@@ -180,22 +183,24 @@ def main():
     counter = Counter(superselector)
     poselect = PoSelect(counter)
     
-    printer = MsgPrinter()
-    if opts.line_number:
-        printer = LineNumberMsgPrinter(printer)
 
     for fname, fd in files:
+        #printer = MsgPrinter(Encoder(sys.stdout, ))
+        
+        #if opts.line_number:
+        #    printer = LineNumberMsgPrinter(printer)
         try:
             cat = parse(fd)
         except IOError, m:
             p.error(m)
+        out = Encoder(sys.stdout, cat.encoding)
         selected = poselect.select(cat)
 
         def printcount(count):
             if is_multifile:
-                print '%6d  %s' % (count, fname)
+                print('%6d  %s' % (count, fname), file=out)
             else:
-                print count
+                print(count, file=out)
 
         if opts.count:
             printcount(len(list(selected)))
@@ -205,18 +210,21 @@ def main():
             printcount(sum([len(msg.msgid.split()) for msg in selected]))
         else:
             for msg in selected:
-                printer.write(msg)
+                if opts.line_number:
+                    print('Line %d' % msg.meta['lineno'], file=out)
+                print(msg.tostring(), file=out)
+                #printer.write(msg)
 
 
     if opts.summary:
-        print
-        print 'Summary'
-        print '-------'
-        print '%16s %d' % ('Total analysed', counter.total)
+        print(file=out)
+        print('Summary', file=out)
+        print('-------', file=out)
+        print('%16s %d' % ('Total analysed', counter.total), file=out)
         if len(selectors) > 1:
-            print
+            print(file=out)
         for selector in selectors:
-            print '%16s %d' % (selector.name, selector.count)
-        print
+            print('%16s %d' % (selector.name, selector.count), file=out)
+        print(file=out)
         if len(selectors) > 1:
-            print '%16s %d' % ('Total selected', counter.count)
+            print('%16s %d' % ('Total selected', counter.count), file=out)

@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
+from __future__ import print_function
 import sys
 from optparse import OptionParser
 from difflib import unified_diff
@@ -25,7 +25,7 @@ from pyg3t.gtparse import parse
 from pyg3t import __version__
 from pyg3t.gtdifflib import FancyWDiffFormat
 from pyg3t.gtdifflib import diff as wdiff
-from pyg3t.util import pyg3tmain
+from pyg3t.util import pyg3tmain, Encoder
 
 
 class PoDiff:
@@ -83,10 +83,9 @@ class PoDiff:
         for new_msg in new_cat:
             if new_msg.key in dict_old_cat:
                 self.diff_two_msgs(dict_old_cat[new_msg.key], new_msg,
-                                   fname=new_cat.fname, enc=encoding)
+                                   fname=new_cat.fname)
             else:
-                self.diff_one_msg(new_msg, is_new=True, fname=new_cat.fname,
-                                  enc=encoding)
+                self.diff_one_msg(new_msg, is_new=True, fname=new_cat.fname)
 
         # If we are making the full diff, diff the entries that are only
         # present in old file
@@ -97,7 +96,7 @@ class PoDiff:
 
             for key in only_old:
                 self.diff_one_msg(dict_old_cat[key], is_new=False,
-                                  fname=old_cat.fname, enc=encoding)
+                                  fname=old_cat.fname)
 
         self.print_status()
 
@@ -108,15 +107,11 @@ class PoDiff:
         old_cat    old catalog
         new_cat    new catalog
         """
-        encoding = (old_cat.encoding, new_cat.encoding)\
-            if new_cat.encoding != old_cat.encoding else (None, None)
-
         for old_msg, new_msg in zip(old_cat, new_cat):
-            self.diff_two_msgs(old_msg, new_msg, fname=new_cat.fname,
-                               enc=encoding)
+            self.diff_two_msgs(old_msg, new_msg, fname=new_cat.fname)
         self.print_status()
 
-    def diff_two_msgs(self, old_msg, new_msg, fname=None, enc=(None, None)):
+    def diff_two_msgs(self, old_msg, new_msg, fname=None):# enc=(None, None)
         """Produce diff between two messages
 
         Keywords:
@@ -126,38 +121,24 @@ class PoDiff:
                    header)
         """
 
-        # re-encode old_msg.msgstrs and -.get_comments('# ') for comparison
-        if enc != (None, None):
-            re_enc_old_msgstrs = [line.decode(enc[0]).encode(enc[1])
-                                  for line in old_msg.msgstrs]
-            re_enc_old_comments = [line.decode(enc[0]).encode(enc[1])
-                                  for line in old_msg.get_comments('# ')]
-        else:
-            re_enc_old_msgstrs = old_msg.msgstrs
-            re_enc_old_comments = old_msg.get_comments('# ')
+        re_enc_old_msgstrs = old_msg.msgstrs
+        re_enc_old_comments = old_msg.get_comments('# ')
 
         # Check if the there is a reason to diff.
         # NOTE: Last line says we always show header
-        if old_msg.isfuzzy != new_msg.isfuzzy or\
-                re_enc_old_msgstrs != new_msg.msgstrs or\
-                re_enc_old_comments != new_msg.get_comments('# ') or\
+        if old_msg.isfuzzy != new_msg.isfuzzy or \
+                re_enc_old_msgstrs != new_msg.msgstrs or \
+                re_enc_old_comments != new_msg.get_comments('# ') or \
                 new_msg.msgid == "":
 
             if self.show_line_numbers:
-                print >> self.out, self.__print_lineno(new_msg, fname)
+                print(self.__print_lineno(new_msg, fname), file=self.out)
 
             if self.color:
                 self.diff_two_msgs_color(old_msg, new_msg, enc)
                 return
 
-            # Make the diff
-            if enc != (None, None):
-                old_lines = [line.decode(enc[0]).encode(enc[1],
-                                                        'replace')
-                             for line in old_msg.meta['rawlines']]
-            else:
-                old_lines = old_msg.meta['rawlines']
-
+            old_lines = old_msg.meta['rawlines']
             diff = list(unified_diff(old_lines, new_msg.meta['rawlines'],
                                      n=10000))
 
@@ -165,48 +146,33 @@ class PoDiff:
                 self.__print_header(new_msg)
             else:
                 # Print the result, without the 3 lines of header
-                print >> self.out, ''.join(diff[3:])
+                print(''.join(diff[3:]), file=self.out)
 
             if new_msg.msgid != "":
                 self.number_of_diff_chunks += 1
 
-    def diff_two_msgs_color(self, old_msg, new_msg, enc=(None, None)):
-        """ doc string """
-        old_msg = old_msg.decode()
-        new_msg = new_msg.decode()
-
-        #for msg in [old_msg, new_msg]:
-            #msg.msgid = msg.msgid.replace('\\n', '\\n\n')
-            #if msg.previous_msgid is not None:
-                #msg.previous_msgid = \
-                    #msg.previous_msgid.replace('\\n', '\\n\n')
-            #msg.msgstrs = [msgstr.replace('\\n', '\\n\n') for msgstr in msg.msgstrs]
-
-        new_msg.comments = wdiff('XXX'.join(old_msg.comments), 'XXX'.join(new_msg.comments), self.wdiff_formatter).split('XXX')
+    def diff_two_msgs_color(self, old_msg, new_msg):#, enc=(None, None)):
+        new_msg.comments = wdiff('XXX'.join(old_msg.comments),
+                                 'XXX'.join(new_msg.comments),
+                                 self.wdiff_formatter).split('XXX')
         if new_msg.has_context:
             assert old_msg.has_context
-            new_msg.msgctxt = wdiff(old_msg.msgctxt, new_msg.msgctxt, self.wdiff_formatter)
-        new_msg.msgid = wdiff(old_msg.msgid, new_msg.msgid, self.wdiff_formatter)
+            new_msg.msgctxt = wdiff(old_msg.msgctxt, new_msg.msgctxt,
+                                    self.wdiff_formatter)
+        new_msg.msgid = wdiff(old_msg.msgid, new_msg.msgid,
+                              self.wdiff_formatter)
         if new_msg.has_plurals:
             assert old_msg.has_plurals
-            new_msg.msgid_plural = wdiff(old_msg.msgid_plural, new_msg.msgid_plural, self.wdiff_formatter)
+            new_msg.msgid_plural = wdiff(old_msg.msgid_plural,
+                                         new_msg.msgid_plural,
+                                         self.wdiff_formatter)
         
         assert len(old_msg.msgstrs) == len(new_msg.msgstrs)
-        for i, (msgstr1, msgstr2) in enumerate(zip(old_msg.msgstrs, new_msg.msgstrs)):
+        for i, (msgstr1, msgstr2) in enumerate(zip(old_msg.msgstrs,
+                                                   new_msg.msgstrs)):
             new_msg.msgstrs[i] = wdiff(msgstr1, msgstr2, self.wdiff_formatter)
         
-        #old = str(old_msg)
-        #if enc != (None, None):
-        #    old = old.decode(enc[0]).encode(enc[1], 'replace')
-        #diff1 = wdiff('\n'.join(old_msg.comments), '\n'.join(new_msg.comments), self.wdiff_formatter)
-        #diff2 = wdiff(old_msg.msgstr, new_msg.msgstr, self.wdiff_formatter)
-        #print repr(old_msg.tostring())
-        #print repr(new_msg.tostring())    
-        #diff = wdiff(old_msg.tostring(), new_msg.tostring(), self.wdiff_formatter)
-
-        print >> self.out, new_msg.tostring().encode('utf8')
-        #print >> self.out, diff1.encode('utf8')
-        #print >> self.out, 'msgstr "%s"' % diff2.encode('utf8')
+        print(new_msg.tostring(), file=self.out)
 
         if new_msg.msgid != "":
             self.number_of_diff_chunks += 1
@@ -214,8 +180,8 @@ class PoDiff:
     def __print_header(self, msg):
         """ Prints out the header when there is no diff in it """
         for line in msg.meta['rawlines']:
-            print >> self.out, ' ' + line,
-        print >> self.out
+            print(' ' + line, end='', file=self.out)
+        print(file=self.out)
 
     def diff_one_msg(self, msg, is_new, fname=None, enc=(None, None)):
         """Produce diff if only one entry is present
@@ -226,14 +192,16 @@ class PoDiff:
         is_new     boolean
         """
         if self.show_line_numbers:
-            print >> self.out, self.__print_lineno(msg, fname)
+            print(self.__print_lineno(msg, fname), file=self.out)
 
         # Make the diff
-        if enc != (None, None) and not is_new:
-            msg_lines = [line.decode(enc[0]).encode(enc[1], errors='replace')
-                         for line in msg.meta['rawlines']]
-        else:
-            msg_lines = msg.meta['rawlines']
+        #if enc != (None, None) and not is_new:
+            #msg_lines = [line.decode(enc[0]).encode(enc[1], errors='replace')
+        #msg_lines = [line.encode(enc[1], errors='replace')
+        #             for line in msg.meta['rawlines']]
+        msg_lines = msg.meta['rawlines']
+        #else:
+        #    msg_lines = msg.meta['rawlines']
 
         if is_new:
             diff = list(unified_diff('', msg_lines, n=10000))
@@ -241,7 +209,7 @@ class PoDiff:
             diff = list(unified_diff(msg_lines, '', n=10000))
 
         # Print the result without the 3 lines of header
-        print >> self.out, ''.join(diff[3:])  # .encode('utf8')
+        print(''.join(diff[3:]), file=self.out)
         self.number_of_diff_chunks += 1
 
     @staticmethod
@@ -253,10 +221,10 @@ class PoDiff:
     def print_status(self):
         """Print the number of diff pieces that have been output"""
         sep = ' ' + '=' * 77
-        print >> self.out, sep
-        print >> self.out, " Number of messages: %d" % \
-            self.number_of_diff_chunks
-        print >> self.out, sep
+        print(sep, file=self.out)
+        print(" Number of messages: %d" %
+              self.number_of_diff_chunks, file=self.out)
+        print(sep, file=self.out)
 
 
 def __build_parser():
@@ -317,15 +285,12 @@ def main():  # pylint: disable-msg=R0912
         try:
             out = open(opts.output, 'w')
         except IOError, err:
-            print >> sys.stderr, ('Could not open output file for writing. '
-                                  'open() gave the following error:')
-            print >> sys.stderr, err
+            print('Could not open output file for writing. '
+                  'open() gave the following error:', file=sys.stderr)
+            print(err, file=sys.stderr)
             raise SystemExit(4)
     else:
         out = sys.stdout
-
-    # Get PoDiff instanse
-    podiff = PoDiff(out, opts.line_numbers, opts.color)
 
     # Load files into catalogs
     try:
@@ -339,10 +304,14 @@ def main():  # pylint: disable-msg=R0912
         else:
             cat_new = parse(open(args[1]))
     except IOError, err:
-        print >> sys.stderr, ('Could not open one of the input files for '
-                              'reading. open() gave the following error:')
-        print >> sys.stderr, err
+        print('Could not open one of the input files for '
+              'reading. open() gave the following error:', file=sys.stderr)
+        print(err, file=sys.stderr)
         raise SystemExit(5)
+
+    # Get PoDiff instanse
+    out = Encoder(out, cat_new.encoding)
+    podiff = PoDiff(out, opts.line_numbers, opts.color)
 
     # Diff the files
     if opts.relax or opts.full:
