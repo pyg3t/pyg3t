@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import sys
 import xml.sax
 from optparse import OptionParser
 
 from pyg3t.gtparse import parse
-from pyg3t.util import Colorizer, pyg3tmain
+from pyg3t.util import Colorizer, pyg3tmain, Encoder
 
 
 class SuspiciousTagsError(ValueError):
@@ -132,17 +133,22 @@ def get_inputfiles(args, parser):
 
 
 class MsgPrinter:
+    def __init__(self, out):
+        self.out = out
+    
     def get_header(self, filename, msg, err):
         return 'At line %d: %s' % (msg.meta['lineno'], err.args[0])
                                    
         
     def write_msg(self, msgstring, err):
-        print msgstring
+        print(msgstring, file=self.out)
 
     def write(self, filename, msg, err):
         header = self.get_header(filename, msg, err)
-        print header.encode(msg.meta['encoding'])
-        print '-' * min(78, len(header))
+        print(header, file=self.out)
+        #print header.encode(msg.meta['encoding'])
+        print('-' * min(78, len(header)), file=self.out)
+        #print '-' * min(78, len(header))
         self.write_msg(msg.tostring(), err)
 
 
@@ -150,26 +156,30 @@ class MultiFileMsgPrinter(MsgPrinter):
     def get_header(self, filename, msg, err):
         if filename == '-':
             filename = '<stdin>'
-        return '%s, line %d: %s' % (filename, msg.meta['lineno'], 
-                                    err.args[0])
+        return u'%s, line %d: %s' % (filename, msg.meta['lineno'], 
+                                     err.args[0])
 
 
-class SilentMsgPrinter:
+class SilentMsgPrinter(MsgPrinter):
     def write(self, filename, msg, err):
         pass
 
 
 class FileSummarizer:
+    def __init__(self, out):
+        self.out = out
+    
     def write(self, filename, totalcount, badcount):
         if badcount:
             status = 'FAIL'
         else:
             status = 'OK'
-        print filename.rjust(40),
-        print '%4d OK %2d bad: %s' % (totalcount, badcount, status)
+        print(filename.rjust(40), file=self.out)
+        print('%4d OK %2d bad: %s' % (totalcount, badcount, status),
+              file=self.out)
 
 
-class SilentFileSummarizer:
+class SilentFileSummarizer(FileSummarizer):
     def write(self, filename, totalcount, badcount):
         pass
 
@@ -201,12 +211,14 @@ def main():
 
     check_tags = opts.tags or opts.tags_from
     gtxml = GTXMLChecker(check_tags, known_tags)
-
+    out = Encoder(sys.stdout, 'utf8') # overwritten below as necessary
+    
     # Special mode to dump all tags and do nothing else
     if opts.dump_tags:
         tags = set()
         for filename, input in get_inputfiles(args, parser):
             cat = parse(input)
+            out = Encoder(sys.stdout, cat.encoding)
             enc = cat.encoding
             def addtags(string):
                 try:
@@ -219,20 +231,20 @@ def main():
                 if msg.hasplurals:
                     addtags(msg.msgid_plural)
         for tag in tags:
-            print tag
+            print(tag, file=out)
         return
 
     color = opts.color
 
     if opts.summary:
-        msgprinter = SilentMsgPrinter()
-        fileprinter = FileSummarizer()
+        msgprinter = SilentMsgPrinter(out)
+        fileprinter = FileSummarizer(out)
     else:
         if len(args) > 1:
-            msgprinter = MultiFileMsgPrinter()
+            msgprinter = MultiFileMsgPrinter(out)
         else:
-            msgprinter = MsgPrinter()
-        fileprinter = SilentFileSummarizer()
+            msgprinter = MsgPrinter(out)
+        fileprinter = SilentFileSummarizer(out)
 
     total_badcount = 0
     for filename, input in get_inputfiles(args, parser):
@@ -252,8 +264,8 @@ def main():
         total_badcount += badcount
 
     if opts.summary:
-        print '-' * 78
-        print 'Total errors', total_badcount
+        print('-' * 78, file=out)
+        print('Total errors', total_badcount, file=out)
 
     exitcode = int(total_badcount > 0)
     raise SystemExit(exitcode)
