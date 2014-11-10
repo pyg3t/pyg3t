@@ -33,8 +33,7 @@ class GTGrep:
             try:
                 return re.compile(pattern, re.UNICODE|flags)
             except re.error, err:
-                raise re.error('bad %s pattern "%s": %s' % (name,
-                                                            pattern,
+                raise re.error('bad %s pattern "%s": %s' % (name, pattern,
                                                             err))
         
         if filterpattern is None:

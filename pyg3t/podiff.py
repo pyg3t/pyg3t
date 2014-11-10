@@ -76,9 +76,6 @@ class PoDiff:
         """
         dict_old_cat = old_cat.dict()
 
-        encoding = (old_cat.encoding, new_cat.encoding)\
-            if new_cat.encoding != old_cat.encoding else (None, None)
-
         # Make diff for all the msg's in new_cat
         for new_msg in new_cat:
             if new_msg.key in dict_old_cat:
@@ -111,7 +108,7 @@ class PoDiff:
             self.diff_two_msgs(old_msg, new_msg, fname=new_cat.fname)
         self.print_status()
 
-    def diff_two_msgs(self, old_msg, new_msg, fname=None):# enc=(None, None)
+    def diff_two_msgs(self, old_msg, new_msg, fname=None):
         """Produce diff between two messages
 
         Keywords:
@@ -129,7 +126,7 @@ class PoDiff:
         if old_msg.isfuzzy != new_msg.isfuzzy or \
                 re_enc_old_msgstrs != new_msg.msgstrs or \
                 re_enc_old_comments != new_msg.get_comments('# ') or \
-                new_msg.msgid == "":
+                new_msg.msgid == '':
 
             if self.show_line_numbers:
                 print(self.__print_lineno(new_msg, fname), file=self.out)
@@ -142,16 +139,16 @@ class PoDiff:
             diff = list(unified_diff(old_lines, new_msg.meta['rawlines'],
                                      n=10000))
 
-            if len(diff) == 0 and new_msg.msgid == "":
+            if len(diff) == 0 and new_msg.msgid == '':
                 self.__print_header(new_msg)
             else:
                 # Print the result, without the 3 lines of header
                 print(''.join(diff[3:]), file=self.out)
 
-            if new_msg.msgid != "":
+            if new_msg.msgid != '':
                 self.number_of_diff_chunks += 1
 
-    def diff_two_msgs_color(self, old_msg, new_msg):#, enc=(None, None)):
+    def diff_two_msgs_color(self, old_msg, new_msg):
         new_msg.comments = wdiff('XXX'.join(old_msg.comments),
                                  'XXX'.join(new_msg.comments),
                                  self.wdiff_formatter).split('XXX')
@@ -174,7 +171,7 @@ class PoDiff:
         
         print(new_msg.tostring(), file=self.out)
 
-        if new_msg.msgid != "":
+        if new_msg.msgid != '':
             self.number_of_diff_chunks += 1
 
     def __print_header(self, msg):
@@ -183,7 +180,7 @@ class PoDiff:
             print(' ' + line, end='', file=self.out)
         print(file=self.out)
 
-    def diff_one_msg(self, msg, is_new, fname=None, enc=(None, None)):
+    def diff_one_msg(self, msg, is_new, fname=None):
         """Produce diff if only one entry is present
 
         Keywords:
@@ -222,7 +219,7 @@ class PoDiff:
         """Print the number of diff pieces that have been output"""
         sep = ' ' + '=' * 77
         print(sep, file=self.out)
-        print(" Number of messages: %d" %
+        print(' Number of messages: %d' %
               self.number_of_diff_chunks, file=self.out)
         print(sep, file=self.out)
 

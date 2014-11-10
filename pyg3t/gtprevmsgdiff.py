@@ -1,3 +1,4 @@
+from __future__ import print_function
 from optparse import OptionParser
 from pyg3t.gtparse import parse, wrap
 from pyg3t.gtdifflib import DefaultWDiffFormat, FancyWDiffFormat, diff
@@ -38,8 +39,8 @@ def main():
             status = 'untranslated'
         
         header = 'Line %d (%s)' % (msg.meta['lineno'], status)
-        print ('--- %s ' % header).ljust(78, '-')
+        print(('--- %s ' % header).ljust(78, '-'))
         oldmsgid = msg.previous_msgid.replace('\\n', '\\n\n')
         newmsgid = msg.msgid.replace('\\n', '\\n\n')
         difference = diff(oldmsgid, newmsgid, formatter)
-        print difference.rstrip('\n')
+        print(difference.rstrip('\n'))

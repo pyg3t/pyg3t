@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from __future__ import print_function
 import sys
 from StringIO import StringIO
 from optparse import OptionParser
@@ -28,15 +29,15 @@ class PoPatch:
     out the new or old versions of the content in a podiff
     """
 
-    def __init__(self, out=None):
+    def __init__(self, out):
         """Initialize variables.
 
         Keyword argument:
         out            output file object
         """
-        self.out = out if out is not None else sys.stdout
+        self.out = out
 
-    def version_of_podiff(self, fileobject, new=True, output_object=None):
+    def version_of_podiff(self, fileobject, new=True):
         """Extract either the new or the old version from a podiff.
 
         Argument:
@@ -48,12 +49,13 @@ class PoPatch:
 
         Returns output file object if present or None
         """
-        out = output_object if output_object is not None else self.out
+        out = self.out
 
         for line in fileobject.readlines():
             if line.startswith('\n'):
                 #out.write()
-                print >> out, line,
+                print(line, file=out, end=' ')
+                #print >> out, line,
             elif line.startswith('--') or\
                     line.startswith(' =') or\
                     line.startswith(' N') or\
@@ -63,16 +65,16 @@ class PoPatch:
             elif line.startswith(' ') or\
                     (line.startswith('+') and new) or\
                     (line.startswith('-') and not new):
-                print >> out, line[1:],
+                #print >> out, line[1:],
+                print(line[1:], file=out, end=' ')
             else:
-                print >> sys.stderr, ('The input file is not a proper podiff '
-                                      'file. The conflicting line is:\n' +
-                                      line)
+                print('The input file is not a proper podiff '
+                      'file. The conflicting line is:\n%s'
+                      % line, file=sys.stderr) # XXX encode
                 raise SystemExit(1)
+        return out
 
-        return out if output_object is not None else None
-
-    def patch(self, old_file, diff_file, output_object=None):
+    def patch(self, old_file, diff_file):
         """ Patch the original file with the diff
 
         Arguments:
@@ -84,10 +86,13 @@ class PoPatch:
 
         Returns output file object if present or None
         """
-        out = output_object if output_object is not None else self.out
+        #out = output_object if output_object is not None else self.out
+        out = self.out
 
         old_gt = gtparse.parse(old_file)
-        new = self.version_of_podiff(diff_file, output_object=StringIO())
+        new = StringIO()
+        self.version_of_podiff(diff_file, new)
+        #new = self.version_of_podiff(diff_file, output_object=StringIO())
         new.seek(0)
         new_diff_gt = gtparse.parse(new)
         new_diff_gt_dict = new_diff_gt.dict()
@@ -95,14 +100,14 @@ class PoPatch:
 
         for element in old_gt:
             if element.key in new_diff_gt_keys:
-                print >> out, new_diff_gt_dict[element.key].rawstring()
+                print(new_diff_gt_dict[element.key].rawstring(), file=out)
             else:
-                print >> out, element.rawstring()
+                print(element.rawstring(), file=out)
 
         for element in old_gt.obsoletes:
-            print >> out, element.rawstring()
+            print(element.rawstring(), file=out)
 
-        return out if output_object is not None else None
+        #return out if output_object is not None else None
 
 
 def __build_parser():
@@ -144,14 +149,20 @@ def main():
     if opts.output is not None:
         try:
             outfile = open(opts.output, 'w')
-            popatch = PoPatch(outfile)
+            #popatch = PoPatch(outfile)
         except IOError, err:
-            print >> sys.stderr, ('Could not open the output file for writing.'
-                                  ' open() gave the following error:')
-            print >> sys.stderr, err
+            print('Could not open the output file for writing.'
+                  ' open() gave the following error:', file=sys.stderr)
+            print(err, file=sys.stderr)
+            #print >> sys.stderr, ('Could not open the output file for writing.'
+            #                      ' open() gave the following error:')
+            #print >> sys.stderr, err
             raise SystemExit(3)
-    else:
-        popatch = PoPatch()
+    #else:
+    #    popatch = PoPatch()
+
+    out = Encoder(outfile, 'utf8') # XXX which encoding?
+    popatch = PoPatch(out)
 
     # Display version of podiff mode
     if opts.new is not None:
@@ -161,9 +172,12 @@ def main():
         try:
             infile0 = sys.stdin if args[0] == '-' else open(args[0])
         except IOError, err:
-            print >> sys.stderr, ('Could not open the input file for reading.'
-                                  ' open() gave the following error:')
-            print >> sys.stderr, err
+            print('Could not open the input file for reading.'
+                  ' open() gave the following error:', file=sys.stderr)
+            print(Err, sys.stderr)
+            #print >> sys.stderr, ('Could not open the input file for reading.'
+            #                      ' open() gave the following error:')
+            #print >> sys.stderr, err
             raise SystemExit(2)
 
         popatch.version_of_podiff(infile0, new=opts.new)
@@ -177,9 +191,12 @@ def main():
             infile0 = sys.stdin if args[0] == '-' else open(args[0])
             infile1 = sys.stdin if args[1] == '-' else open(args[1])
         except IOError, err:
-            print >> sys.stderr, ('Could not open the input file for reading.'
-                                  ' open() gave the following error:')
-            print >> sys.stderr, err
+            print('Could not open the input file for reading.'
+                  ' open() gave the following error:', file=sys.stderr)
+            print(err, file=sys.stderr)
+            #print >> sys.stderr, ('Could not open the input file for reading.'
+            #                      ' open() gave the following error:')
+            #print >> sys.stderr, err
             raise SystemExit(2)
         popatch.patch(old_file=infile0, diff_file=infile1)
 

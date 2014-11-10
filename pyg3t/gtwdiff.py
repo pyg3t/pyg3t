@@ -1,3 +1,5 @@
+from __future__ import print_function
+import sys
 import re
 from optparse import OptionParser
 from StringIO import StringIO
@@ -5,28 +7,32 @@ from difflib import SequenceMatcher
 
 from popatch import PoPatch
 from pyg3t.gtparse import parse, wrap, chunkwrap
-from pyg3t.util import Colorizer, pyg3tmain
+from pyg3t.util import Colorizer, pyg3tmain, Encoder
 
 
-def print_msg_diff(differ, oldmsg, newmsg):
+def print_msg_diff(differ, oldmsg, newmsg, fd):
     oldcomments = ''.join(oldmsg.comments)
     newcomments = ''.join(newmsg.comments)
-    print differ.diff(oldcomments, newcomments)
+    print(differ.diff(oldcomments, newcomments), file=fd)
     if oldmsg.flags or newmsg.flags:
-        print differ.diff(oldmsg.flagstostring()[:-1], # ignore last newline
-                          newmsg.flagstostring()[:-1])
+        print(differ.diff(oldmsg.flagstostring()[:-1], # ignore last newline
+                          newmsg.flagstostring()[:-1]), file=fd)
     if oldmsg.has_context or newmsg.has_context:
-        print differ.maybe_wrapdiff('msgctxt', oldmsg.msgctxt, newmsg.msgctxt)
-    print differ.maybe_wrapdiff('msgid', oldmsg.msgid, newmsg.msgid)
+        print(differ.maybe_wrapdiff('msgctxt', oldmsg.msgctxt, newmsg.msgctxt),
+              file=fd)
+    print(differ.maybe_wrapdiff('msgid', oldmsg.msgid, newmsg.msgid),
+          file=fd)
     if oldmsg.hasplurals or newmsg.hasplurals:
-        print differ.maybe_wrapdiff('msgid_plural', oldmsg.msgid_plural,
-                                    newmsg.msgid_plural)
+        print(differ.maybe_wrapdiff('msgid_plural', oldmsg.msgid_plural,
+                                    newmsg.msgid_plural), file=fd)
     if len(oldmsg.msgstrs) == 1:
-        print differ.maybe_wrapdiff('msgstr', oldmsg.msgstr, newmsg.msgstr)
+        print(differ.maybe_wrapdiff('msgstr', oldmsg.msgstr, newmsg.msgstr),
+              file=fd)
     else:
         for i, (oldmsgstr, newmsgstr) in enumerate(zip(oldmsg.msgstrs, 
                                                        newmsg.msgstrs)):
-            print differ.maybe_wrapdiff('msgstr[%d]' % i, oldmsgstr, newmsgstr)
+            print(differ.maybe_wrapdiff('msgstr[%d]' % i, oldmsgstr,
+                                        newmsgstr), file=fd)
 
 
 class MSGDiffer:
@@ -151,8 +157,10 @@ def main():
     popatch = PoPatch()
     fd = open(fname)
     inputfd = StringIO()
-    print >> inputfd, fd.read()
-    
+    #print >> inputfd, fd.read()
+    print(fd.read(), file=inputfd)
+
+    out = Encoder(sys.stdout, 'utf8')
     cats = []
     
     for isnew in [False, True]:
@@ -183,5 +191,5 @@ def main():
         # The method format_linenumber should produce whatever podiff
         # normally produces.
         #print format_linenumber(newmsg.meta['lineno'], newcat.fname)
-        print_msg_diff(differ, oldmsg, newmsg)
-        print
+        print_msg_diff(differ, oldmsg, newmsg, out)
+        print(file=out)

@@ -8,6 +8,7 @@ from util import pyg3tmain, Encoder
 
 from gtparse import parse
 
+
 def build_parser():
     usage = '%prog [OPTION] [POFILE...]'
     description = 'write POFILEs to stdout'
@@ -46,7 +47,7 @@ def main():
                     break
             else:
                 p.error('Cannot find Content-Type in header')
-            line = line.replace('charset=%s' % src_encoding, 
+            line = line.replace('charset=%s' % src_encoding,
                                 'charset=%s' % dst_encoding)
             lines[i] = line
             header.msgstrs[0] = '\\n'.join(lines)
@@ -57,12 +58,3 @@ def main():
         out = Encoder(sys.stdout, dst_encoding)
         for msg in chain(cat, cat.obsoletes):
             print(msg.tostring(), file=out)
-            #for msg in cat:
-            #    print(msg.decode().tostring().encode(dst_encoding))
-            #for obs in cat.obsoletes:
-            #    print(obs.decode().tostring().encode(dst_encoding))
-        #else:
-        #    for msg in cat:
-        #        print(msg.tostring())
-        #    for obs in cat.obsoletes:
-        #        print(obs.tostring())

@@ -1,3 +1,4 @@
+from __future__ import print_function
 from optparse import OptionParser
 from dateutil.parser import parse as parse_date
 
@@ -58,9 +59,9 @@ def compare_headers(headers1, headers2):
     
     def check(key):
         if differs(key):
-            print 'Changed header %s' % key
-            print '  was: %s' % headers1[key]
-            print '  now: %s' % headers2[key]
+            print('Changed header %s' % key)
+            print('  was: %s' % headers1[key])
+            print('  now: %s' % headers2[key])
 
     # Special treatment for some of the most informative headers.
     # If anything goes wrong we will just defer them to later
@@ -81,11 +82,11 @@ def compare_headers(headers1, headers2):
             d1 = parse_date(date1)
             d2 = parse_date(date2)
             if d1 < d2:
-                print 'Template of second file is more recent'
+                print('Template of second file is more recent')
             else:
-                print 'Template of first file is more recent'
+                print('Template of first file is more recent')
         else:
-            print 'Template creation dates coincide'
+            print('Template creation dates coincide')
         header_done('POT-Creation-Date')
 
     try:
@@ -97,11 +98,11 @@ def compare_headers(headers1, headers2):
             d1 = parse_date(date1)
             d2 = parse_date(date2)
             if d1 < d2:
-                print 'Translations in second file were revised more recently'
+                print('Translations in second file were revised more recently')
             else:
-                print 'Translations in first file were revised more recently'
+                print('Translations in first file were revised more recently')
         else:
-            print 'Translation revision dates coincide'
+            print('Translation revision dates coincide')
         header_done('PO-Revision-Date')
     
     def process_header(header):
@@ -111,11 +112,11 @@ def compare_headers(headers1, headers2):
             check(header)
         except KeyError:
             if header in headers1 and not header in headers1:
-                print 'Removed header %s' % ': '.join([header, 
-                                                       headers1[header]])
+                print('Removed header %s' % ': '.join([header, 
+                                                       headers1[header]]))
             elif not header in headers1 and header in headers2:
-                print 'Added header %s' % ': '.join([header, 
-                                                     headers2[header]])
+                print('Added header %s' % ': '.join([header, 
+                                                     headers2[header]]))
             else:
                 assert not header in headers1 and not header in headers2
         header_done(header)
@@ -131,12 +132,12 @@ def compare_headers(headers1, headers2):
 
 def compare(cat1, cat2):
     if cat1.encoding != cat2.encoding:
-        print 'These files have encodings %s vs %s.' % (cat1.encoding,
-                                                        cat2.encoding)
+        print('These files have encodings %s vs %s.' % (cat1.encoding,
+                                                        cat2.encoding))
         parser.error('Conflicting encodings not supported yet')
     
     compare_headers(cat1.header.meta['headers'], cat2.header.meta['headers'])
-    print
+    print()
 
     msgs1 = cat1.dict()
     msgs2 = cat2.dict()
@@ -165,47 +166,47 @@ def compare(cat1, cat2):
     common = [key for key in msgs1 if key in msgs2]
 
     if len(common) == 0:
-        print 'These files have nothing at all in common.'
+        print('These files have nothing at all in common.')
         raise SystemExit
     common_fraction = float(len(common)) / n1
     if common_fraction < 0.01:
-        print 'These files have almost nothing in common.'
+        print('These files have almost nothing in common.')
     elif common_fraction < 0.1:
-        print 'These files do not have much in common.'
+        print('These files do not have much in common.')
 
     if len(first_only) == 0 and len(second_only) == 0:
         assert n1 == n2
-        print 'Each file contains %d msgids, and they are all identical.' % n1
-        print
+        print('Each file contains %d msgids, and they are all identical.' % n1)
+        print()
     else:
         if n1 != n2:
             if n1 > n2:
-                print ('Total number of messages reduced by %d from %d to %d.'
-                       % (n1 - n2, n1, n2))
+                print('Total number of messages reduced by %d from %d to %d.'
+                      % (n1 - n2, n1, n2))
             else:
                 assert n1 < n2
-                print ('Total number of messages increased by %d from %d '
-                       'to %d.' % (n2 - n1, n1, n2))
-            print
+                print('Total number of messages increased by %d from %d '
+                      'to %d.' % (n2 - n1, n1, n2))
+            print()
         else:
-            print 'Both files contain %d msgids (but they differ).' % n1
-            print
+            print('Both files contain %d msgids (but they differ).' % n1)
+            print()
 
         if first_only:
             u, f, t = stats(msgs1[key] for key in first_only)
-            print ('%d msgids removed [u:%4d, f:%4d, t:%4d].' 
-                   % (len(first_only), u, f, t))
+            print('%d msgids removed [u:%4d, f:%4d, t:%4d].' 
+                  % (len(first_only), u, f, t))
         else:
-            print 'No msgids removed.'
+            print('No msgids removed.')
         
         if second_only:
             u, f, t = stats(msgs2[key] for key in second_only)
-            print ('%d msgids added   [u:%4d, f:%4d, t:%4d].' 
-                   % (len(second_only), u, f, t))
+            print('%d msgids added   [u:%4d, f:%4d, t:%4d].' 
+                  % (len(second_only), u, f, t))
         else:
-            print 'No msgids added.'
-        print '%d msgids in common.' % len(common)
-        print
+            print('No msgids added.')
+        print('%d msgids in common.' % len(common))
+        print()
     
     transitions = dict(uu=0,
                        uf=0,
@@ -216,6 +217,7 @@ def compare(cat1, cat2):
                        tu=0,
                        tf=0,
                        tt=0)
+    
     def getstate(msg):
         if msg.untranslated:
             return 'u'
@@ -253,9 +255,9 @@ def compare(cat1, cat2):
             d2 = descriptions[s2]
             N = transitions[t]
             if s1 == s2:
-                print '%d messages remain %s.' % (N, d1)
+                print('%d messages remain %s.' % (N, d1))
             else:
-                print '%d %s messages changed to %s.' % (N, d1, d2)
+                print('%d %s messages changed to %s.' % (N, d1, d2))
     
     conflicts = 0
     for key in common:
@@ -265,17 +267,11 @@ def compare(cat1, cat2):
             for str1, str2 in zip(msg1.msgstrs, msg2.msgstrs):
                 if str1 != str2:
                     conflicts += 1
-    print
+    print()
     if conflicts:
-        print 'There are %d conflicts among translated messages.' % conflicts
+        print('There are %d conflicts among translated messages.' % conflicts)
     else:
-        print 'There are no conflicts among translated messages.'
-
-    #def get_all_msgstrs(msgs):
-    #    msgstrs = []
-    #    for msg in msgs:
-    #        msgstrs.extend(msg.msgstrs)
-    #    return set(msgstrs)
+        print('There are no conflicts among translated messages.')
     
 
 @pyg3tmain
