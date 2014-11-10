@@ -48,14 +48,10 @@ class GTXMLChecker:
     
     def check_msg(self, msg):
         """Raise SAXParseException if msg is considered ill-formed."""
-        encoding = msg.meta['encoding']
+        #encoding = msg.meta['encoding']
         msgid = msg.msgid
         if len(msgid) == 0:
             return True
-        # XXX figure out a way to know a priori whether the message
-        # needs to be decoded
-        if not isinstance(msgid, unicode):
-            msgid = msgid.decode(encoding)
         #if not '<' in msgid:
         #    return True
         try:
@@ -63,8 +59,6 @@ class GTXMLChecker:
         except xml.sax.SAXParseException:
             return True # msgid is probably not supposed to be xml
         for msgstr in msg.msgstrs:
-            if not isinstance(msgstr, unicode):
-                msgstr = msgstr.decode(encoding)
             msgstr_elements = self.parse_xml_elements(msgstr)
 
         if self.compare_tags:
@@ -184,7 +178,7 @@ class SilentFileSummarizer(FileSummarizer):
 
 colorizer = Colorizer('light red')
 def colorize_errors(msg, err):
-    errmsg = str(err)
+    #errmsg = str(err) # XXX use for something?
     #startpattern = '<unknown>:1:'
     #assert errmsg.startswith(startpattern)
     #charno = int(errmsg[len(startpattern):].split(':', 1)[0])
@@ -218,14 +212,13 @@ def main():
         for filename, input in get_inputfiles(args, parser):
             cat = parse(input)
             out = Encoder(sys.stdout, cat.encoding)
-            enc = cat.encoding
             
             def addtags(string):
                 try:
-                    tags.update(gtxml.parse_xml_elements(string.decode(enc)))
+                    tags.update(gtxml.parse_xml_elements(string))
                 except xml.sax.SAXParseException:
                     pass # don't add tags if msgid is not valid xml
-            encoding = cat.encoding
+            #encoding = cat.encoding
             for msg in cat:
                 addtags(msg.msgid)
                 if msg.hasplurals:
@@ -250,7 +243,7 @@ def main():
     for filename, input in get_inputfiles(args, parser):
         cat = parse(input)
         if opts.fuzzy:
-            cat = [msg for msg in msgs # XXX not a catalog
+            cat = [msg for msg in cat # XXX not a catalog
                    if msg.istranslated or msg.isfuzzy]
         else:
             cat = [msg for msg in cat if msg.istranslated]

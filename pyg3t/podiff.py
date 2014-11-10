@@ -132,7 +132,7 @@ class PoDiff:
                 print(self.__print_lineno(new_msg, fname), file=self.out)
 
             if self.color:
-                self.diff_two_msgs_color(old_msg, new_msg, enc)
+                self.diff_two_msgs_color(old_msg, new_msg)
                 return
 
             old_lines = old_msg.meta['rawlines']

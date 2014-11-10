@@ -17,7 +17,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import codecs
 import re
 
 #from textwrap import TextWrapper
@@ -31,7 +30,6 @@ import re
 # So this is sort of equivalent to the TextWrapper
 
 def chunkwrap(chunks):
-    lines = []
     tokens = []
     chars = 0
     for chunk in chunks:
@@ -667,15 +665,11 @@ def parse(input):
     
     msgs = []
     for chunk in chunks + obsoletes:
-        msgid = chunk['msgid']
         msgstrs = chunk['msgstrs']
         
         if len(msgstrs) > 1:
             assert 'msgid_plural' in chunk
         
-        comments = chunk['comments']
-        rawlines = chunk['rawlines']
-
         meta = dict(rawlines=[line.decode(encoding)
                               for line in chunk['rawlines']],
                     lineno=chunk['lineno'],

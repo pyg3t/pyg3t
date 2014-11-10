@@ -131,11 +131,6 @@ def compare_headers(headers1, headers2):
 
 
 def compare(cat1, cat2):
-    if cat1.encoding != cat2.encoding:
-        print('These files have encodings %s vs %s.' % (cat1.encoding,
-                                                        cat2.encoding))
-        parser.error('Conflicting encodings not supported yet')
-    
     compare_headers(cat1.header.meta['headers'], cat2.header.meta['headers'])
     print()
 

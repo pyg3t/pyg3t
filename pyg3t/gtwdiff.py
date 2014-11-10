@@ -6,7 +6,7 @@ from StringIO import StringIO
 from difflib import SequenceMatcher
 
 from popatch import PoPatch
-from pyg3t.gtparse import parse, wrap, chunkwrap
+from pyg3t.gtparse import parse
 from pyg3t.util import Colorizer, pyg3tmain, Encoder
 
 
@@ -176,15 +176,15 @@ def main():
     differ = MSGDiffer()
     
     if len(oldcat) != len(newcat): # XXX not very general
-        parser.error('The catalogs have different length.  Not supported '
-                     'by gtwdiff as of now')
+        p.error('The catalogs have different length.  Not supported '
+                'by gtwdiff as of now')
 
     for oldmsg, newmsg in zip(*cats):
         if opts.previous:
             if oldmsg.has_previous_msgid:
                 if oldmsg.msgid != newmsg.msgid:
-                    parser.error('Old and new msgids differ!  This is not '
-                                 'supported with the --previous option')
+                    p.error('Old and new msgids differ!  This is not '
+                            'supported with the --previous option')
                 oldmsg.msgid = oldmsg.previous_msgid
 
         # Unfortunately the metadata is not restored when patching

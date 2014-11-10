@@ -22,7 +22,7 @@ import sys
 from StringIO import StringIO
 from optparse import OptionParser
 from pyg3t import gtparse, __version__
-from pyg3t.util import pyg3tmain
+from pyg3t.util import pyg3tmain, Encoder
 
 class PoPatch:
     """ PoPatch contains methods for patching a podiff into a pofile or to
@@ -174,7 +174,7 @@ def main():
         except IOError, err:
             print('Could not open the input file for reading.'
                   ' open() gave the following error:', file=sys.stderr)
-            print(Err, sys.stderr)
+            print(err, sys.stderr)
             #print >> sys.stderr, ('Could not open the input file for reading.'
             #                      ' open() gave the following error:')
             #print >> sys.stderr, err

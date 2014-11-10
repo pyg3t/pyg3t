@@ -1,6 +1,6 @@
 from __future__ import print_function
 from optparse import OptionParser
-from pyg3t.gtparse import parse, wrap
+from pyg3t.gtparse import parse
 from pyg3t.gtdifflib import DefaultWDiffFormat, FancyWDiffFormat, diff
 from pyg3t.util import pyg3tmain
 

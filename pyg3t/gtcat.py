@@ -1,6 +1,5 @@
 from __future__ import print_function
 import sys
-import re
 import codecs
 from optparse import OptionParser
 from itertools import chain
