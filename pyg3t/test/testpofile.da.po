@@ -1,8 +1,9 @@
-# Dummy po-file for testing purposes
+# Dummy po-file for testing purposes.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: GTParse test suite\n"
+"POT-Creation-Date: 2009-04-18 18:06+0200\n"
 "PO-Revision-Date: 2009-04-18 18:06+0200\n"
 "Last-Translator: Ask Hjorth Larsen <asklarsen@gmail.com>\n"
 "Language-Team: Dansk <dansk@dansk-gruppen.dk>\n"
