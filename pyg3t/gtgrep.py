@@ -242,6 +242,7 @@ def main():
 
     if opts.gettext_compatible:
         orig_fmt_lineno = format_linenumber
+
         def format_linenumber(filename, msg):
             return '# pyg3t: %s' % orig_fmt_lineno(filename, msg)
 

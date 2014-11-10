@@ -138,7 +138,6 @@ class MsgPrinter:
     
     def get_header(self, filename, msg, err):
         return 'At line %d: %s' % (msg.meta['lineno'], err.args[0])
-                                   
         
     def write_msg(self, msgstring, err):
         print(msgstring, file=self.out)
@@ -220,6 +219,7 @@ def main():
             cat = parse(input)
             out = Encoder(sys.stdout, cat.encoding)
             enc = cat.encoding
+            
             def addtags(string):
                 try:
                     tags.update(gtxml.parse_xml_elements(string.decode(enc)))

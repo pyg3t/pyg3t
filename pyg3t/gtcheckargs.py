@@ -9,6 +9,7 @@ from pyg3t.util import NullDevice, pyg3tmain, Encoder
 
 description = """Check translations of command-line options in po-files."""
 
+
 def build_parser():
     p = OptionParser(usage='%prog [OPTION] [FILE...]',
                      description=description)
@@ -39,7 +40,7 @@ single_long_noarg = r'--[a-z0-9][a-z0-9\-_]*'
 single_long = r'%s(=%s|\[=%s\])?' % (single_long_noarg, metavar, metavar)
 
 # -p, -q, --hello, --hello-world=HELLO
-any_short_some_long = r'(%s, )*(%s, )*%s' % (single_short, single_long, 
+any_short_some_long = r'(%s, )*(%s, )*%s' % (single_short, single_long,
                                              single_long)
 
 # White space first (perhaps), then business, then either more whitespace
@@ -55,6 +56,7 @@ OPTION = re.compile(option_pattern, flags=re.UNICODE)
 leading_whitespace = re.compile(r'^\s*')
 separators = re.compile(r'^\s*|, |\b \b|=|\s*$')
 
+
 class Option:
     def __init__(self, match, group, lines):
         self.match = match
@@ -62,7 +64,7 @@ class Option:
         self.lines = lines
         
         self.firstindent = len(self.group)
-        self.groups = [group for group in match.groups()[1:] 
+        self.groups = [group for group in match.groups()[1:]
                        if group is not None]
         
         if len(lines) > 1:
@@ -104,10 +106,10 @@ class OptionChecker:
         options = []
 
         # Upper limit of description indentation level
-        indent_guess = 75 
+        indent_guess = 75
         
         for line in string.split('\\n'):
-            if not line:# or not line[0].isspace():
+            if not line:
                 # Throw out empty lines at the end as well as
                 # descriptions that are not indented
                 continue
@@ -149,7 +151,7 @@ class OptionChecker:
             return
 
         if len(msgid_options) != len(msgstr_options):
-            raise BadOption('Unequal number of options: %d vs %d' 
+            raise BadOption('Unequal number of options: %d vs %d'
                             % (len(msgid_options), len(msgstr_options)))
 
         for opt1, opt2 in zip(msgid_options, msgstr_options):
@@ -176,7 +178,6 @@ class OptionChecker:
                     raise BadOption('Short option %s not found in translation'
                                     % g1)
 
-
             if opt1.firstindent != opt2.firstindent:
                 # It's OK if there wasn't enough space
                 # Only complain if there's more than 2 chars of space
@@ -191,8 +192,6 @@ class OptionChecker:
                 if msgid_fits and not msgstr_fits:
                     raise BadOption('Lines longer than 80 characters')
             # XXX check subsequent indent
-        #print >> self.debug, ('OK : Line %d. ' % msg.meta['lineno']).ljust(78, 
-        #                                                                   '-')
         print(('OK : Line %d. ' % msg.meta['lineno']).ljust(78, '-'),
               file=self.debug)
         

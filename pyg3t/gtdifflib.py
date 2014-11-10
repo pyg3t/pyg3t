@@ -11,14 +11,17 @@ class DefaultWDiffFormat:
         if string.endswith('\n'):
             return '<+%s+>\n' % string[:-1]
         return '<+%s+>' % string
+
     def delete(self, string):
         if string.endswith('\n'):
             return '<-%s->\n' % string[:-1]
         return '<-%s->' % string
+
     def replace(self, old, new):
         if new.endswith('\n'):
             return '<-%s|%s+>\n' % (old, new[:-1])
         return '<-%s|%s+>' % (old, new)
+
     def equal(self, string):
         return string
 
@@ -27,13 +30,17 @@ class FancyWDiffFormat:
         self.oldcolor = Colorizer('old')
         self.newcolor = Colorizer('new')
         self.boringcolor = Colorizer('light blue')
+
     def insert(self, string):
         return self.newcolor.colorize(string)
+
     def delete(self, string):
         return self.oldcolor.colorize(string)
+
     def replace(self, old, new):
         return '%s%s' % (self.oldcolor.colorize(old), 
                          self.newcolor.colorize(new))
+
     def equal(self, string):
         return string
 

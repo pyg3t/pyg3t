@@ -32,24 +32,28 @@ class NegatingSelector:
 
 class FuzzySelector:
     name = 'Fuzzy'
+
     def evaluate(self, msg):
         return msg.isfuzzy
 
 
 class TranslatedSelector:
     name = 'Translated'
+
     def evaluate(self, msg):
         return msg.istranslated
 
 
 class UntranslatedSelector:
     name = 'Untranslated'
+
     def evaluate(self, msg):
         return not msg.istranslated and not msg.isfuzzy
 
 
 class PluralSelector:
     name = 'Plural'
+
     def evaluate(self, msg):
         return msg.hasplurals
 
@@ -183,7 +187,6 @@ def main():
     counter = Counter(superselector)
     poselect = PoSelect(counter)
     
-
     for fname, fd in files:
         #printer = MsgPrinter(Encoder(sys.stdout, ))
         
@@ -214,7 +217,6 @@ def main():
                     print('Line %d' % msg.meta['lineno'], file=out)
                 print(msg.tostring(), file=out)
                 #printer.write(msg)
-
 
     if opts.summary:
         print(file=out)

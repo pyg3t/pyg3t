@@ -420,6 +420,7 @@ class LineNumberIterator:
         lines = self.lines
         self.lines = []
         return lines
+
     def __iter__(self):
         for line in self.input:
             self.lineno += 1
@@ -429,6 +430,7 @@ class LineNumberIterator:
             if line.isspace():
                 continue
             yield line
+
     def next(self):
         return self.iter.next()
 
@@ -543,6 +545,7 @@ class PoParser:
                     raise newerror
                 rawlines.extend(lines)
                 return nextline, lines
+
             def _extract_string(nextline, input, header):
                 nextline, lines = _consume_lines(nextline, input, header,
                                                  patterns['continuation'])
