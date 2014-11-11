@@ -220,18 +220,18 @@ def main():
             except BadOption, e:
                 errcount += 1
                 if not opts.quiet:
-                    string = 'Line %d: %s' % (msg.meta['lineno'], e.args[0])
+                    string = u'Line %d: %s' % (msg.meta['lineno'], e.args[0])
                     if opts.diagnostics:
-                        print(('ERR: %s '
+                        print((u'ERR: %s '
                                % string).ljust(78, '-'), file=checker.debug)
                     else:
                         print(string, file=out)
-                        print('-' * len(string), file=out)
+                        print(u'-' * len(string), file=out)
                         print(msg.tostring(), file=out)
     if errcount == 1:
-        print('Found 1 error.', file=out)
+        print(u'Found 1 error.', file=out)
     else:
-        print('Found %d errors.' % errcount, file=out)
+        print(u'Found %d errors.' % errcount, file=out)
 
     exitcode = int(errcount > 0)
     sys.exit(exitcode)

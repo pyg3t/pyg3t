@@ -11,6 +11,11 @@ class Encoder:
         self.encoding = encoding
         
     def write(self, txt):
+        if not isinstance(txt, unicode):
+            if txt == '\n' or txt == '':
+                pass
+            else:
+                raise ValueError('Grrrr: %s %s' % (type(txt), repr(txt)))
         self.fd.write(txt.encode(encoding=self.encoding))
 
 

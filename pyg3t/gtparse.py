@@ -468,7 +468,7 @@ class UnimplementedPoSyntaxError(NotImplementedError):
 
 def consume_lines(nextline, input, startpattern, continuepattern):
     if startpattern.match(nextline) is None:
-        raise BadSyntaxError
+        raise ValueError('grrr')#BadSyntaxError
     lines = [nextline]
     for nextline in input:
         if continuepattern.match(nextline):

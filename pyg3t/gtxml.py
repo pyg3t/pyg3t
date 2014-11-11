@@ -131,7 +131,7 @@ class MsgPrinter:
         self.out = out
     
     def get_header(self, filename, msg, err):
-        return 'At line %d: %s' % (msg.meta['lineno'], err.args[0])
+        return u'At line %d: %s' % (msg.meta['lineno'], err.args[0])
         
     def write_msg(self, msgstring, err):
         print(msgstring, file=self.out)
@@ -140,7 +140,7 @@ class MsgPrinter:
         header = self.get_header(filename, msg, err)
         print(header, file=self.out)
         #print header.encode(msg.meta['encoding'])
-        print('-' * min(78, len(header)), file=self.out)
+        print(u'-' * min(78, len(header)), file=self.out)
         #print '-' * min(78, len(header))
         self.write_msg(msg.tostring(), err)
 

@@ -41,5 +41,13 @@ echo podiff
 podiff --relax $DIFF1 $DIFF2 >> $OUT
 # Podiff test for files with different encodings
 
+echo popatch
+popatch testpofile.da.po testpodiff.podiff > patched.po && gtcat patched.po > /dev/null
+popatch --new testpodiff.podiff > patched.new.po
+popatch --old testpodiff.podiff > patched.old.po
+podiff -rf patched.old.po patched.new.po > patched.diffed.podiff
+# patched.diffed.podiff should now be identical to the original diff
+# ....except line numbers.
+
 echo poselect
 poselect -ft $FILE >> $OUT

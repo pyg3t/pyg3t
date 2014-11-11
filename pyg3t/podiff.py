@@ -143,7 +143,7 @@ class PoDiff:
                 self.__print_header(new_msg)
             else:
                 # Print the result, without the 3 lines of header
-                print(''.join(diff[3:]), file=self.out)
+                print(u''.join(diff[3:]), file=self.out)
 
             if new_msg.msgid != '':
                 self.number_of_diff_chunks += 1
@@ -177,7 +177,7 @@ class PoDiff:
     def __print_header(self, msg):
         """ Prints out the header when there is no diff in it """
         for line in msg.meta['rawlines']:
-            print(' ' + line, end='', file=self.out)
+            print(u' ' + line, end='', file=self.out)
         print(file=self.out)
 
     def diff_one_msg(self, msg, is_new, fname=None):
@@ -206,20 +206,20 @@ class PoDiff:
             diff = list(unified_diff(msg_lines, '', n=10000))
 
         # Print the result without the 3 lines of header
-        print(''.join(diff[3:]), file=self.out)
+        print(u''.join(diff[3:]), file=self.out)
         self.number_of_diff_chunks += 1
 
     @staticmethod
     def __print_lineno(msg, fname=None):
         """Print line number and file name header for diff of msg pairs"""
         lineno = msg.meta['lineno'] if 'lineno' in msg.meta else 'N/A'
-        return ('--- Line %d (%s) ' % (lineno, fname)).ljust(32, '-')
+        return (u'--- Line %d (%s) ' % (lineno, fname)).ljust(32, '-')
 
     def print_status(self):
         """Print the number of diff pieces that have been output"""
-        sep = ' ' + '=' * 77
+        sep = u' ' + '=' * 77
         print(sep, file=self.out)
-        print(' Number of messages: %d' %
+        print(u' Number of messages: %d' %
               self.number_of_diff_chunks, file=self.out)
         print(sep, file=self.out)
 
@@ -270,19 +270,19 @@ def main():  # pylint: disable-msg=R0912
 
     # We need exactly two files to proceed
     if len(args) != 2:
-        option_parser.error('podiff takes exactly two arguments')
+        option_parser.error(u'podiff takes exactly two arguments')
 
     # Open file for writing, if it is not one of the input files
     if opts.output:
         if opts.output in (args[0], args[1]):
-            option_parser.error('The output file you have specified is the '
+            option_parser.error(u'The output file you have specified is the '
                                 'same as one of the input files. This is not '
                                 'allowed, as it may cause a loss of work.')
 
         try:
             out = open(opts.output, 'w')
         except IOError, err:
-            print('Could not open output file for writing. '
+            print(u'Could not open output file for writing. '
                   'open() gave the following error:', file=sys.stderr)
             print(err, file=sys.stderr)
             raise SystemExit(4)
@@ -301,7 +301,7 @@ def main():  # pylint: disable-msg=R0912
         else:
             cat_new = parse(open(args[1]))
     except IOError, err:
-        print('Could not open one of the input files for '
+        print(u'Could not open one of the input files for '
               'reading. open() gave the following error:', file=sys.stderr)
         print(err, file=sys.stderr)
         raise SystemExit(5)
