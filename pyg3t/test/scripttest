@@ -30,12 +30,14 @@ gtmerge $FILE $FILE >> $OUT
 echo gtprevmsgdiff
 gtprevmsgdiff $FILE >> $OUT
 
+echo gtwdiff
+gtwdiff testpodiff.podiff >> $OUT
+
 echo gtxml
 gtxml $FILE >> $OUT
 
 echo poabc
 poabc $FILE >> $OUT
-poabc sdfkjsdfkj 2> /dev/null
 
 echo podiff
 podiff --relax $DIFF1 $DIFF2 >> $OUT
