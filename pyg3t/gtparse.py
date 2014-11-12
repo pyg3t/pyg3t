@@ -120,22 +120,6 @@ class Catalog(object):
     def __getitem__(self, index):
         return self.msgs[index]
     
-    def decode(self):
-        # XXX not really implemented
-        msgs = [msg.decode() for msg in self]
-        obsoletes = [obs.decode() for obs in self.obsoletes]
-        cat = Catalog(self.fname, self.encoding, msgs + obsoletes)
-        return cat
-
-    def encode(self, encoding=None):
-        # XXX not really implemented
-        if encoding is None:
-            encoding = self.encoding
-        msgs = [msg.encode(encoding) for msg in self]
-        obsoletes = [obs.encode(encoding) for obs in self.obsoletes]
-        cat = Catalog(self.fname, encoding, msgs, obsoletes)
-        return cat
-
     def _catalog(self, msgs, obsoletes=None):
         cat = Catalog(self.fname, self.encoding, msgs, obsoletes)
         return cat
@@ -294,13 +278,13 @@ class Message(object):
     def rawstring(self):
         if not 'rawlines' in self.meta:
             raise KeyError('No raw lines for this Message')
-        return ''.join(self.meta['rawlines'])
+        return u''.join(self.meta['rawlines'])
 
     def flagstostring(self):
         if self.flags:
-            return '#, %s\n' % ', '.join(sorted(self.flags))
+            return u'#, %s\n' % ', '.join(sorted(self.flags))
         else:
-            return ''
+            return u''
 
     def tostring(self): # maybe add line length argument for wrapping?
         lines = []
@@ -698,12 +682,6 @@ def parse(input):
             else:
                 return txt.decode(encoding)
 
-        #print
-        #print type(msgstr)
-        #print repr(msgstr)
-        #print msgstr
-        #[dec(m) for m in msgstr]
-
         msg = msgclass(msgid=dec(chunk['msgid']),
                        msgstr=[dec(m) for m in msgstrs], # (includes plurals)
                        msgid_plural=dec(chunk.get('msgid_plural')),
@@ -713,13 +691,9 @@ def parse(input):
                        flags=[dec(f) for f in chunk['flags']],
                        meta=meta)
         msgs.append(msg)
-        
-    #obsoletes = [ObsoleteMessage(obsolete['comments'], 
-    #                             meta=dict(encoding=encoding, fname=fname))
-    #                             for obsolete in obsoletes]
 
     cat = Catalog(fname, encoding, msgs)
-    return cat#.decode()
+    return cat
 
 
 # XXX When parsing, allow stuff like:
