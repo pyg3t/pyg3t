@@ -293,15 +293,15 @@ class Message(object):
             lines.append(self.flagstostring())
         lines.extend([c for c in self.comments if c.startswith('#|')])
         if self.has_context:
-            lines.append(wrap_declaration('msgctxt', self.msgctxt))
-        lines.append(wrap_declaration('msgid', self.msgid))
+            lines.append(wrap_declaration(u'msgctxt', self.msgctxt))
+        lines.append(wrap_declaration(u'msgid', self.msgid))
         if self.hasplurals:
-            lines.append(wrap_declaration('msgid_plural', self.msgid_plural))
+            lines.append(wrap_declaration(u'msgid_plural', self.msgid_plural))
             for i, msgstr in enumerate(self.msgstrs):
-                lines.append(wrap_declaration('msgstr[%d]' % i, msgstr))
+                lines.append(wrap_declaration(u'msgstr[%d]' % i, msgstr))
         else:
-            lines.append(wrap_declaration('msgstr', self.msgstr))
-        string = ''.join(lines)
+            lines.append(wrap_declaration(u'msgstr', self.msgstr))
+        string = u''.join(lines)
         return string
 
     def __str__(self):
@@ -327,20 +327,8 @@ class Message(object):
             else:
                 kwargs[key] = msgvars[key].decode(encoding)
         meta = msgvars['meta'].copy()
-        meta['representation'] = 'unicode'
         kwargs['meta'] = meta
         return self.__class__(**kwargs)
-
-    def check(self):
-        if self.meta.get('representation') == 'unicode':
-            stringtype = unicode
-        else:
-            stringtype = basestring
-        assert isinstance(self.msgid, stringtype)
-        for msgstr in self.msgstrs:
-            assert isinstance(msgstr, stringtype)
-        assert self.msgid_plural is None or isinstance(self.msgid_plural, 
-                                                       stringtype)
 
 
 class ObsoleteMessage(Message):
