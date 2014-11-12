@@ -44,6 +44,7 @@ def build_parser():
     #             help='')
     return p
 
+
 def merge_msg(strmsg, idmsg):
     strcomments = [comment for comment in strmsg.comments
                    if comment.startswith('# ') or comment == '#\n']

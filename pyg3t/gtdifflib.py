@@ -6,6 +6,7 @@ from pyg3t.util import Colorizer
 #tokenizer = re.compile(r'\\n|\w+|\W+')
 tokenizer = re.compile(r'\w+|\W+', flags=re.UNICODE)
 
+
 class DefaultWDiffFormat:
     def insert(self, string):
         if string.endswith('\n'):
@@ -25,6 +26,7 @@ class DefaultWDiffFormat:
     def equal(self, string):
         return string
 
+
 class FancyWDiffFormat:
     def __init__(self):
         self.oldcolor = Colorizer('old')
@@ -43,6 +45,7 @@ class FancyWDiffFormat:
 
     def equal(self, string):
         return string
+
 
 def diff(old, new, formatter):
     oldwords = tokenizer.findall(old)

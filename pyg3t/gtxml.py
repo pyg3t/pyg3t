@@ -12,6 +12,7 @@ from pyg3t.util import Colorizer, pyg3tmain, Encoder
 class SuspiciousTagsError(ValueError):
     pass
 
+
 class XMLElementSet(xml.sax.handler.ContentHandler):
     def __init__(self):
         xml.sax.handler.ContentHandler.__init__(self)
@@ -19,6 +20,7 @@ class XMLElementSet(xml.sax.handler.ContentHandler):
 
     def startElement(self, name, attrs):
         self.elements.append(name)
+
 
 class GTXMLChecker:
     """XML parser class for checking bad xml in gettext translations.
@@ -176,7 +178,10 @@ class SilentFileSummarizer(FileSummarizer):
     def write(self, filename, totalcount, badcount):
         pass
 
+
 colorizer = Colorizer('light red')
+
+
 def colorize_errors(msg, err):
     #errmsg = str(err) # XXX use for something?
     #startpattern = '<unknown>:1:'
@@ -192,6 +197,7 @@ def colorize_errors(msg, err):
         part3 = msgstr[color_end_index:]
         msgstr = ''.join([part1, colorizer.colorize(part2), part3])
         msg.msgstrs[i] = msgstr
+
 
 @pyg3tmain
 def main():

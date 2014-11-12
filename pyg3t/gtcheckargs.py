@@ -195,6 +195,7 @@ class OptionChecker:
         print(('OK : Line %d. ' % msg.meta['lineno']).ljust(78, '-'),
               file=self.debug)
         
+
 @pyg3tmain
 def main():
     parser = build_parser()

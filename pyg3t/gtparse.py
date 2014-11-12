@@ -29,6 +29,7 @@ import re
 # option before 2.6, and it's sort of nice to support 2.5 still.
 # So this is sort of equivalent to the TextWrapper
 
+
 def chunkwrap(chunks):
     tokens = []
     chars = 0
@@ -44,10 +45,14 @@ def chunkwrap(chunks):
     if tokens:
         yield ''.join(tokens)
 
+
 wordseparator = re.compile(r'(\s+)')
+
+
 def wrap(text):
     chunks = iter(wordseparator.split(text))
     return list(chunkwrap(chunks))
+
 
 def parse_header_data(msg):
     headers = {}
@@ -65,6 +70,7 @@ def parse_header_data(msg):
         value = value.strip()
         headers[key] = value
     return headers
+
 
 def _get_header(msgs):
     for msg in msgs:
@@ -577,9 +583,10 @@ class PoParser:
             for i, comment in enumerate(comments):
                 if patterns['prevmsgid_start'].match(comment):
                     prevmsgid_lines = iter(comments[i + 1:])
-                    _, lines = consume_lines(comment, prevmsgid_lines, 
-                                             patterns['prevmsgid_start'],
-                                             patterns['prevmsgid_continuation'])
+                    _, lines = consume_lines(\
+                        comment, prevmsgid_lines, 
+                        patterns['prevmsgid_start'],
+                        patterns['prevmsgid_continuation'])
                     prevmsgid = extract_string(lines, 
                                                patterns['prevmsgid_start'], 4)
                     msgdata['prevmsgid'] = prevmsgid
@@ -597,8 +604,9 @@ class PoParser:
                 patterns = obsolete_linepatterns
 
             if patterns['msgctxt'].match(line):
-                line, msgctxt = _extract_string(line, input, patterns['msgctxt'])
-                msgdata['msgctxt'] = msgctxt # XXX remember to take care of this
+                line, msgctxt = _extract_string(line, input,
+                                                patterns['msgctxt'])
+                msgdata['msgctxt'] = msgctxt
 
             if patterns['msgid'].match(line):
                 line, msgid = _extract_string(line, input, patterns['msgid'])
@@ -629,6 +637,7 @@ class PoParser:
         
     def chunk_iter(self, include_obsoletes=False):
         return self.get_message_chunks()
+
 
 def parse(input):
     parser = PoParser(input)

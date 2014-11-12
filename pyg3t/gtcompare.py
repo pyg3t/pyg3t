@@ -40,6 +40,7 @@ known_headers = ['Project-Id-Version', 'Report-Msgid-Bugs-To',
                  'Content-Transfer-Encoding',
                  'Plural-Forms']
 
+
 def compare_headers(headers1, headers2):
     headers_to_do = set(known_headers)
     headers_done = set()

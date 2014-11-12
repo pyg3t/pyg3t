@@ -242,8 +242,8 @@ def __build_parser():
     parser.add_option('-m', '--no-line-numbers', action='store_false',
                       dest='line_numbers',
                       help='do not prefix line number (opposite of -l)')
-    parser.add_option('-o', '--output',
-                      help='file to send the diff output to, instead of '
+    parser.add_option('-o', '--output', metavar='FILE',
+                      help='send output to FILE instead of '
                       'standard out')
     parser.add_option('-r', '--relax', action='store_true', default=False,
                       help='allow for files with different base, i.e. '

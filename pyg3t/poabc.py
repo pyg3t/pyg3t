@@ -12,7 +12,6 @@ from pyg3t.util import pyg3tmain, Encoder
 from pyg3t import __version__
 import xml.sax
 
-# TODO: convention checks (quotation marks?)
 
 def is_translatorcredits(msgid):
     return msgid in ['translator-credits', 'translator_credits']
@@ -47,6 +46,7 @@ class WordRepeatTest:
                 warn = 'Repeated word: "%s"' % word1
                 return msgid, msgstr, warn
         return msgid, msgstr, None
+
 
 class ContextCharTest:
     def __init__(self, context_char):

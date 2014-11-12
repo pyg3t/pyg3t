@@ -5,6 +5,7 @@ from pyg3t.gtparse import PoError, PoHeaderError
 # Maybe PoSyntaxError should be defined un util so that all modules
 # can use util without util using any of them
 
+
 class Encoder:
     def __init__(self, fd, encoding):
         self.fd = fd
@@ -39,6 +40,7 @@ colors = {'blue': '0;34',
           'new': '1;33;42', # These are used by gtprevmsgdiff
           None: None}
 
+
 def colorize(string, id):
     if id is None:
         return string
@@ -57,9 +59,11 @@ class Colorizer:
     def colorize(self, string):
         return colorize(string, self.color)
 
+
 class NullDevice:
     def write(self, txt):
         pass
+
 
 def getfiles(args):
     for arg in args:

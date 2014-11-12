@@ -4,6 +4,7 @@ from pyg3t.gtparse import parse
 from pyg3t.gtdifflib import DefaultWDiffFormat, FancyWDiffFormat, diff
 from pyg3t.util import pyg3tmain
 
+
 @pyg3tmain
 def main():
     usage = '%prog [OPTION] POFILE'
