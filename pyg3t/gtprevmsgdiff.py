@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 from optparse import OptionParser
 from pyg3t.gtparse import parse
 from pyg3t.gtdifflib import DefaultWDiffFormat, FancyWDiffFormat, diff

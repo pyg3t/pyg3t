@@ -2,7 +2,7 @@
 
 """Perform grep-like operations on message catalogs."""
 
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 import sys
 import re
 from optparse import OptionParser, OptionGroup
@@ -311,9 +311,9 @@ def main():
 
             highlighter = MatchColorizer('light blue')
             
-            match_highlight_pattern = u'|'.join([pattern
-                                                 for pattern
-                                                 in patterns.values()])
+            match_highlight_pattern = '|'.join([pattern
+                                                for pattern
+                                                in patterns.values()])
             match_highlight_pattern = re.compile(match_highlight_pattern)
 
             for msg in matches:

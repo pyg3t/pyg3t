@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 import sys
 import fileinput
 import itertools
@@ -34,7 +34,7 @@ class XMLTest:
         try:
             self.checker.check_msg(msg)
         except xml.sax.SAXParseException, err:
-            warn = u'Invalid xml: ' + str(err)
+            warn = 'Invalid xml: ' + str(err)
         return msgid, msgstr, warn
 
 
@@ -61,7 +61,7 @@ class ContextCharTest:
         msgid = msgid[index1 + len(self.context_char):]
         index2 = msgstr.find(self.context_char)
         if index2 != -1:
-            warn = u'Context character "%s" found in msgstr' % \
+            warn = 'Context character "%s" found in msgstr' % \
                 self.context_char
             msgstr = msgstr[index2 + len(self.context_char):]
         return msgid, msgstr, warn
@@ -86,13 +86,13 @@ class LeadingCharTest:
             if ichar.isupper() == schar.isupper():
                 return msgid, msgstr, None
             else:
-                return msgid, msgstr, u'Leading character case mismatch'
+                return msgid, msgstr, 'Leading character case mismatch'
 
         issametype, index = sametype(msgid, msgstr)
         if issametype:
             return msgid, msgstr, None
         else:
-            return msgid, msgstr, u'Leading character type mismatch'
+            return msgid, msgstr, 'Leading character type mismatch'
 
 
 class TrailingCharTest:
@@ -105,9 +105,9 @@ class TrailingCharTest:
             return msgid, msgstr, None
         else:
             if msgid[-1 - index:].isspace() or msgstr[-1 - index:].isspace():
-                warn = u'Trailing whitespace inconsistency'
+                warn = 'Trailing whitespace inconsistency'
             else:
-                warn = u'Inconsistent punctuation'
+                warn = 'Inconsistent punctuation'
             return msgid, msgstr, warn
 
 
@@ -124,7 +124,7 @@ class AcceleratorTest:
             if naccels_msgstr == 1:
                 return msgid.replace(char, ''), msgstr.replace(char, ''), None
             else:
-                warning = u'Hotkey assignment inconsistency'
+                warning = 'Hotkey assignment inconsistency'
                 return msgid, msgstr, warning
 
         return msgid, msgstr, None
@@ -163,9 +163,9 @@ class POABC:
         if not msgstr: 
             # These have already been checked for if called
             # from check_msg
-            return msgid, msgstr, [u'Untranslated message']
+            return msgid, msgstr, ['Untranslated message']
         if msg.isfuzzy:
-            return msgid, msgstr, [u'Fuzzy message']
+            return msgid, msgstr, ['Fuzzy message']
 
         warnings = []
         for test in self.tests:
@@ -179,7 +179,7 @@ class POABC:
         if len(msg.msgid) == 0:
             return warnings
         if not msg.istranslated:
-            return [u'Untranslated message']
+            return ['Untranslated message']
         if msg.isfuzzy:
             return ['Fuzzy message']
         #msg = msg.decode()
@@ -228,7 +228,7 @@ def build_parser():
 
 
 def header(linenumber):
-    return (u'--- Line %d ' % linenumber).ljust(32, '-')
+    return ('--- Line %d ' % linenumber).ljust(32, '-')
 
 
 @pyg3tmain
@@ -285,15 +285,15 @@ def main():
         return '%d [%d%%]' % (n, round(100 * float(n) / poabc.msgcount))
 
     width = 50
-    print(u' Summary '.center(width, '='), file=out)
-    print(u'Number of messages: %d' % poabc.msgcount, file=out)
-    print(u'Translated messages: %s' % fancyfmt(poabc.translatedcount),
+    print(' Summary '.center(width, '='), file=out)
+    print('Number of messages: %d' % poabc.msgcount, file=out)
+    print('Translated messages: %s' % fancyfmt(poabc.translatedcount),
           file=out)
-    print(u'Fuzzy messages: %s' % fancyfmt(poabc.fuzzycount), file=out)
-    print(u'Untranslated messages: %s' % fancyfmt(poabc.untranslatedcount),
+    print('Fuzzy messages: %s' % fancyfmt(poabc.fuzzycount), file=out)
+    print('Untranslated messages: %s' % fancyfmt(poabc.untranslatedcount),
           file=out)
-    print(u'Number of warnings: %d' % msgwarncount, file=out)
-    print(u'=' * width, file=out)
+    print('Number of warnings: %d' % msgwarncount, file=out)
+    print('=' * width, file=out)
 
 if __name__ == '__main__':
     main()

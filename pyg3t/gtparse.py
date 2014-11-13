@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from __future__ import unicode_literals
 import re
 
 #from textwrap import TextWrapper
@@ -278,13 +279,13 @@ class Message(object):
     def rawstring(self):
         if not 'rawlines' in self.meta:
             raise KeyError('No raw lines for this Message')
-        return u''.join(self.meta['rawlines'])
+        return ''.join(self.meta['rawlines'])
 
     def flagstostring(self):
         if self.flags:
-            return u'#, %s\n' % ', '.join(sorted(self.flags))
+            return '#, %s\n' % ', '.join(sorted(self.flags))
         else:
-            return u''
+            return ''
 
     def tostring(self): # maybe add line length argument for wrapping?
         lines = []
@@ -293,15 +294,15 @@ class Message(object):
             lines.append(self.flagstostring())
         lines.extend([c for c in self.comments if c.startswith('#|')])
         if self.has_context:
-            lines.append(wrap_declaration(u'msgctxt', self.msgctxt))
-        lines.append(wrap_declaration(u'msgid', self.msgid))
+            lines.append(wrap_declaration('msgctxt', self.msgctxt))
+        lines.append(wrap_declaration('msgid', self.msgid))
         if self.hasplurals:
-            lines.append(wrap_declaration(u'msgid_plural', self.msgid_plural))
+            lines.append(wrap_declaration('msgid_plural', self.msgid_plural))
             for i, msgstr in enumerate(self.msgstrs):
-                lines.append(wrap_declaration(u'msgstr[%d]' % i, msgstr))
+                lines.append(wrap_declaration('msgstr[%d]' % i, msgstr))
         else:
-            lines.append(wrap_declaration(u'msgstr', self.msgstr))
-        string = u''.join(lines)
+            lines.append(wrap_declaration('msgstr', self.msgstr))
+        string = ''.join(lines)
         return string
 
     def __str__(self):
@@ -471,7 +472,7 @@ def extract_string(lines, header, continuationlength):
     
     # get 'hello' from line '"hello"'
     otherlines = [line[continuationlength:-2] for line in lines[1:]]
-    return ''.join([headerline] + otherlines)
+    return b''.join([headerline] + otherlines)
 
 linepatternstrings = dict(comment=r'(#~ )?#[\s,\.:\|]|#~[,\.:\|]',
                           msgctxt=r'(#~ )?msgctxt ',
@@ -526,7 +527,7 @@ class PoParser:
                 nextline, lines = _consume_lines(nextline, input, header,
                                                  patterns['continuation'])
                 continuationlength = 1
-                if lines[-1].startswith('#~ "'):
+                if lines[-1].startswith(b'#~ "'):
                     continuationlength = 4
                 string = extract_string(lines, header, continuationlength)
                 return nextline, string
@@ -562,7 +563,7 @@ class PoParser:
                     prevmsgid = extract_string(lines, 
                                                patterns['prevmsgid_start'], 4)
                     msgdata['prevmsgid'] = prevmsgid
-                if comment.startswith('#, '):
+                if comment.startswith(b'#, '):
                     flags.extend(comment[3:].split(','))
                 else:
                     normalcomments.append(comment)

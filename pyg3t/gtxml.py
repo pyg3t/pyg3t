@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 import sys
 import xml.sax
 from optparse import OptionParser
@@ -36,7 +36,7 @@ class GTXMLChecker:
     
     def _filter(self, string):
         # Surround the string with a root tag
-        xml = u''.join([u'<xml>', string.replace(u'\\"', u'"'), u'</xml>'])
+        xml = ''.join(['<xml>', string.replace('\\"', '"'), '</xml>'])
         return xml.encode('utf8')
     
     def parse_xml_elements(self, string):
@@ -66,7 +66,7 @@ class GTXMLChecker:
         if self.compare_tags:
             for tag in msgstr_elements:
                 if not (tag in msgid_elements or tag in self.known_tags):
-                    msg = u'Unrecognized element "%s" found in msgstr' % tag
+                    msg = 'Unrecognized element "%s" found in msgstr' % tag
                     raise SuspiciousTagsError(msg)
 
         return True
@@ -133,7 +133,7 @@ class MsgPrinter:
         self.out = out
     
     def get_header(self, filename, msg, err):
-        return u'At line %d: %s' % (msg.meta['lineno'], err.args[0])
+        return 'At line %d: %s' % (msg.meta['lineno'], err.args[0])
         
     def write_msg(self, msgstring, err):
         print(msgstring, file=self.out)
@@ -142,7 +142,7 @@ class MsgPrinter:
         header = self.get_header(filename, msg, err)
         print(header, file=self.out)
         #print header.encode(msg.meta['encoding'])
-        print(u'-' * min(78, len(header)), file=self.out)
+        print('-' * min(78, len(header)), file=self.out)
         #print '-' * min(78, len(header))
         self.write_msg(msg.tostring(), err)
 
@@ -151,8 +151,8 @@ class MultiFileMsgPrinter(MsgPrinter):
     def get_header(self, filename, msg, err):
         if filename == '-':
             filename = '<stdin>'
-        return u'%s, line %d: %s' % (filename, msg.meta['lineno'], 
-                                     err.args[0])
+        return '%s, line %d: %s' % (filename, msg.meta['lineno'], 
+                                    err.args[0])
 
 
 class SilentMsgPrinter(MsgPrinter):

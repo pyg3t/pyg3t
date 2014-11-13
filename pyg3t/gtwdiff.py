@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 import sys
 import re
 from optparse import OptionParser
@@ -11,28 +11,28 @@ from pyg3t.util import Colorizer, pyg3tmain, Encoder
 
 
 def print_msg_diff(differ, oldmsg, newmsg, fd):
-    oldcomments = u''.join(oldmsg.comments)
-    newcomments = u''.join(newmsg.comments)
+    oldcomments = ''.join(oldmsg.comments)
+    newcomments = ''.join(newmsg.comments)
     print(differ.diff(oldcomments, newcomments), file=fd)
     if oldmsg.flags or newmsg.flags:
         print(differ.diff(oldmsg.flagstostring()[:-1], # ignore last newline
                           newmsg.flagstostring()[:-1]), file=fd)
     if oldmsg.has_context or newmsg.has_context:
-        print(differ.maybe_wrapdiff(u'msgctxt', oldmsg.msgctxt,
+        print(differ.maybe_wrapdiff('msgctxt', oldmsg.msgctxt,
                                     newmsg.msgctxt),
               file=fd)
-    print(differ.maybe_wrapdiff(u'msgid', oldmsg.msgid, newmsg.msgid),
+    print(differ.maybe_wrapdiff('msgid', oldmsg.msgid, newmsg.msgid),
           file=fd)
     if oldmsg.hasplurals or newmsg.hasplurals:
-        print(differ.maybe_wrapdiff(u'msgid_plural', oldmsg.msgid_plural,
+        print(differ.maybe_wrapdiff('msgid_plural', oldmsg.msgid_plural,
                                     newmsg.msgid_plural), file=fd)
     if len(oldmsg.msgstrs) == 1:
-        print(differ.maybe_wrapdiff(u'msgstr', oldmsg.msgstr, newmsg.msgstr),
+        print(differ.maybe_wrapdiff('msgstr', oldmsg.msgstr, newmsg.msgstr),
               file=fd)
     else:
         for i, (oldmsgstr, newmsgstr) in enumerate(zip(oldmsg.msgstrs, 
                                                        newmsg.msgstrs)):
-            print(differ.maybe_wrapdiff(u'msgstr[%d]' % i, oldmsgstr,
+            print(differ.maybe_wrapdiff('msgstr[%d]' % i, oldmsgstr,
                                         newmsgstr), file=fd)
 
 

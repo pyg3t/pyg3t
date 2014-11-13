@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 import sys
 from pyg3t.gtparse import PoError, PoHeaderError
 # will this eventually become a circular import?
@@ -13,7 +13,7 @@ class Encoder:
         
     def write(self, txt):
         if not isinstance(txt, unicode):
-            if txt == '\n' or txt == '':
+            if txt == b'\n' or txt == b'':
                 pass
             else:
                 raise ValueError('Grrrr: %s %s' % (type(txt), repr(txt)))
