@@ -284,9 +284,9 @@ def main():
             if opts.fancy:
                 # (This is sort of an easter egg)
                 colorizer = Colorizer('purple')
-                nmatches_str = colorizer.colorize(str(nmatches))
+                nmatches_str = colorizer.colorize(unicode(nmatches))
             else:
-                nmatches_str = str(nmatches)
+                nmatches_str = unicode(nmatches)
             print(('%s:' % filename).rjust(40), nmatches_str, file=out)
             global_matchcount += nmatches
             continue

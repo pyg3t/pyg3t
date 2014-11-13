@@ -34,7 +34,7 @@ class XMLTest:
         try:
             self.checker.check_msg(msg)
         except xml.sax.SAXParseException, err:
-            warn = 'Invalid xml: ' + str(err)
+            warn = 'Invalid xml: ' + unicode(err)
         return msgid, msgstr, warn
 
 
