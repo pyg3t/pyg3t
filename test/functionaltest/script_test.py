@@ -2,6 +2,7 @@
 
 """This module performs functional tests of the pyg3t tools."""
 
+from __future__ import unicode_literals
 
 import subprocess
 import os
@@ -42,7 +43,7 @@ def standardtest(command_args, expected, return_code=0):
     """
     return_code_actual, stdout, stderr = run_command(command_args)
     assert return_code_actual == return_code
-    assert stderr == ''
+    assert stderr == b''
     assert stdout == expected
 
 
@@ -73,10 +74,10 @@ def test_gtcat():
     process2.wait()
     assert process2.returncode == 0
     # Check stderr and stdout
-    assert stderr == ''
-    with open(prepend_path('gtcat_expected_output')) as file_:
+    assert stderr == b''
+    with open(prepend_path('gtcat_expected_output'), 'rb') as file_:
         expected = file_.read()
-        assert stdout == expected
+    assert stdout == expected
 
 
 def test_gtcheckargs():
@@ -87,7 +88,7 @@ def test_gtcheckargs():
         '# Command line options with faulty translation\n'\
         'msgid "  -c, --coffee=AMOUNT    Make AMOUNT of coffee"\n'\
         'msgstr "      --coffee=MÆNGDE    Lav MÆNGDE kaffe"\n\n'\
-        'Found 1 error.\n'
+        'Found 1 error.\n'.encode('utf8')
     standardtest(['gtcheckargs', FILE], expected, return_code=1)
 
 
@@ -109,7 +110,7 @@ def test_gtcompare():
         '0 translated messages changed to fuzzy.\n'\
         '13 messages remain translated.\n'\
         '\n'\
-        'There are no conflicts among translated messages.\n'
+        'There are no conflicts among translated messages.\n'.encode('utf-8')
     standardtest(['gtcompare', FILE, FILE], expected)
 
 
@@ -119,13 +120,13 @@ def test_gtgrep():
         '# Translated string\n'\
         '#: helloworld.c:42\n'\
         'msgid "Hello world!"\n'\
-        'msgstr "Hej verden!"\n\n'
+        'msgstr "Hej verden!"\n\n'.encode('utf-8')
     standardtest(['gtgrep', '-i', 'hello', '-s', 'hej', FILE], expected)
 
 
 def test_gtmerge():
     """Functional test for gtmerge"""
-    with open(prepend_path('gtmerge_expected_output')) as file_:
+    with open(prepend_path('gtmerge_expected_output'), 'rb') as file_:
         expected = file_.read()
     standardtest(['gtmerge', FILE, FILE], expected)
 
@@ -136,33 +137,33 @@ def test_gtprevmsgdiff():
         '--- Line 47 (untranslated) --------------------------------------'\
         '-------------\n'\
         'How many <-software translators|French people+> does it take to '\
-        'change a light bulb?\n'
+        'change a light bulb?\n'.encode('utf-8')
     standardtest(['gtprevmsgdiff', FILE], expected)
 
 
 def test_gtwdiff():
     """Functional test for gtwdiff"""
-    with open(prepend_path('gtwdiff_expected_output')) as file_:
+    with open(prepend_path('gtwdiff_expected_output'), 'rb') as file_:
         expected = file_.read()
     standardtest(['gtwdiff', 'testpodiff.podiff'], expected)
 
 
 def test_gtxml():
     """Functional test for gtxml"""
-    with open(prepend_path('gtxml_expected_output')) as file_:
+    with open(prepend_path('gtxml_expected_output'), 'rb') as file_:
         expected = file_.read()
     standardtest(['gtxml', FILE], expected, return_code=1)
 
 def test_poabc():
     """Functional test for poabc"""
-    with open(prepend_path('poabc_expected_output')) as file_:
+    with open(prepend_path('poabc_expected_output'), 'rb') as file_:
         expected = file_.read()
     standardtest(['poabc', FILE], expected)
 
 
 def test_podiff():
     """Functional test for podiff"""
-    with open(prepend_path('podiff_expected_output')) as file_:
+    with open(prepend_path('podiff_expected_output'), 'rb') as file_:
         expected = file_.read()
     standardtest(['podiff', '--relax', 'old.po', 'new.po'], expected)
 
@@ -172,38 +173,40 @@ def test_popatch():
     return_code, stdout, stderr = run_command(
         ['popatch', 'testpofile.da.po', 'testpodiff.podiff'])
     assert return_code == 0
-    assert stderr == ''
-    with open(prepend_path('patched.po'), 'w') as file_:
+    assert stderr == b''
+    with open(prepend_path('patched.po'), 'wb') as file_:
         file_.write(stdout)
 
     return_code, stdout, stderr = run_command(
         ['popatch', '--new', 'testpodiff.podiff'])
     assert return_code == 0
-    assert stderr == ''
-    with open(prepend_path('patched.new.po'), 'w') as file_:
+    assert stderr == b''
+    with open(prepend_path('patched.new.po'), 'wb') as file_:
         file_.write(stdout)
 
     return_code, stdout, stderr = run_command(
         ['popatch', '--old', 'testpodiff.podiff'])
     assert return_code == 0
-    assert stderr == ''
-    with open(prepend_path('patched.old.po'), 'w') as file_:
+    assert stderr == b''
+    with open(prepend_path('patched.old.po'), 'wb') as file_:
         file_.write(stdout)
 
     return_code, stdout, stderr = run_command(
         ['podiff', '-rf', 'patched.old.po', 'patched.new.po'])
     assert return_code == 0
-    assert stderr == ''
-    with open(prepend_path('testpodiff.podiff')) as file_:
+    assert stderr == b''
+    with open(prepend_path('testpodiff.podiff'), 'rb') as file_:
         lines_diff = file_.readlines()
-    for line1, line2 in zip(lines_diff, stdout.strip().split('\n')):
-        if line1.startswith('---'):
+
+    lines_stdout = stdout.strip().split(b'\n')
+    for line1, line2 in zip(lines_diff, lines_stdout):
+        if line1.startswith(b'---'):
             continue
-        assert line1 == line2 + '\n'
+        assert line1 == line2 + b'\n'
 
 
 def test_poselect():
     """Functional test for poselect"""
-    with open(prepend_path('poselect_expected_output')) as file_:
+    with open(prepend_path('poselect_expected_output'), 'rb') as file_:
         expected = file_.read()
     standardtest(['poselect', '-ft', FILE], expected)
