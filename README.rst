@@ -18,6 +18,6 @@ PyG3T consists of the following tools:
 * poabc: check for common translation errors such as missing punctuation
 * podiff: generate a message-wise diff between two catalogs
 * popatch: construct a catalog by patching a catalog with a podiff
- * gtparse: python module for parsing gettext catalogs
+* gtparse: python module for parsing gettext catalogs
 
 Please see the --help pages for each script for further information.
