@@ -132,6 +132,10 @@ msgstr "Denne besked har ingen kommentarer!  Også uoverensstemmelse med "
 msgid "Open file"
 msgstr "Åbn fil"
 
+# Characters with non-trivial encoding
+msgid "Print…"
+msgstr "Udskriv…"
+
 # Command line options, multi-line previous msgid
 #| msgid ""
 #| "  -c, --coffee=AMOUNT    Make AMOUNT of coffee.\n"

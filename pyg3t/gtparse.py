@@ -541,7 +541,7 @@ class PoParser:
             else:
                 comments = []
 
-            if line.startswith('#~'):
+            if line.startswith(b'#~'):
                 # Yuck!  Comments were not obsolete, but actual msgid was.
                 is_obsolete = True
                 patterns = obsolete_linepatterns
@@ -570,7 +570,7 @@ class PoParser:
             msgdata['comments'] = normalcomments
             msgdata['flags'] = [flag.strip() for flag in flags]
 
-            if line.startswith('#~'): 
+            if line.startswith(b'#~'):
                 # Aha!  It was an obsolete all along!
                 # Must read all remaining lines as obsolete...
                 is_obsolete = True
