@@ -1,0 +1,145 @@
+# Dummy po-file for testing purposes.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: GTParse test suite\n"
+"POT-Creation-Date: 2009-04-18 18:06+0200\n"
+"PO-Revision-Date: 2009-04-18 18:06+0200\n"
+"Last-Translator: Ask Hjorth Larsen <asklarsen@gmail.com>\n"
+"Language-Team: Dansk <dansk@dansk-gruppen.dk>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# Translated string
+#: helloworld.c:42
+msgid "Hello world!"
+msgstr "Hej verden!"
+
+# Untranslated string, multiline
+#: fortran.f90:43
+msgid ""
+"Consistently separating words by spaces became a general custom about\n"
+"the tenth century A.D., and lasted until about 1957, when FORTRAN abandoned\n"
+"the practice.\n"
+"\n"
+"Sun FORTRAN Reference Manual\n"
+msgstr ""
+
+# Fuzzy
+#: fuzzy.c:42
+#, fuzzy
+msgid "Delete contents of disk"
+msgstr "Slet ikke diskens indhold"
+
+# Message context
+#: contextheavy.c:17
+msgctxt "cross the road joke"
+msgid "Why did the physicist cross the road"
+msgstr ""
+
+# Message context in comment
+#: french.c:7
+#| msgctxt "light bulb joke"
+#| msgid "How many software translators does it take to change a light bulb?"
+msgid "How many French people does it take to change a light bulb?"
+msgstr ""
+
+# Plurals untranslated
+#: plurals.c:10
+#, c-format
+msgid "%d.  He holds the bulb while the world revolves around him."
+msgid_plural "%d.  They hold the bulb while the world revolves around them."
+msgstr[0] ""
+msgstr[1] ""
+
+# Plurals partially translated, fuzzy
+#: plurals.c:12
+#, c-format, fuzzy
+msgid "%d fatal error."
+msgid_plural "%d fatal errors."
+msgstr[0] "%d fatal fejl."
+msgstr[1] ""
+
+# Plurals translated, non-ASCII, repeated word in translation
+#: lawyers.c:1
+#, c-format
+msgid ""
+"It was so cold last winter that I saw %d lawyer with his hands in his own "
+"pockets."
+msgid_plural ""
+"It was so cold last winter that I saw %d lawyers with their hands in their "
+"own pockets."
+msgstr[0] ""
+"Det var så koldt sidste vinter, at jeg så %d advokat med hænderne i i sine "
+"egne lommer."
+msgstr[1] ""
+"Det var så koldt sidste vinter, at jeg så %d advokater med hænderne i deres "
+"egne lommer."
+
+# Valid xml in msgstr
+#: xml.c:1
+msgid "<a href=\"http://nethack.org\">Nethack</a>"
+msgstr "<a href=\"http://nethack.org\">Nethack</a>"
+
+# Invalid xml in msgstr, bad leading case, bad trailing char
+#: xml.c:2
+msgid "See <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen</a>"
+msgstr "se <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen<a/>!"
+
+# Hotkey assignment, context char, trailing characters
+#: hotkeys.c:2
+msgid "action|Roll _tarball."
+msgstr "Rul t_jærebolle"
+
+# Hotkeys with the & character
+#: hotkeys.c:3
+msgid "Mail &daemon"
+msgstr "Post&dæmon"
+
+# Bad hotkey assignment, bad context char, tests multiple faults for poabc
+# Also whitespace inconsistency
+#: hotkeys.c:4
+msgid "action|Write _emoticon"
+msgstr "handling|Skriv følikon "
+
+# Untranslated and marked as fuzzy
+#: weirdproperties.c:42
+#, fuzzy
+msgid "Coffee"
+msgstr ""
+
+# Translator credits
+#: credits.c:42
+msgid "translator-credits"
+msgstr ""
+"Ask Hjorth Larsen <asklarsen@gmail.com>\n"
+"\n"
+"Dansk-gruppen <dansk@dansk-gruppen.dk>\n"
+"Mere info: http://www.dansk-gruppen.dk>"
+
+msgid "this message has no comments!  Also starting character mismatch"
+msgstr ""
+"Denne besked har ingen kommentarer!  Også uoverensstemmelse med starttegn"
+
+# Dansk vokal som første bogstav
+msgid "Open file"
+msgstr "Åbn fil"
+
+# Command line options, multi-line previous msgid
+msgid ""
+"  -c, --coffee=AMOUNT    Make AMOUNT of coffee.\n"
+"      --bacon=SLICES     Get SLICES slices of bacon.\n"
+msgstr ""
+"  -c, --coffee=MÆNGDE    Lav MÆNGDE kaffe.\n"
+"      --bacon=SKIVER     Få fat i SKIVER skiver bacon.\n"
+
+# Command line options with faulty translation
+msgid "  -c, --coffee=AMOUNT    Make AMOUNT of coffee"
+msgstr "      --coffee=MÆNGDE    Lav MÆNGDE kaffe"
+
+# Correct XML using unknown tags in msgstr
+msgid "<blink>Button</blink>"
+msgstr "<blinke>Knap</blinke>"
+
