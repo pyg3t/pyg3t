@@ -1,0 +1,128 @@
+--- Line 28 --------------------
+Untranslated message
+# Untranslated string, multiline
+#: fortran.f90:43
+msgid ""
+"Consistently separating words by spaces became a general custom about\n"
+"the tenth century A.D., and lasted until about 1957, when FORTRAN abandoned\n"
+"the practice.\n"
+"\n"
+"Sun FORTRAN Reference Manual\n"
+msgstr ""
+
+--- Line 34 --------------------
+Untranslated message
+# Fuzzy
+#: fuzzy.c:42
+#, fuzzy
+msgid "Delete contents of disk"
+msgstr "Slet ikke diskens indhold"
+
+--- Line 40 --------------------
+Untranslated message
+# Message context
+#: contextheavy.c:17
+msgctxt "cross the road joke"
+msgid "Why did the physicist cross the road"
+msgstr ""
+
+--- Line 47 --------------------
+Untranslated message
+# Message context in comment
+#: french.c:7
+#| msgctxt "light bulb joke"
+#| msgid "How many software translators does it take to change a light bulb?"
+msgid "How many French people does it take to change a light bulb?"
+msgstr ""
+
+--- Line 53 --------------------
+Untranslated message
+# Plurals untranslated
+#: plurals.c:10
+#, c-format
+msgid "%d.  He holds the bulb while the world revolves around him."
+msgid_plural "%d.  They hold the bulb while the world revolves around them."
+msgstr[0] ""
+msgstr[1] ""
+
+--- Line 61 --------------------
+Untranslated message
+# Plurals partially translated, fuzzy
+#: plurals.c:12
+#, fuzzy,c-format
+msgid "%d fatal error."
+msgid_plural "%d fatal errors."
+msgstr[0] "%d fatal fejl."
+msgstr[1] ""
+
+--- Line 71 --------------------
+Repeated word: "i"
+# Plurals translated, non-ASCII, repeated word in translation
+#: lawyers.c:1
+#, c-format
+msgid ""
+"It was so cold last winter that I saw %d lawyer with his "
+"hands in his own pockets."
+msgid_plural ""
+"It was so cold last winter that I saw %d lawyers with their "
+"hands in their own pockets."
+msgstr[0] ""
+"Det var så koldt sidste vinter, at jeg så %d advokat med hænderne i "
+"i sine egne lommer."
+msgstr[1] ""
+"Det var så koldt sidste vinter, at jeg så %d advokater med hænderne i "
+"deres egne lommer."
+
+--- Line 89 --------------------
+Leading character case mismatch
+Inconsistent punctuation
+Invalid xml: <unknown>:1:66: mismatched tag
+# Invalid xml in msgstr, bad leading case, bad trailing char
+#: xml.c:2
+msgid "See <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen</a>"
+msgstr "se <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen<a/>!"
+
+--- Line 94 --------------------
+Inconsistent punctuation
+# Hotkey assignment, context char, trailing characters
+#: hotkeys.c:2
+msgid "action|Roll _tarball."
+msgstr "Rul t_jærebolle"
+
+--- Line 105 -------------------
+Context character "|" found in msgstr
+Hotkey assignment inconsistency
+Trailing whitespace inconsistency
+# Bad hotkey assignment, bad context char, tests multiple faults for poabc
+# Also whitespace inconsistency
+#: hotkeys.c:4
+msgid "action|Write _emoticon"
+msgstr "handling|Skriv følikon "
+
+--- Line 111 -------------------
+Untranslated message
+# Untranslated and marked as fuzzy
+#: weirdproperties.c:42
+#, fuzzy
+msgid "Coffee"
+msgstr ""
+
+--- Line 128 -------------------
+Leading character case mismatch
+msgid "this message has no comments!  Also starting character mismatch"
+msgstr "Denne besked har ingen kommentarer!  Også uoverensstemmelse med "
+"starttegn"
+
+--- Line 149 -------------------
+Leading character type mismatch
+# Command line options with faulty translation
+msgid "  -c, --coffee=AMOUNT    Make AMOUNT of coffee"
+msgstr "      --coffee=MÆNGDE    Lav MÆNGDE kaffe"
+
+==================== Summary =====================
+Number of messages: 20
+Translated messages: 13 [65%]
+Fuzzy messages: 2 [10%]
+Untranslated messages: 5 [25%]
+Number of warnings: 13
+==================================================
