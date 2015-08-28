@@ -151,6 +151,7 @@ def parse_header_data(msg):
 
 
 def _get_header(msgs):
+    """Find and return the header :term:`message` in a iterable of messages"""
     for msg in msgs:
         if msg.msgid == '':
             msg.meta['headers'] = parse_header_data(msg)
@@ -256,40 +257,43 @@ class Catalog(object):
 class Message(object):
     """This class represents a po-file entry. 
 
-    Contains attributes that describe:
+    Parameters:
+        msgid (str): The :term:`msgid`
+        msgstr (str or list): The translated :term:`msgstr` s
+        msgid_plural (str): msgid plural if any, otherwise None
+        msgctxt (str): Context message of any, otherwise None
+        comments (list): Newline-terminated strings ([] or None if none)
+        meta (dict): Optional metadata (linenumber, raw text from po-file)
+        flags (iterable): Strings specififying flags ('fuzzy', etc.)
 
-    * msgid (possibly plural)
-    * msgstr(s)
-    * comments
-    * miscellaneous informations (flags, translation status)"""
+    If this message was loaded from a file using the parse() function,
+    the meta dictionary will contain the following keys:
+
+     * 'lineno': the original line number of the message in the po-file
+     * 'encoding': the encoding of the po-file
+     * 'rawlines': the original text in the po-file as a a list of
+       newline-terminated lines
+
+     It is understood that the properties of a Message may be
+     changed programmatically so as to render it inconsistent with
+     its rawlines and/or lineno.
+
+    Attributes:
+        msgid (str): The :term:`msgid`
+        msgid_plural (str): The plural msgid if any, otherwise None
+        msgstr (list): The translated :term:`msgstr` s
+        comments (list): Newline terminated comments strs
+        msgctxt (str): The msgid context if any, otherwise None
+        flags (set): Flags (strs) that are set if they are present
+        previous_msgid (str): The previous msgid if any, otherwise None
+        is_obsolete (bool): Whether the message is obsolete
+    """
 
     is_obsolete = False
 
     def __init__(self, msgid, msgstr, msgid_plural=None,
                  msgctxt=None, comments=None, meta=None,
                  flags=None, previous_msgid=None):
-        """Create a Message, representing one message from a message catalog.
-        
-        Parameters:
-         * msgid: string
-         * msgstr: string, or list of strings for plurals
-         * msgid_plural: None, or a string if there are plurals
-         * msgctxt: None, or a string if there is a message context
-         * comments: list of newline-terminated strings ([] or None if none)
-         * meta: dict of optional metadata (linenumber, raw text from po-file)
-         * flags: an iterable of strings specififying flags ('fuzzy', etc.)
-
-         If this message was loaded from a file using the parse() function,
-         the meta dictionary will contain the following keys:
-          * 'lineno': the original line number of the message in the po-file
-          * 'encoding': the encoding of the po-file
-          * 'rawlines': the original text in the po-file as a a list of
-                        newline-terminated lines
-         
-         It is understood that the properties of a Message may be
-         changed programmatically so as to render it inconsistent with
-         its rawlines and/or lineno.
-        """
         self.msgid = msgid
         self.msgid_plural = msgid_plural
 
@@ -342,38 +346,51 @@ class Message(object):
 
     @property
     def msgstr(self):
+        """The :term:`msgstr` or the first of the plural translations if it is
+        a plural string
+        """
         return self.msgstrs[0]
 
     @property
     def untranslated(self):
+        """Whether the message is untranslated"""
         return self.msgstr == ''
 
     @property
     def fuzzyflag(self):
+        """Whether the :term:`fuzzy` flag is set"""
         return 'fuzzy' in self.flags
 
     @property
     def isfuzzy(self):
+        """Whether the message is :term:`fuzzy`"""
         return self.fuzzyflag and not self.untranslated
     
     @property
     def istranslated(self):
+        """Whether the message is translated"""
         return self.msgstr != '' and not self.fuzzyflag
     
     @property
     def has_context(self):
+        """Whether the message has context"""
         return self.msgctxt is not None
     
     @property
     def has_previous_msgid(self):
+        """Whether the message has a previous msgid"""
         return self.previous_msgid is not None
     
     @property
     def hasplurals(self):
+        """Whether the message has plurals"""
         return self.msgid_plural is not None
 
     @property
     def key(self):
+        """A (msgid, msgctxt) tuple which can be considered a unique
+        (within the catalog) key for use e.g. in a dict
+        """
         return (self.msgid, self.msgctxt)
 
     def get_comments(self, pattern='', strip=False):
