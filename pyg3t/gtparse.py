@@ -255,7 +255,7 @@ class Catalog(object):
 
 
 class Message(object):
-    """This class represents a po-file entry. 
+    """This class represents a :term:`message` in a :term:`gettext catalog`
 
     Parameters:
         msgid (str): The :term:`msgid`
@@ -287,6 +287,7 @@ class Message(object):
         flags (set): Flags (strs) that are set if they are present
         previous_msgid (str): The previous msgid if any, otherwise None
         is_obsolete (bool): Whether the message is obsolete
+        meta (dict): The metadata dictionary
     """
 
     is_obsolete = False
@@ -401,7 +402,16 @@ class Message(object):
         ('# '), previous msgid ('#| msgid ') and so on.  Default pattern
         will return all comment strings.  If strip is True,
         the pattern is removed from the returned strings; otherwise pattern 
-        is included."""
+        is included.
+
+        Args:
+            pattern (str): The pattern to match at the beginning of comment
+                line
+            strip (bool): Whether to strip the pattern from the output
+
+        Returns:
+            list: List of comment lines (str)
+        """
         striplength = 0
         if strip:
             striplength = len(pattern)
@@ -409,17 +419,50 @@ class Message(object):
                 if line.startswith(pattern)]
 
     def rawstring(self):
+        """Return the original text :term:`chunk` that this message was parsed
+        from, as one string.
+
+        Returns:
+            (str): The original raw text chunk
+
+        Raises:
+            KeyError: If there are no raw lines in the metadata
+
+        """
         if not 'rawlines' in self.meta:
             raise KeyError('No raw lines for this Message')
         return ''.join(self.meta['rawlines'])
 
     def flagstostring(self):
+        """Return a flag string on the form: ``"#, flag0, flag1, flag2\\n"``"""
         if self.flags:
             return '#, %s\n' % ', '.join(sorted(self.flags))
         else:
             return ''
 
     def tostring(self): # maybe add line length argument for wrapping?
+        """Return :term:`gettext catalog` string form of this message
+
+        The string will be on the form. First all comments that are not
+        previous msgid (if any), then the flags (if any), then the previous
+        msgid (if any), then the context (if any) and finnaly the :term:`msgid`
+        and the :term:`msgstr`.
+
+        .. code-block:: po
+
+            #  translator-comments
+            #. extracted-comments
+            #: reference...
+            #, flag...
+            #| msgctxt previous-context
+            #| msgid previous-untranslated-string
+            msgctxt context
+            msgid untranslated-string
+            msgstr translated-string
+
+        Example from the `gettext reference documentation
+        <http://www.gnu.org/software/gettext/manual/html_node/PO-Files.html#PO-Files>`_
+        """
         lines = []
         lines.extend([c for c in self.comments if not c.startswith('#|')])
         if self.flags:
@@ -441,12 +484,18 @@ class Message(object):
         return self.tostring()
 
     def copy(self):
+        """Return a copy of this message"""
         return self.__class__(self.msgid, self.msgstrs, self.msgid_plural,
                               msgctxt=self.msgctxt, 
                               comments=list(self.comments),
                               meta=self.meta.copy(), flags=self.flags.copy())
 
     def decode(self):
+        """Return a decoded version of this message
+
+        All text is decoded using the encoding set in :py:attr:`.Message.meta`
+        and the metadata is copied as is.
+        """
         encoding = self.meta['encoding']
         msgvars = vars(self)
         
@@ -465,10 +514,18 @@ class Message(object):
 
 
 class ObsoleteMessage(Message):
+    """This class represents an obsolete :term:`message` in a
+    :term:`gettext catalog`"""
     
     is_obsolete = True
 
     def tostring(self):
+        """Return :term:`gettext catalog` string form of this obsolete message.
+
+        This string is on the form described in :py:meth:`.Message.tostring`
+        where all lines that does not already start with an '#~' gets it
+        prepended.
+        """
         string = Message.tostring(self)
         lines = []
 
@@ -486,6 +543,12 @@ class ObsoleteMessage(Message):
         
 
 def is_wrappable(declaration, string):
+    """Return boolean that indicates whether the declaration and the string is
+    wrappable.
+
+    See :py:func:`.wrap_declaration` for details on the arguments.
+
+    """
     if len(string) + len(declaration) > 75:
         return True
     newlineindex = string.find(r'\n')
@@ -497,6 +560,34 @@ def is_wrappable(declaration, string):
 
 
 def wrap_declaration(declaration, string):
+    """Return the declaration followed by a wrapped form of the string
+
+    .. note:: The wrapping takes place linewise and the splitting of lines
+        respects escaped newlines. This is done in an attempt to preserve the
+        visual presentation of the string
+
+    If the declaration and the string will not fit in a single line, the
+    declaration if left on a line for itself, followed merely by an empty
+    string.
+    
+    Example:
+
+    .. code-block:: po
+
+        msgid "This is a short msgid"
+
+        msgid ""
+        "This is a msgid with a very long msgid, in fact it just keeps going "
+        "and going and going. 
+
+    Args:
+        declaration (str): A declaration in a :term:`message` such as msgid,
+            msgstr or msgctxt
+        string (str): The string to wrap i.e. the content of the declaration
+
+    Returns:
+        str: The declaration followed by a wraped for of the string
+    """
     if is_wrappable(declaration, string):
         tokens = []
         tokens.append('%s ""\n' % declaration)
@@ -516,6 +607,9 @@ def wrap_declaration(declaration, string):
 
 
 class LineNumberIterator:
+    """An iterator of lines that keeps track of the line number of the current
+    position.
+    """
     # XXX Can probably be replaced by using fileinput module
     def __init__(self, input):
         self.lineno = 0
