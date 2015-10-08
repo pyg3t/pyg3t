@@ -15,8 +15,9 @@ class Encoder:
         if not isinstance(txt, unicode):
             if txt == b'\n' or txt == b'':
                 pass
-            else:
-                raise ValueError('Grrrr: %s %s' % (type(txt), repr(txt)))
+            #else:
+            #    raise ValueError('Grrrr: %s %s' % (type(txt), repr(txt)))
+            txt = unicode(txt)
         self.fd.write(txt.encode(encoding=self.encoding))
 
 
