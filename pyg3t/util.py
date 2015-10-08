@@ -1,6 +1,5 @@
 from __future__ import print_function, unicode_literals
 import sys
-import codecs
 from pyg3t.gtparse import PoError, PoHeaderError
 # will this eventually become a circular import?
 # Maybe PoSyntaxError should be defined un util so that all modules
@@ -80,8 +79,6 @@ def getfiles(args):
 # Decorator for all main functions in pyg3t
 def pyg3tmain(main):
     def main_decorator():
-        if sys.stdout.encoding is None:
-            sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
         try:
             main()
         except KeyboardInterrupt:
