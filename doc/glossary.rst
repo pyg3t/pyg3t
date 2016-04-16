@@ -5,13 +5,13 @@ Glossary
    :sorted:
 
    chunk
-      Chunk refer to the chunk of text in a .po file that corresponds to a
-      :term:`message`. The whole file consist of such chunks separated by a
+      Chunk refers to the chunk of text in a .po file that corresponds to a
+      :term:`message`. The whole file consists of such chunks separated by a
       blank line. See the entry for :term:`message` for an example of what a
       chunk looks like.
       
    fuzzy
-      Fuzzy if a flag that can be set programmatically when extracting strings
+      Fuzzy is a flag that can be set programmatically when extracting strings
       for translation or manually by the translator. It is used to indicate
       that the translation may no longer be valid. Once the translator has
       reviewed (and possibly corrected) the string, the flag is removed.
@@ -34,13 +34,14 @@ Glossary
 
    message
       A message refers to all data and metadata pertaining to a single
-      translatable string in a :term:`gettext catalog`. The data consist of the
-      :term:`msgid` (original string) and the :term:`msgstr` (translated
-      string), both of which can optionally have plural forms. The metadata
-      consist of references to source code lines for the msgids and optionally
-      a comment, context and a previous version of the msgid. In pyg3t a
-      message is represented by the classes :py:class:`pyg3t.gtparse.Message`
-      and :py:class:`pyg3t.gtparse.ObsoleteMessage`.
+      translatable string in a :term:`gettext catalog`. The data
+      consists of the :term:`msgid` (original string) and the
+      :term:`msgstr` (translated string), both of which can optionally
+      have plural forms. The metadata consists of references to source
+      code lines for the msgids and optionally a comment, context and
+      a previous version of the msgid. In pyg3t a message is
+      represented by the classes :py:class:`pyg3t.gtparse.Message` and
+      :py:class:`pyg3t.gtparse.ObsoleteMessage`.
 
       A typical message could look like this (inspired by the Danish translation
       of nautilus) (FIXME better example):
