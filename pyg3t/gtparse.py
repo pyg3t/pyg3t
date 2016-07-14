@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import unicode_literals
 import re
 
+
 def isstringtype(obj):
     return hasattr(obj, 'isalpha')
 
@@ -68,7 +69,7 @@ def parse_header_data(msg):
             key, value = tokens
         except ValueError:
             key = tokens[0]
-            value = '' # This should probably not be the case but isn't ugly
+            value = ''  # This should probably not be the case but isn't ugly
             # enough to complain extremely loudly about by default
         key = key.strip()
         value = value.strip()
@@ -142,7 +143,7 @@ class Catalog(object):
 
 
 class Message(object):
-    """This class represents a po-file entry. 
+    """This class represents a po-file entry.
 
     Contains attributes that describe:
 
@@ -157,7 +158,7 @@ class Message(object):
                  msgctxt=None, comments=None, meta=None,
                  flags=None, previous_msgid=None):
         """Create a Message, representing one message from a message catalog.
-        
+
         Parameters:
          * msgid: string
          * msgstr: string, or list of strings for plurals
@@ -198,7 +199,7 @@ class Message(object):
         if flags is None:
             flags = set()
         self.flags = set(flags)
-        
+
         self.msgctxt = msgctxt
 
         # XXX right now the comments are always written as is, even if
@@ -207,18 +208,18 @@ class Message(object):
         # programmed representation of the flags
         #
         # XXX Or maybe we already do that?
-        
+
         self.previous_msgid = previous_msgid
         if meta is None:
             meta = {}
         self.meta = meta
 
     # Message is either translated, fuzzy or untranslated.
-    # 
+    #
     # If the msgstr (or msgstr[0] in case of plurals) does not have a
     # translation (i.e. it is the empty string), the message is
     # considered untranslated.
-    # 
+    #
     # Else, if the message has the fuzzy flag set, it is considered fuzzy.
     #
     # Else it is considered translated, unless its msgid is empty.
@@ -244,19 +245,19 @@ class Message(object):
     @property
     def isfuzzy(self):
         return self.fuzzyflag and not self.untranslated
-    
+
     @property
     def istranslated(self):
         return self.msgstr != '' and not self.fuzzyflag
-    
+
     @property
     def has_context(self):
         return self.msgctxt is not None
-    
+
     @property
     def has_previous_msgid(self):
         return self.previous_msgid is not None
-    
+
     @property
     def hasplurals(self):
         return self.msgid_plural is not None
@@ -272,16 +273,16 @@ class Message(object):
         given pattern, useful for extracting, say, translator-comments
         ('# '), previous msgid ('#| msgid ') and so on.  Default pattern
         will return all comment strings.  If strip is True,
-        the pattern is removed from the returned strings; otherwise pattern 
+        the pattern is removed from the returned strings; otherwise pattern
         is included."""
         striplength = 0
         if strip:
             striplength = len(pattern)
-        return [line[striplength:] for line in self.comments 
+        return [line[striplength:] for line in self.comments
                 if line.startswith(pattern)]
 
     def rawstring(self):
-        if not 'rawlines' in self.meta:
+        if 'rawlines' not in self.meta:
             raise KeyError('No raw lines for this Message')
         return ''.join(self.meta['rawlines'])
 
@@ -314,7 +315,7 @@ class Message(object):
 
     def copy(self):
         return self.__class__(self.msgid, self.msgstrs, self.msgid_plural,
-                              msgctxt=self.msgctxt, 
+                              msgctxt=self.msgctxt,
                               comments=list(self.comments),
                               meta=self.meta.copy(), flags=self.flags.copy())
 
@@ -514,7 +515,7 @@ class PoParser:
             def _consume_lines(nextline, input, startpattern, continuepattern):
                 try:
                     nextline, lines = consume_lines(nextline, input,
-                                                    startpattern, 
+                                                    startpattern,
                                                     continuepattern)
                 except BadSyntaxError as error:
                     msg = 'Unrecognized syntax while parsing line %d' \
@@ -560,11 +561,11 @@ class PoParser:
             for i, comment in enumerate(comments):
                 if patterns['prevmsgid_start'].match(comment):
                     prevmsgid_lines = iter(comments[i + 1:])
-                    _, lines = consume_lines(\
-                        comment, prevmsgid_lines, 
+                    _, lines = consume_lines(
+                        comment, prevmsgid_lines,
                         patterns['prevmsgid_start'],
                         patterns['prevmsgid_continuation'])
-                    prevmsgid = extract_string(lines, 
+                    prevmsgid = extract_string(lines,
                                                patterns['prevmsgid_start'], 4)
                     msgdata['prevmsgid'] = prevmsgid
                 if comment.startswith(b'#, '):
@@ -590,8 +591,8 @@ class PoParser:
                 msgdata['msgid'] = msgid
                 msgdata['lineno'] = input.lineno
 
-            if patterns['msgid_plural'].match(line):#
-                line, msgid_plural = _extract_string(line, input, 
+            if patterns['msgid_plural'].match(line):
+                line, msgid_plural = _extract_string(line, input,
                                                      patterns['msgid_plural'])
                 msgdata['msgid_plural'] = msgid_plural
 
@@ -599,7 +600,7 @@ class PoParser:
                 msgstrs = []
                 pluralpattern = patterns['msgstr_plural']
                 while line is not None and pluralpattern.match(line):
-                    line, msgstr = _extract_string(line, input, 
+                    line, msgstr = _extract_string(line, input,
                                                    pluralpattern)
                     msgstrs.append(msgstr)
                     nmsgstr += 1
@@ -676,7 +677,7 @@ def parse(input):
                 return txt.decode(encoding)
 
         msg = msgclass(msgid=dec(chunk['msgid']),
-                       msgstr=[dec(m) for m in msgstrs], # (includes plurals)
+                       msgstr=[dec(m) for m in msgstrs],  # (includes plurals)
                        msgid_plural=dec(chunk.get('msgid_plural')),
                        msgctxt=dec(chunk.get('msgctxt')),
                        previous_msgid=dec(chunk.get('prevmsgid')),
