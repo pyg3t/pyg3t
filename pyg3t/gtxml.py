@@ -6,7 +6,7 @@ import xml.sax
 from optparse import OptionParser
 
 from pyg3t.gtparse import parse
-from pyg3t.util import Colorizer, pyg3tmain, Encoder
+from pyg3t.util import Colorizer, pyg3tmain
 
 
 class SuspiciousTagsError(ValueError):
@@ -76,7 +76,7 @@ class GTXMLChecker:
         for msg in msgs:
             try:
                 self.check_msg(msg)
-            except (xml.sax.SAXParseException, SuspiciousTagsError), err:
+            except (xml.sax.SAXParseException, SuspiciousTagsError) as err:
                 yield msg, err
 
 
@@ -102,13 +102,13 @@ def build_parser():
     parser.add_option('-t', '--tags', action='store_true',
                       help='print warnings when a translated message uses a '
                       'tag not found in the untranslated message')
-    parser.add_option('--dump-tags', action='store_true',
-                      help='write xml tags from untranslated messages to '
-                      'stdout.  Suppress normal output.')
-    parser.add_option('--tags-from', metavar='FILE',
-                      help='print warnings about any tags not listed in FILE.'
-                      '  FILE might contain output from --dump-tags.'
-                      '  Implies --tags.')
+    #parser.add_option('--dump-tags', action='store_true',
+    #                  help='write xml tags from untranslated messages to '
+    #                  'stdout.  Suppress normal output.')
+    #parser.add_option('--tags-from', metavar='FILE',
+    #                  help='print warnings about any tags not listed in FILE.'
+    #                  '  FILE might contain output from --dump-tags.'
+    #                  '  Implies --tags.')
     return parser
 
 
@@ -122,8 +122,8 @@ def get_inputfiles(args, parser):
             yield arg, sys.stdin
         else:
             try:
-                input = open(arg, 'r')
-            except IOError, err:
+                input = open(arg, 'rb')
+            except IOError as err:
                 parser.error(err)
             yield arg, input
 
@@ -210,28 +210,30 @@ def main():
 
     check_tags = opts.tags or opts.tags_from
     gtxml = GTXMLChecker(check_tags, known_tags)
-    out = Encoder(sys.stdout, 'utf8') # overwritten below as necessary
-    
+    from pyg3t.gtparse import get_encoded_stdout
+    out = get_encoded_stdout('utf8')
+    #out = Encoder(sys.stdout, 'utf8') # overwritten below as necessary
+
     # Special mode to dump all tags and do nothing else
-    if opts.dump_tags:
-        tags = set()
-        for filename, input in get_inputfiles(args, parser):
-            cat = parse(input)
-            out = Encoder(sys.stdout, cat.encoding)
-            
-            def addtags(string):
-                try:
-                    tags.update(gtxml.parse_xml_elements(string))
-                except xml.sax.SAXParseException:
-                    pass # don't add tags if msgid is not valid xml
-            #encoding = cat.encoding
-            for msg in cat:
-                addtags(msg.msgid)
-                if msg.hasplurals:
-                    addtags(msg.msgid_plural)
-        for tag in tags:
-            print(tag, file=out)
-        return
+    #if opts.dump_tags:
+    #    tags = set()
+    #    for filename, input in get_inputfiles(args, parser):
+    #        cat = parse(input)
+    #        out = Encoder(sys.stdout, cat.encoding)
+
+    #        def addtags(string):
+    #            try:
+    #                tags.update(gtxml.parse_xml_elements(string))
+    #            except xml.sax.SAXParseException:
+    #                pass # don't add tags if msgid is not valid xml
+    #        #encoding = cat.encoding
+    #        for msg in cat:
+    #            addtags(msg.msgid)
+    #            if msg.hasplurals:
+    #                addtags(msg.msgid_plural)
+    #    for tag in tags:
+    #        print(tag, file=out)
+    #    return
 
     color = opts.color
 
