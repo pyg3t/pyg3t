@@ -75,7 +75,7 @@ def sametype(msgid, msgstr):
             return False, n
     return True, n
 
-        
+
 class LeadingCharTest:
     def check(self, msg, msgid, msgstr):
         if not msgid or not msgstr:
@@ -99,7 +99,7 @@ class TrailingCharTest:
     def check(self, msg, msgid, msgstr):
         if not msgid or not msgstr:
             return msgid, msgstr, None
-        issametype, index = sametype(reversed(msgid), 
+        issametype, index = sametype(reversed(msgid),
                                      reversed(msgstr))
         if issametype:
             return msgid, msgstr, None
@@ -133,7 +133,7 @@ class AcceleratorTest:
 class QuoteSubstitutionFilter:
     def __init__(self, quotechar):
         self.quotechar = quotechar
-    
+
     def check(self, msg, msgid, msgstr):
         return msgid.replace("'", self.quotechar), msgstr, None
 
@@ -160,7 +160,7 @@ class POABC:
     def check_stringpair(self, msg, msgid, msgstr):
         if not msgid: # The header should have been filtered out already
             return msgid, msgstr, ['No msgid']
-        if not msgstr: 
+        if not msgstr:
             # These have already been checked for if called
             # from check_msg
             return msgid, msgstr, ['Untranslated message']
@@ -186,7 +186,7 @@ class POABC:
         msgid, msgstr, warnings1 = self.check_stringpair(msg, msg.msgid,
                                                          msg.msgstr)
         warnings.extend(warnings1)
-        
+
         if msg.hasplurals:
             msgid_plural = msg.msgid_plural
             for msgstr in msg.msgstrs[1:]:
@@ -211,7 +211,7 @@ def build_parser():
     description = ('Parse a gettext translation file, writing suspected '
                    'errors to standard output.  Checks for a range of common '
                    'errors such as inconsistent case, punctuation and xml.')
-    
+
     parser = OptionParser(usage=usage, description=description,
                           version=__version__)
     parser.add_option('-a', '--accel-char', default='_', metavar='CHAR',
@@ -245,15 +245,13 @@ def main():
 
     fname = args[0]
     if fname == '-':
-        fd = sys.stdin  # how to wrap this?
+        fd = sys.stdin  # XXX how to wrap this?
     else:
         fd = open(fname, 'rb')
-    #allfiles = fileinput.input(args)
-    
+
     # XXX does this work with multiple files actually?
     cat = parse(fd)
 
-    #out = get_encoded_stdout(sys.stdout, cat.encoding)
     # We will not respect the original coding of the file
     out = get_encoded_stdout('utf-8')
 
@@ -276,7 +274,6 @@ def main():
     warningcount = 0 # total number of warnings
     msgwarncount = 0 # number of msgs with at least one warning
 
-    #try:
     for msg, warnings in poabc.check_msgs(cat):
         print(header(msg.meta['lineno']), file=out)
         warningcount += len(warnings)
@@ -284,10 +281,7 @@ def main():
         for warning in warnings:
             print(warning, file=out)
         print(msg.rawstring(), file=out)
-    #except IOError, err:
-    #    print 'err', err
-    #    cmdparser.error(err)
-        
+
     def fancyfmt(n):
         return '%d [%d%%]' % (n, round(100 * float(n) / poabc.msgcount))
 
