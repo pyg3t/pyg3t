@@ -20,6 +20,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import unicode_literals
 import re
 
+def isstringtype(obj):
+    return hasattr(obj, 'isalpha')
+
 #from textwrap import TextWrapper
 #wrapper = TextWrapper(width=77,
 #                      replace_whitespace=False,
@@ -108,9 +111,9 @@ class Catalog(object):
         for msg in self.msgs:
             d[msg.key] = msg
         return d
-    
-    def obsoletes(self):
-        return iter(self.obsoletes)
+
+    #def obsoletes(self):
+    #    return iter(self._obsoletes)
 
     def __iter__(self):
         return iter(self.msgs)
@@ -120,22 +123,22 @@ class Catalog(object):
 
     def __getitem__(self, index):
         return self.msgs[index]
-    
-    def _catalog(self, msgs, obsoletes=None):
-        cat = Catalog(self.fname, self.encoding, msgs, obsoletes)
-        return cat
 
-    def filter(self, choicefunction):
-        return self._catalog(msg for msg in self if choicefunction(msg))
+    #def _catalog(self, msgs, obsoletes=None):
+    #    cat = Catalog(self.fname, self.encoding, msgs)
+    #    return cat
 
-    def get_translated(self):
-        return self.filter(Message.istranslated)
-    
-    def get_untranslated(self):
-        return self.filter(Message.untranslated)
-    
-    def get_fuzzy(self):
-        return self.filter(Message.isfuzzy)
+    #def filter(self, choicefunction):
+    #    return self._catalog(msg for msg in self if choicefunction(msg))
+
+    #def get_translated(self):
+    #    return self.filter(Message.istranslated)
+
+    #def get_untranslated(self):
+    #    return self.filter(Message.untranslated)
+
+    #def get_fuzzy(self):
+    #    return self.filter(Message.isfuzzy)
 
 
 class Message(object):
@@ -170,7 +173,7 @@ class Message(object):
           * 'encoding': the encoding of the po-file
           * 'rawlines': the original text in the po-file as a a list of
                         newline-terminated lines
-         
+
          It is understood that the properties of a Message may be
          changed programmatically so as to render it inconsistent with
          its rawlines and/or lineno.
@@ -178,16 +181,17 @@ class Message(object):
         self.msgid = msgid
         self.msgid_plural = msgid_plural
 
-        if isinstance(msgstr, basestring):
-            assert msgid_plural is None
+        if isstringtype(msgstr):
             self.msgstrs = [msgstr]
         else:
             self.msgstrs = list(msgstr)
-        
+        if len(self.msgstrs) > 1:
+            assert msgid_plural is not None
+
         if comments is None:
             comments = []
         self.comments = comments
-        
+
         # The fuzzy flag is whether fuzzy is specified in the flag
         # comments.  It is ignored if the message has an empty
         # translation.
@@ -317,7 +321,7 @@ class Message(object):
     def decode(self):
         encoding = self.meta['encoding']
         msgvars = vars(self)
-        
+
         kwargs = {}
         for key in ['comments', 'msgstrs', 'flags']:
             kwargs[key] = [string.decode(encoding) for string in msgvars[key]]
@@ -333,7 +337,7 @@ class Message(object):
 
 
 class ObsoleteMessage(Message):
-    
+
     is_obsolete = True
 
     def tostring(self):
@@ -351,13 +355,13 @@ class ObsoleteMessage(Message):
         lines.append('') # to get an extra newline
         # XXX does not re-wrap if line is too long
         return '\n'.join(lines)
-        
+
 
 def is_wrappable(declaration, string):
     if len(string) + len(declaration) > 75:
         return True
     newlineindex = string.find(r'\n')
-    
+
     # Don't wrap if newline is only at end of string
     if newlineindex > 0 and not newlineindex == len(string) - 2:
         return True
@@ -392,7 +396,7 @@ class LineNumberIterator:
         self.iter = iter(self)
         self.last_lines = []
         self.max_last_lines = 12
-    
+
     def pop_lines(self):
         lines = self.lines
         self.lines = []
@@ -464,12 +468,12 @@ def extract_string(lines, header, continuationlength):
     match = header.match(line)
     if not match:
         raise BadSyntaxError
-    
+
     # get e.g. 'hello' from the line 'msgid "hello"', so skip 2 characters
     end = match.end()
     #assert line[end] == '"'
     headerline = line[end + 1:-2]
-    
+
     # get 'hello' from line '"hello"'
     otherlines = [line[continuationlength:-2] for line in lines[1:]]
     return b''.join([headerline] + otherlines)
@@ -531,7 +535,7 @@ class PoParser:
                     continuationlength = 4
                 string = extract_string(lines, header, continuationlength)
                 return nextline, string
-            
+
             patterns = linepatterns
 
             if patterns['comment'].match(line):
@@ -607,14 +611,14 @@ class PoParser:
             yield msgdata
             if line is None:
                 return
-        
+
     def chunk_iter(self, include_obsoletes=False):
         return self.get_message_chunks()
 
 
 def parse(input):
     parser = PoParser(input)
-    
+
     try:
         fname = input.name
     except AttributeError:
@@ -629,7 +633,7 @@ def parse(input):
             obsoletes.append(chunk)
         else:
             chunks.append(chunk)
-    
+
     for chunk in chunks:
         if chunk['msgid'] == '':
             header = chunk
@@ -644,20 +648,20 @@ def parse(input):
         if token.startswith('charset='):
             break
     encoding = token.split('=')[1]
-    
+
     msgs = []
     for chunk in chunks + obsoletes:
         msgstrs = chunk['msgstrs']
-        
+
         if len(msgstrs) > 1:
             assert 'msgid_plural' in chunk
-        
+
         meta = dict(rawlines=[line.decode(encoding)
                               for line in chunk['rawlines']],
                     lineno=chunk['lineno'],
                     fname=fname,
                     encoding=encoding)
-        
+
         if chunk['is_obsolete']:
             msgclass = ObsoleteMessage
         else:
