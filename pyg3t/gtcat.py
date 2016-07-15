@@ -3,9 +3,9 @@ import sys
 import codecs
 from optparse import OptionParser
 from itertools import chain
-from util import pyg3tmain, Encoder
+from pyg3t.util import pyg3tmain, Encoder
 
-from gtparse import parse
+from pyg3t.gtparse import parse
 
 
 def build_parser():
@@ -23,12 +23,11 @@ def build_parser():
 @pyg3tmain
 def main():
     p = build_parser()
-    
     opts, args = p.parse_args()
-    
+
     for arg in args:
-        cat = parse(open(arg))
-        
+        cat = parse(open(arg, 'rb'))
+
         if opts.encoding is not None:
             src_encoding = cat.encoding
             codecinfo = codecs.lookup(opts.encoding)
@@ -53,7 +52,8 @@ def main():
             assert len(header.msgstrs) == 1
         else:
             dst_encoding = cat.encoding
-        
-        out = Encoder(sys.stdout, dst_encoding)
+
+        from pyg3t.gtparse import stream_writer
+        out = stream_writer(sys.stdout, dst_encoding)
         for msg in chain(cat, cat.obsoletes):
             print(msg.tostring(), file=out)

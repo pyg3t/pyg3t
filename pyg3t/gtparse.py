@@ -17,8 +17,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from __future__ import print_function
 from __future__ import unicode_literals
+from codecs import lookup, StreamReaderWriter
 import re
+import sys
 
 
 def isstringtype(obj):
@@ -59,28 +62,28 @@ def wrap(text):
     return list(chunkwrap(chunks))
 
 
-def parse_header_data(msg):
+def parse_header_data(msgstr):
     headers = {}
-    for line in msg.msgstr.split(r'\n'):
+    for line in msgstr.split(r'\n'):
         if not line or line.isspace():
-            continue
+            continue  # wtf
         tokens = line.split(':', 1)
-        try:
-            key, value = tokens
-        except ValueError:
-            key = tokens[0]
-            value = ''  # This should probably not be the case but isn't ugly
+        #try:
+        key, value = tokens  # Chance of shenanigans?
+        #except ValueError:
+        #    key = tokens[0]
+        #    value = ''  # This should probably not be the case but isn't ugly
             # enough to complain extremely loudly about by default
-        key = key.strip()
-        value = value.strip()
-        headers[key] = value
+        #key = key.strip()
+        #value = value.strip()
+        headers[key.strip()] = value.strip()
     return headers
 
 
 def _get_header(msgs):
     for msg in msgs:
         if msg.msgid == '':
-            msg.meta['headers'] = parse_header_data(msg)
+            msg.meta['headers'] = parse_header_data(msg.msgstr)
             return msg
     else:
         raise ValueError('header not found in msgs')
@@ -113,9 +116,6 @@ class Catalog(object):
             d[msg.key] = msg
         return d
 
-    #def obsoletes(self):
-    #    return iter(self._obsoletes)
-
     def __iter__(self):
         return iter(self.msgs)
 
@@ -124,22 +124,6 @@ class Catalog(object):
 
     def __getitem__(self, index):
         return self.msgs[index]
-
-    #def _catalog(self, msgs, obsoletes=None):
-    #    cat = Catalog(self.fname, self.encoding, msgs)
-    #    return cat
-
-    #def filter(self, choicefunction):
-    #    return self._catalog(msg for msg in self if choicefunction(msg))
-
-    #def get_translated(self):
-    #    return self.filter(Message.istranslated)
-
-    #def get_untranslated(self):
-    #    return self.filter(Message.untranslated)
-
-    #def get_fuzzy(self):
-    #    return self.filter(Message.isfuzzy)
 
 
 class Message(object):
@@ -477,7 +461,7 @@ def extract_string(lines, header, continuationlength):
 
     # get 'hello' from line '"hello"'
     otherlines = [line[continuationlength:-2] for line in lines[1:]]
-    return b''.join([headerline] + otherlines)
+    return ''.join([headerline] + otherlines)
 
 linepatternstrings = dict(comment=r'(#~ )?#[\s,\.:\|]|#~[,\.:\|]',
                           msgctxt=r'(#~ )?msgctxt ',
@@ -532,7 +516,7 @@ class PoParser:
                 nextline, lines = _consume_lines(nextline, input, header,
                                                  patterns['continuation'])
                 continuationlength = 1
-                if lines[-1].startswith(b'#~ "'):
+                if lines[-1].startswith('#~ "'):
                     continuationlength = 4
                 string = extract_string(lines, header, continuationlength)
                 return nextline, string
@@ -546,7 +530,7 @@ class PoParser:
             else:
                 comments = []
 
-            if line.startswith(b'#~'):
+            if line.startswith('#~'):
                 # Yuck!  Comments were not obsolete, but actual msgid was.
                 is_obsolete = True
                 patterns = obsolete_linepatterns
@@ -568,14 +552,14 @@ class PoParser:
                     prevmsgid = extract_string(lines,
                                                patterns['prevmsgid_start'], 4)
                     msgdata['prevmsgid'] = prevmsgid
-                if comment.startswith(b'#, '):
+                if comment.startswith('#, '):
                     flags.extend(comment[3:].split(','))
                 else:
                     normalcomments.append(comment)
             msgdata['comments'] = normalcomments
             msgdata['flags'] = [flag.strip() for flag in flags]
 
-            if line.startswith(b'#~'):
+            if line.startswith('#~'):
                 # Aha!  It was an obsolete all along!
                 # Must read all remaining lines as obsolete...
                 is_obsolete = True
@@ -617,7 +601,7 @@ class PoParser:
         return self.get_message_chunks()
 
 
-def parse(input):
+def oldparse(input):
     parser = PoParser(input)
 
     try:
@@ -689,6 +673,309 @@ def parse(input):
     cat = Catalog(fname, encoding, msgs)
     return cat
 
+
+#---------------------------------------------------
+
+obsolete_pattern = re.compile(r'\s*#~')
+obsolete_extraction_pattern = re.compile(r'\s*#~\s*(?P<line>.*)')
+
+charset_extraction_pattern = re.compile(r'^Content-Type:\s*text/plain;'
+                                        r'\s*charset=(?P<charset>[^\\]*)')
+def get_charset(header_msgstr_lines):
+    for line in header_msgstr_lines:
+        match = charset_extraction_pattern.match(line)
+        if match:
+            charset = match.group(1)
+            return charset
+
+def devour(pattern, continuation, line, fd, tokens, lines):
+    match = pattern.match(line)
+    assert match, (pattern.pattern, repr(line))
+    while match:
+        token = match.group(1)
+        tokens.append(token)
+        lines.append(line)
+        line = next(fd)
+        match = continuation.match(line)
+    return line
+
+
+class MessageChunk:
+    def __init__(self):
+        self.lineno = None
+        self.is_obsolete = False
+        self.comment_lines = []
+        self.msgctxt_lines = None
+        self.msgid_lines = []
+        self.msgid_plural_lines = None
+        self.msgstrs = []
+
+        self.rawlines = []
+
+    def __iter__(self):
+        lists = [self.comment_lines, self.msgctxt_lines, self.msgid_lines,
+                 self.msgid_plural_lines] + self.msgstrs
+        for _list in lists:
+            if _list is None:
+                continue
+            for line in _list:
+                yield line
+
+    def __str__(self):
+        return ''.join(self)
+
+    def get_msgid(self):
+        if not self.msgid_lines:
+            return None
+        return ''.join(self.msgid_lines)
+
+class EchoWrapper:
+    def __init__(self, fd):
+        self.fd = fd
+
+    def __next__(self):
+        line = next(self.fd)
+        #print(line, end='')
+        return line
+    next = __next__  # Python2
+
+class FileWrapper:
+    def __init__(self, fd):
+        self.fd = fd
+        self.lineno = 0
+
+    def __next__(self):
+        line = None
+        while not line or line.isspace():
+            line = next(self.fd).rstrip('\r\n')
+            self.lineno += 1
+        return line
+    next = __next__  # Python2
+
+
+patterns = {'comment': re.compile(r'\s*(?P<line>#.*)'),
+            'msgctxt': re.compile(r'\s*msgctxt\s*"(?P<line>.*?)"\s*$'),
+            'msgid': re.compile(r'\s*msgid\s*"(?P<line>.*?)"\s*$'),
+            'msgid_plural': re.compile(r'\s*msgid_plural'
+                                       r'\s*"(?P<line>.*?)"\s*$'),
+            'msgstr': re.compile(r'\s*msgstr\s*"(?P<line>.*?)"\s*$'),
+            'msgstrs': re.compile(r'\s*msgstr\[[0-9]*\]'
+                                  r'\s*"(?P<line>.*?)"\s*$'),
+            'continuation': re.compile(r'\s*"(?P<line>.*?)"\s*$')}
+
+obsolete_patterns = {}
+for key in patterns:
+    obsolete_patterns[key] = re.compile(r'\s*#~\s*' + patterns[key].pattern)
+# Special care for horribly malformed comments in obsoletes:
+#obsolete_patterns['comment'] = re.compile(r'\s*#~\s*(?!msg)(?P<line>.*)')
+
+def lowlevel_parse_encoded(fd):
+    """Yield all chunks in fd, where fd must have correct encoding."""
+
+    fd = EchoWrapper(fd)  # Enable to print all lines
+    fd = FileWrapper(fd)
+
+    def _devour(pattern, line, tokens):
+        return devour(pattern, pat['continuation'], line, fd, tokens,
+                   msg.rawlines)
+
+    line = next(fd)
+    while True:
+        msg = MessageChunk()
+
+        pat = patterns
+
+        try:
+            while pat['comment'].match(line):
+                if obsolete_pattern.match(line) and not msg.is_obsolete:
+                    msg.is_obsolete = True
+                    pat = obsolete_patterns
+                    continue
+
+                msg.comment_lines.append(line)
+                line = next(fd)
+
+            if pat['msgctxt'].match(line):
+                msg.msgctxt_lines = []
+                line = _devour(pat['msgctxt'], line, msg.msgctxt_lines)
+
+            #print('now line', line)
+            line = _devour(pat['msgid'], line, msg.msgid_lines)
+            if pat['msgid_plural'].match(line):
+                msg.msgid_plural_lines = []
+                line = _devour(pat['msgid_plural'], line,
+                               msg.msgid_plural_lines)
+
+                while pat['msgstrs'].match(line):
+                    lines = []
+                    msg.msgstrs.append(lines)
+                    line = _devour(pat['msgstrs'], line, lines)
+            else:
+                lines = []
+                msg.msgstrs.append(lines)
+                line = _devour(pat['msgstr'], line, lines)
+
+        except StopIteration:
+            yield msg
+            return
+        except AssertionError:  # XXX better error
+            if msg.is_obsolete:
+                line = next(fd)
+                continue  # Discard garbage
+            else:
+                raise
+        else:
+            yield msg
+
+
+class PoSyntaxError(ValueError):
+    pass
+
+
+def lowlevel_parse_binary(fd):
+    """Detect encoding of binary file fd and yield all chunks, encoded."""
+
+    def find_header(try_charset, errors):
+        #info = lookup(try_charset)
+        #srw = StreamReaderWriter(fd, info.streamreader, info.streamwriter,
+        #                         errors)
+        srw = stream_encoder(fd, try_charset, errors=errors)
+        msgs_before_header = []
+        parser = lowlevel_parse_encoded(srw)
+        for msg in parser:
+            msgs_before_header.append(msg)
+            if msg.get_msgid() == '':
+                charset = get_charset(msg.msgstrs[0])
+                return charset, msgs_before_header, parser
+
+        raise PoSyntaxError('No header found in file %s' % fd.name)
+
+    # Non-strict parsing to find header and extract charset:
+    charset, _, _ = find_header('utf-8', errors='replace')
+    assert charset is not None
+
+    # Parse from scratch with correct charset:
+    fd.seek(0)
+    _charset, leading_msgs, parser = find_header(charset, errors='strict')
+    assert lookup(_charset) == lookup(charset)
+
+    for msg in leading_msgs:
+        yield msg
+    for msg in parser:
+        yield msg
+
+
+def iterparse(fd):
+    for chunk in lowlevel_parse_binary(fd):
+        flags = []
+        comments = []
+        for line in chunk.comment_lines:
+            if line.startswith('#,'):
+                flags.extend(flag.strip() for flag in
+                             line[3:].split(','))
+            else:
+                comments.append(line)
+
+        # XXXX prevmsgid
+        if chunk.is_obsolete:
+            msgclass = ObsoleteMessage
+        else:
+            msgclass = Message
+
+        def join(tokens):
+            if tokens is None:
+                return None
+            return ''.join(tokens)
+
+        msgstr = None
+        if len(chunk.msgstrs) > 0:
+            msgstr = [join(lines) for lines in chunk.msgstrs]
+
+        msg = msgclass(comments=comments,
+                       flags=flags,
+                       msgctxt=join(chunk.msgctxt_lines),
+                       msgid=join(chunk.msgid_lines),
+                       msgid_plural=join(chunk.msgid_plural_lines),
+                       msgstr=msgstr,
+                       meta={'rawlines': chunk.rawlines,
+                             'lineno': chunk.lineno})
+        yield msg
+        # ignore 'fname', 'encoding' in meta
+
+encoding_pattern = re.compile(r'text/plain;\s*charset=(?P<encoding>[^\s]+)')
+
+def parse(fd):
+    try:
+        fname = fd.name
+    except AttributeError:
+        fname = '<unknown>'
+
+    # XXX what happens if there are garbage comments in the end?
+    # or comments in other inappropriate locations
+    msgs = []
+
+    for msg in iterparse(fd):
+        if msg.msgid == '':
+            msgs.insert(0, msg)
+        else:
+            msgs.append(msg)
+    assert len(msgs) >= 1
+    assert msgs[0].msgid == ''
+
+    headers = parse_header_data(msgs[0].msgstr)
+    encoding_line = headers['Content-Type']
+    match = re.match(encoding_pattern, encoding_line)
+    assert match is not None
+    encoding = match.group(1)
+
+    cat = Catalog(fname, encoding, msgs)
+    return cat
+
+
+def stream_encoder(fd, encoding, errors='strict'):
+    info = lookup(encoding)
+    srw = StreamReaderWriter(fd, info.streamreader, info.streamwriter,
+                             errors=errors)
+    return srw
+
+
+def stream_reader(fd, encoding, errors='strict'):
+    return stream_encoder(fd, encoding, errors)
+
+
+def stream_writer(fd, encoding, errors='strict'):
+    # WTF this won't work in Py3.
+    # But isn't necessary either
+    #
+    # ...unless we need to write ISO-8859-1 probably.
+    # TODO think about this stuff.
+    if sys.version_info[0] == 2:
+        return stream_encoder(fd, encoding, errors)
+    else:
+        return fd
+
+def main():
+    out = stream_writer(sys.stdout, 'utf-8')
+    fname = sys.argv[1]
+
+    with open(fname, 'rb') as fd:
+        nmsgs = 0
+        cat = parse(fd)
+        for msg in cat:
+            nmsgs += 1
+        print('number of messages: %d' % nmsgs)
+        nobs = 0
+        for msg in cat.obsoletes:
+            nobs += 1
+        print('number of obsoletes: %d' % nobs)
+
+        for msg in cat:
+            print(msg.tostring(), file=out)
+        for msg in cat.obsoletes:
+            print(msg.tostring(), file=out)
+
+if __name__ == '__main__':
+    main()
 
 # XXX When parsing, allow stuff like:
 # * allow for missing header
