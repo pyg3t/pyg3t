@@ -6,11 +6,11 @@ from pyg3t.gtparse import PoError, PoHeaderError
 # can use util without util using any of them
 
 
-class Encoder:
+class Py2Encoder:
     def __init__(self, fd, encoding):
         self.fd = fd
         self.encoding = encoding
-        
+
     def write(self, txt):
         if not isinstance(txt, unicode):
             if txt == b'\n' or txt == b'':

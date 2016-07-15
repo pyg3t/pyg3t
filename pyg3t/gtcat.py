@@ -3,9 +3,10 @@ import sys
 import codecs
 from optparse import OptionParser
 from itertools import chain
-from pyg3t.util import pyg3tmain, Encoder
+from pyg3t.util import pyg3tmain
 
 from pyg3t.gtparse import parse
+from pyg3t.charsets import get_gettext_encoding_name
 
 
 def build_parser():
@@ -30,11 +31,8 @@ def main():
 
         if opts.encoding is not None:
             src_encoding = cat.encoding
-            codecinfo = codecs.lookup(opts.encoding)
 
-            # should result in a canonical/transferable name even if
-            # people don't specify dashes or other things in the way
-            # gettext likes
+            codecinfo = codecs.lookup(opts.encoding)
             dst_encoding = codecinfo.name
 
             header = cat.header
@@ -45,15 +43,18 @@ def main():
                     break
             else:
                 p.error('Cannot find Content-Type in header')
+            gettext_name = get_gettext_encoding_name(dst_encoding)
             line = line.replace('charset=%s' % src_encoding,
-                                'charset=%s' % dst_encoding)
+                                'charset=%s' % gettext_name)
             lines[i] = line
             header.msgstrs[0] = '\\n'.join(lines)
             assert len(header.msgstrs) == 1
         else:
             dst_encoding = cat.encoding
 
-        from pyg3t.gtparse import stream_writer
-        out = stream_writer(sys.stdout, dst_encoding)
+        from codecs import EncodedFile
+        from pyg3t.gtparse import get_encoded_stdout
+
+        out = get_encoded_stdout(dst_encoding)
         for msg in chain(cat, cat.obsoletes):
             print(msg.tostring(), file=out)

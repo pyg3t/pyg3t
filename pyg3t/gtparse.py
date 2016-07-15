@@ -278,10 +278,16 @@ class Message(object):
 
     def tostring(self): # maybe add line length argument for wrapping?
         lines = []
-        lines.extend([c for c in self.comments if not c.startswith('#|')])
+        for c in self.comments:
+            if not c.startswith('#|'):
+                lines.append(c)
+                lines.append('\n')
         if self.flags:
             lines.append(self.flagstostring())
-        lines.extend([c for c in self.comments if c.startswith('#|')])
+        for c in self.comments:
+            if c.startswith('#|'):
+                lines.append(c)
+                lines.append('\n')
         if self.has_context:
             lines.append(wrap_declaration('msgctxt', self.msgctxt))
         lines.append(wrap_declaration('msgid', self.msgid))
@@ -294,8 +300,8 @@ class Message(object):
         string = ''.join(lines)
         return string
 
-    def __str__(self):
-        return self.tostring()
+    #def __str__(self):
+    #    return self.tostring()
 
     def copy(self):
         return self.__class__(self.msgid, self.msgstrs, self.msgid_plural,
@@ -303,22 +309,22 @@ class Message(object):
                               comments=list(self.comments),
                               meta=self.meta.copy(), flags=self.flags.copy())
 
-    def decode(self):
-        encoding = self.meta['encoding']
-        msgvars = vars(self)
+    #def decode(self):
+    #    encoding = self.meta['encoding']
+    #    msgvars = vars(self)
 
-        kwargs = {}
-        for key in ['comments', 'msgstrs', 'flags']:
-            kwargs[key] = [string.decode(encoding) for string in msgvars[key]]
-        kwargs['msgstr'] = kwargs.pop('msgstrs')
-        for key in ['msgid', 'msgid_plural', 'msgctxt']:
-            if msgvars[key] is None:
-                kwargs[key] = None
-            else:
-                kwargs[key] = msgvars[key].decode(encoding)
-        meta = msgvars['meta'].copy()
-        kwargs['meta'] = meta
-        return self.__class__(**kwargs)
+    #    kwargs = {}
+    #    for key in ['comments', 'msgstrs', 'flags']:
+    #        kwargs[key] = [string.decode(encoding) for string in msgvars[key]]
+    #    kwargs['msgstr'] = kwargs.pop('msgstrs')
+    #    for key in ['msgid', 'msgid_plural', 'msgctxt']:
+    #        if msgvars[key] is None:
+    #            kwargs[key] = None
+    #        else:
+    #            kwargs[key] = msgvars[key].decode(encoding)
+    #    meta = msgvars['meta'].copy()
+    #    kwargs['meta'] = meta
+    #    return self.__class__(**kwargs)
 
 
 class ObsoleteMessage(Message):
@@ -735,7 +741,7 @@ class EchoWrapper:
 
     def __next__(self):
         line = next(self.fd)
-        #print(line, end='')
+        print(line, end='')
         return line
     next = __next__  # Python2
 
@@ -772,7 +778,7 @@ for key in patterns:
 def lowlevel_parse_encoded(fd):
     """Yield all chunks in fd, where fd must have correct encoding."""
 
-    fd = EchoWrapper(fd)  # Enable to print all lines
+    #fd = EchoWrapper(fd)  # Enable to print all lines
     fd = FileWrapper(fd)
 
     def _devour(pattern, line, tokens):
@@ -799,7 +805,7 @@ def lowlevel_parse_encoded(fd):
                 msg.msgctxt_lines = []
                 line = _devour(pat['msgctxt'], line, msg.msgctxt_lines)
 
-            #print('now line', line)
+            msg.lineno = fd.lineno
             line = _devour(pat['msgid'], line, msg.msgid_lines)
             if pat['msgid_plural'].match(line):
                 msg.msgid_plural_lines = []
@@ -836,9 +842,6 @@ def lowlevel_parse_binary(fd):
     """Detect encoding of binary file fd and yield all chunks, encoded."""
 
     def find_header(try_charset, errors):
-        #info = lookup(try_charset)
-        #srw = StreamReaderWriter(fd, info.streamreader, info.streamwriter,
-        #                         errors)
         srw = stream_encoder(fd, try_charset, errors=errors)
         msgs_before_header = []
         parser = lowlevel_parse_encoded(srw)
@@ -938,24 +941,16 @@ def stream_encoder(fd, encoding, errors='strict'):
                              errors=errors)
     return srw
 
-
-def stream_reader(fd, encoding, errors='strict'):
-    return stream_encoder(fd, encoding, errors)
-
-
-def stream_writer(fd, encoding, errors='strict'):
-    # WTF this won't work in Py3.
-    # But isn't necessary either
-    #
-    # ...unless we need to write ISO-8859-1 probably.
-    # TODO think about this stuff.
-    if sys.version_info[0] == 2:
-        return stream_encoder(fd, encoding, errors)
+def get_encoded_stdout(encoding, errors='strict'):
+    if sys.version_info[0] == 3:
+        return stream_encoder(sys.stdout.buffer, encoding, errors=errors)
     else:
-        return fd
+        from util import Py2Encoder
+        return Py2Encoder(sys.stdout, encoding)
+
 
 def main():
-    out = stream_writer(sys.stdout, 'utf-8')
+    out = get_encoded_stdout('utf-8')
     fname = sys.argv[1]
 
     with open(fname, 'rb') as fd:
