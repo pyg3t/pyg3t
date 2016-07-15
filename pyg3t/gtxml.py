@@ -33,12 +33,12 @@ class GTXMLChecker:
         if known_tags is None:
             known_tags = set()
         self.known_tags = set(known_tags)
-    
+
     def _filter(self, string):
         # Surround the string with a root tag
         xml = ''.join(['<xml>', string.replace('\\"', '"'), '</xml>'])
         return xml.encode('utf8')
-    
+
     def parse_xml_elements(self, string):
         xmlstring = self._filter(string)
         elements = XMLElementSet()
@@ -47,7 +47,7 @@ class GTXMLChecker:
         # strings, and should be ignored.  This is also why self.elements
         # can't (simply) be a set right away
         return set(elements.elements[1:])
-    
+
     def check_msg(self, msg):
         """Raise SAXParseException if msg is considered ill-formed."""
         #encoding = msg.meta['encoding']
@@ -70,7 +70,7 @@ class GTXMLChecker:
                     raise SuspiciousTagsError(msg)
 
         return True
-    
+
     def check_msgs(self, msgs):
         """Yield pairs (msg, errmsg) for msgs with ill-formed xml."""
         for msg in msgs:
@@ -88,7 +88,7 @@ def build_parser():
                    'its msgid is well-formed xml while at least one of its '
                    'msgstrs is not.  If no FILE is given, '
                    'or if FILE is -, read from stdin.')
-                   
+
     parser = OptionParser(usage=usage, description=description)
     parser.add_option('-s', '--summary', action='store_true',
                       help='write only whether each FILE passes or fails, '
@@ -116,7 +116,7 @@ def get_inputfiles(args, parser):
     """Yield file-like objects corresponding to the given list of filenames."""
     if len(args) == 0:
         yield sys.stdin
-    
+
     for arg in args:
         if arg == '-':
             yield arg, sys.stdin
@@ -131,10 +131,10 @@ def get_inputfiles(args, parser):
 class MsgPrinter:
     def __init__(self, out):
         self.out = out
-    
+
     def get_header(self, filename, msg, err):
         return 'At line %d: %s' % (msg.meta['lineno'], err.args[0])
-        
+
     def write_msg(self, msgstring, err):
         print(msgstring, file=self.out)
 
@@ -163,7 +163,7 @@ class SilentMsgPrinter(MsgPrinter):
 class FileSummarizer:
     def __init__(self, out):
         self.out = out
-    
+
     def write(self, filename, totalcount, badcount):
         if badcount:
             status = 'FAIL'
