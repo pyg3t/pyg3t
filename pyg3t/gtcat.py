@@ -1,11 +1,9 @@
 from __future__ import print_function, unicode_literals
-import sys
 import codecs
 from optparse import OptionParser
 from itertools import chain
 from pyg3t.util import pyg3tmain
-
-from pyg3t.gtparse import parse
+from pyg3t.gtparse import parse, get_encoded_stdout
 from pyg3t.charsets import get_gettext_encoding_name
 
 
@@ -51,9 +49,6 @@ def main():
             assert len(header.msgstrs) == 1
         else:
             dst_encoding = cat.encoding
-
-        from codecs import EncodedFile
-        from pyg3t.gtparse import get_encoded_stdout
 
         out = get_encoded_stdout(dst_encoding)
         for msg in chain(cat, cat.obsoletes):
