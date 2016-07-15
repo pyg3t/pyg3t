@@ -1,0 +1,11 @@
+cat2="python2 $(which gtcat)"
+cat3="python3 $(which gtcat)"
+$cat2 testpofile.da.po > out.py2.po
+$cat3 testpofile.da.po > out.py3.po
+$cat2 testpofile.da.po --encode iso-8859-1 > out.py2.iso.po
+$cat3 testpofile.da.po --encode iso-8859-1 > out.py3.iso.po
+$cat2 out.py2.iso.po > out.py2.iso2.po
+$cat3 out.py3.iso.po > out.py3.iso2.po
+$cat2 out.py2.iso.po --encode utf8 > out.py2.utf.po
+$cat3 out.py3.iso.po --encode utf8 > out.py3.utf.po
+diff out.py2.utf.po out.py3.utf.po
