@@ -6,9 +6,9 @@ import fileinput
 import itertools
 from optparse import OptionParser
 
-from pyg3t.gtparse import parse
+from pyg3t.gtparse import parse, get_encoded_stdout
 from pyg3t.gtxml import GTXMLChecker
-from pyg3t.util import pyg3tmain, Encoder
+from pyg3t.util import pyg3tmain
 from pyg3t import __version__
 import xml.sax
 
@@ -33,8 +33,8 @@ class XMLTest:
         warn = None
         try:
             self.checker.check_msg(msg)
-        except xml.sax.SAXParseException, err:
-            warn = 'Invalid xml: ' + unicode(err)
+        except xml.sax.SAXParseException as err:
+            warn = 'Invalid xml: ' + str(err)
         return msgid, msgstr, warn
 
 
@@ -68,7 +68,7 @@ class ContextCharTest:
 
 
 def sametype(msgid, msgstr):
-    for n, (ichar, schar) in enumerate(itertools.izip(msgid, msgstr)):
+    for n, (ichar, schar) in enumerate(zip(msgid, msgstr)):
         if ichar.isalpha() and schar.isalpha():
             return True, n
         if ichar != schar:
@@ -242,13 +242,20 @@ def main():
     elif nargs > 1:
         print('One file at a time, please.', file=sys.stderr)
         raise SystemExit(1)
-    
-    allfiles = fileinput.input(args)
+
+    fname = args[0]
+    if fname == '-':
+        fd = sys.stdin  # how to wrap this?
+    else:
+        fd = open(fname, 'rb')
+    #allfiles = fileinput.input(args)
     
     # XXX does this work with multiple files actually?
-    cat = parse(allfiles)
+    cat = parse(fd)
 
-    out = Encoder(sys.stdout, cat.encoding)
+    #out = get_encoded_stdout(sys.stdout, cat.encoding)
+    # We will not respect the original coding of the file
+    out = get_encoded_stdout('utf-8')
 
     tests = []
     tests.append(PartiallyTranslatedPluralTest())
