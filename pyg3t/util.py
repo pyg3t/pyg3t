@@ -18,7 +18,7 @@ class Py2Encoder:
             #else:
             #    raise ValueError('Grrrr: %s %s' % (type(txt), repr(txt)))
             txt = unicode(txt)
-        self.fd.write(txt.encode(encoding=self.encoding))
+        self.fd.write(txt.encode(self.encoding))
 
 
 colors = {'blue': '0;34',

@@ -23,7 +23,7 @@ class GTGrep:
         flags = 0
         if ignorecase:
             flags |= re.IGNORECASE
-        
+
         # One should think that we should use re.LOCALE as a compile
         # flag, at least for the msgstr.  This, however, is not the
         # case, because it'll screw up unicode upper/lowercase
@@ -35,7 +35,7 @@ class GTGrep:
             except re.error as err:
                 raise re.error('bad %s pattern "%s": %s' % (name, pattern,
                                                             err))
-        
+
         if filterpattern is None:
             def filter(string):
                 return string
@@ -46,7 +46,7 @@ class GTGrep:
 
         tests = []
         inversetests = []
-        
+
         def search(pattern, string):
             return pattern.search(self.filter(string))
 
@@ -75,7 +75,7 @@ class GTGrep:
                 if search(pattern, comment):
                     return True
             return False
-        
+
         def checkctxt(pattern, msg):
             return msg.has_context and search(pattern, msg.msgctxt)
 
@@ -83,7 +83,7 @@ class GTGrep:
             def __init__(self, checkfunc, pattern, name):
                 self.checkfunc = checkfunc
                 self.pattern = re_compile(pattern, name)
-                
+
             def __call__(self, msg):
                 return self.checkfunc(self.pattern, msg)
 
@@ -105,7 +105,7 @@ class GTGrep:
         if imsgctxt_pattern is not None:
             inversetests.append(Check(checkctxt, imsgctxt_pattern,
                                       '--imsgctxt'))
-        
+
         if match_all:
             def check(msg):
                 for test in inversetests:
@@ -130,7 +130,7 @@ class GTGrep:
     def check(self, msg):
         #return self._check(msg.decode())
         return self._check(msg)
-    
+
     def search_iter(self, msgs):
         for msg in msgs:
             matches = self.check(msg)
@@ -146,10 +146,10 @@ def build_parser():
     usage = '%prog [OPTIONS] [PATTERN] [FILE...]'
     parser = OptionParser(usage=usage, description=description,
                           version=__version__)
-    
+
     match = OptionGroup(parser, 'Matching options')
     output = OptionGroup(parser, 'Output options')
-    
+
     match.add_option('-i', '--msgid', metavar='PATTERN',
                      help='pattern for matching msgid')
     match.add_option('-I', '--imsgid', metavar='PATTERN',
@@ -168,12 +168,12 @@ def build_parser():
                      help='pattern for inverse matching of comments')
     match.add_option('-c', '--case', action='store_true',
                      help='use case sensitive matching')
-    match.add_option('-f', '--filter', action='store_true', 
+    match.add_option('-f', '--filter', action='store_true',
                      help='ignore filtered characters when matching')
     match.add_option('--filtered-chars', metavar='CHARS', default='_&',
                      help='string of characters that are ignored when'
                      ' given the --filter option.  Default: %default')
-    
+
     output.add_option('-C', '--count', action='store_true',
                       help='print only a count of matching messages')
     output.add_option('-F', '--fancy', action='store_true',
@@ -183,10 +183,10 @@ def build_parser():
     output.add_option('-G', '--gettext-compatible', action='store_true',
                       help='print annotations such as line numbers as'
                       ' comments, making output a valid po-file.')
-    
+
     parser.add_option_group(match)
     parser.add_option_group(output)
-    
+
     return parser
 
 
@@ -203,10 +203,10 @@ def args_iter(args, parser): # open sequentially as needed
 def main():
     parser = build_parser()
     opts, args = parser.parse_args()
-    
+
     charset = 'UTF-8' # yuck
     out = get_encoded_stdout(charset)
-    
+
     patterns = {}
     keys = ['msgid', 'msgstr', 'msgctxt', 'comment']
     negative_keys = ['i' + key for key in keys]
@@ -216,9 +216,9 @@ def main():
             if sys.version_info[0] == 2:
                 pattern = pattern.decode(charset)
             patterns[key] = pattern
-    
+
     match_all = True
-    
+
     if not patterns:
         try:
             pattern = args.pop(0)
@@ -235,7 +235,7 @@ def main():
             match_all = False
 
     argc = len(args)
-    
+
     multifile_mode = (argc > 1)
     if multifile_mode:
         def format_linenumber(filename, msg):
@@ -314,7 +314,7 @@ def main():
                     return self.colorize(matchstring)
 
             highlighter = MatchColorizer('light blue')
-            
+
             match_highlight_pattern = '|'.join([pattern
                                                 for pattern
                                                 in patterns.values()])
@@ -322,9 +322,9 @@ def main():
 
             for msg in matches:
                 string = msg.tostring()
-                string = re.sub(match_highlight_pattern, 
+                string = re.sub(match_highlight_pattern,
                                 highlighter.colorize_match, string)
-                
+
                 if opts.line_numbers:
                     print(format_linenumber(filename, msg), file=out)
                 # Encode before print ensures there'll be no screwups if stdout
