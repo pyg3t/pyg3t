@@ -40,7 +40,7 @@ class FancyWDiffFormat:
         return self.oldcolor.colorize(string)
 
     def replace(self, old, new):
-        return '%s%s' % (self.oldcolor.colorize(old), 
+        return '%s%s' % (self.oldcolor.colorize(old),
                          self.newcolor.colorize(new))
 
     def equal(self, string):
@@ -55,7 +55,7 @@ def diff(old, new, formatter):
         return string.replace('\\n', '').isspace()
 
     differ = SequenceMatcher(isgarbage, a=oldwords, b=newwords)
-    
+
     words = []
     for op, s1beg, s1end, s2beg, s2end in differ.get_opcodes():
         if op == 'equal':

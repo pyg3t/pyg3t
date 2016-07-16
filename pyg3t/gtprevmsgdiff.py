@@ -17,14 +17,14 @@ def main():
                  help='use colors to highlight changes')
     p.add_option('--include-translated', action='store_true',
                  help='write differences for translated messages as well')
-    
+
     opts, args = p.parse_args()
 
     if opts.fancy:
         formatter = FancyWDiffFormat()
     else:
         formatter = DefaultWDiffFormat()
-    
+
     if len(args) != 1:
         p.error('Only a single file expected; got %d' % len(args))
     cat = parse(open(args[0]))
@@ -35,14 +35,14 @@ def main():
             continue
         if msg.istranslated and not opts.include_translated:
             continue
-        
+
         if msg.istranslated:
             status = 'translated'
         elif msg.isfuzzy:
             status = 'fuzzy'
         else:
             status = 'untranslated'
-        
+
         header = 'Line %d (%s)' % (msg.meta['lineno'], status)
         print(('--- %s ' % header).ljust(78, '-'), file=out)
         oldmsgid = msg.previous_msgid.replace('\\n', '\\n\n')

@@ -30,7 +30,7 @@ def print_msg_diff(differ, oldmsg, newmsg, fd):
         print(differ.maybe_wrapdiff('msgstr', oldmsg.msgstr, newmsg.msgstr),
               file=fd)
     else:
-        for i, (oldmsgstr, newmsgstr) in enumerate(zip(oldmsg.msgstrs, 
+        for i, (oldmsgstr, newmsgstr) in enumerate(zip(oldmsg.msgstrs,
                                                        newmsg.msgstrs)):
             print(differ.maybe_wrapdiff('msgstr[%d]' % i, oldmsgstr,
                                         newmsgstr), file=fd)
@@ -100,7 +100,7 @@ class MSGDiffer:
 
     def wrapdiff(self, header, old, new):
         words, colors = self.difftokens(old, new)
-        
+
         newwords = []
         newcolors = []
 
@@ -124,7 +124,7 @@ class MSGDiffer:
             if w.endswith('\\n'):# and c != red:
                 newappend('"\n', self.equalcolor)
                 nchars = 0
-        
+
         if nchars > 0:
             newappend('"', self.equalcolor)
         # XXX len(words) == 0 should not happen when we have to wrap
@@ -144,10 +144,10 @@ def main():
                  ' in comment (i.e. #| msgid)'
                  ' as if they were actual changes to msgid')
     opts, args = p.parse_args()
-    
+
     if len(args) != 1:
         p.error('Expected exactly one file; got %d' % len(args))
-    
+
     fname = args[0]
 
     # We will, rather laboriously (for the computer, that is)
@@ -163,7 +163,7 @@ def main():
 
     out = Encoder(sys.stdout, 'utf8')
     cats = []
-    
+
     for isnew in [False, True]:
         inputfd.seek(0)
         outfd = StringIO()
@@ -176,7 +176,7 @@ def main():
     oldcat, newcat = cats
 
     differ = MSGDiffer()
-    
+
     if len(oldcat) != len(newcat): # XXX not very general
         p.error('The catalogs have different length.  Not supported '
                 'by gtwdiff as of now')

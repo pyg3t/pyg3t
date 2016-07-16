@@ -18,7 +18,7 @@ def build_parser():
     p.add_option('--msgmerge', action='store_true',
                  help='use msgmerge for fuzzy matching.')
     mode_opts = OptionGroup(p, 'Merge modes')
-    
+
     modes = ['left', 'right', 'translationproject']
     #, 'launchpad', 'versionport']
     text = dict(left='prefer translations from MSGSTR_FILE in conflicts '
@@ -39,7 +39,7 @@ def build_parser():
     p.add_option_group(mode_opts)
     # option: translation project version merge mode
     # option: launchpad upload prepare mode
-    
+
     #p.add_option('--keep-header', action='store_true',
     #             help='')
     return p
@@ -53,13 +53,13 @@ def merge_msg(strmsg, idmsg):
                   and not comment == '#\n'
                   and not comment.startswith('#|')]
     # This will remove #|-comments
-    
+
     flags = idmsg.flags.copy()
     if 'fuzzy' in flags:
         flags.remove('fuzzy')
     if 'fuzzy' in strmsg.flags:
         flags.add('fuzzy')
-    
+
     assert len(strmsg.msgstrs) == len(idmsg.msgstrs)
     return Message(idmsg.msgid, strmsg.msgstrs, idmsg.msgid_plural,
                    msgctxt=idmsg.msgctxt, comments=strcomments + idcomments,
@@ -90,7 +90,7 @@ def main():
         fname1, fname2 = args
 
         if opts.msgmerge:
-            msgmerge = Popen(['msgmerge', fname1, fname2], 
+            msgmerge = Popen(['msgmerge', fname1, fname2],
                              stdout=PIPE,
                              stderr=PIPE)
             cat1 = parse(msgmerge.stdout)
@@ -139,7 +139,7 @@ def main():
                     ordered_keys.append(key)
                     headerdict[key] = value
                 return ordered_keys, headerdict
-            
+
             ordered_keys, dstheaderdict = header2dict(dstheader)
             idheaderdict = header2dict(idheader)[1]
 
@@ -147,7 +147,7 @@ def main():
             dstheaderdict['Project-Id-Version'] = id_version
             dstheaderdict['POT-Creation-Date'] = \
                 idheaderdict['POT-Creation-Date']
-            
+
             newheaderlines = []
             for key in ordered_keys:
                 newheaderlines.append(': '.join([key, dstheaderdict[key]]))

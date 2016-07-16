@@ -163,12 +163,12 @@ class PoDiff:
             new_msg.msgid_plural = wdiff(old_msg.msgid_plural,
                                          new_msg.msgid_plural,
                                          self.wdiff_formatter)
-        
+
         assert len(old_msg.msgstrs) == len(new_msg.msgstrs)
         for i, (msgstr1, msgstr2) in enumerate(zip(old_msg.msgstrs,
                                                    new_msg.msgstrs)):
             new_msg.msgstrs[i] = wdiff(msgstr1, msgstr2, self.wdiff_formatter)
-        
+
         print(new_msg.tostring(), file=self.out)
 
         if new_msg.msgid != '':

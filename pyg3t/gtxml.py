@@ -151,7 +151,7 @@ class MultiFileMsgPrinter(MsgPrinter):
     def get_header(self, filename, msg, err):
         if filename == '-':
             filename = '<stdin>'
-        return '%s, line %d: %s' % (filename, msg.meta['lineno'], 
+        return '%s, line %d: %s' % (filename, msg.meta['lineno'],
                                     err.args[0])
 
 

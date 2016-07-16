@@ -62,11 +62,11 @@ class Option:
         self.match = match
         self.group = group
         self.lines = lines
-        
+
         self.firstindent = len(self.group)
         self.groups = [group for group in match.groups()[1:]
                        if group is not None]
-        
+
         if len(lines) > 1:
             wmatch = leading_whitespace.match(lines[1])
             wspace = len(wmatch.group())
@@ -107,7 +107,7 @@ class OptionChecker:
 
         # Upper limit of description indentation level
         indent_guess = 75
-        
+
         for line in string.split('\\n'):
             if not line:
                 # Throw out empty lines at the end as well as
@@ -185,7 +185,7 @@ class OptionChecker:
                 msgstr_bad = (len(opt2.group.rstrip()) + 2 < opt2.firstindent)
                 if msgstr_bad:
                     raise BadOption('Bad indentation of option line')
-            
+
             if self.longlines:
                 msgid_fits = all(len(line) < 80 for line in opt1.lines)
                 msgstr_fits = all(len(line) < 80 for line in opt2.lines)
@@ -194,7 +194,7 @@ class OptionChecker:
             # XXX check subsequent indent
         print(('OK : Line %d. ' % msg.meta['lineno']).ljust(78, '-'),
               file=self.debug)
-        
+
 
 @pyg3tmain
 def main():
@@ -209,7 +209,7 @@ def main():
 
     checker = OptionChecker(debugfile=debug)
     out = Encoder(sys.stdout, 'utf8')
-    
+
     for arg in args:
         fd = open(arg)
         cat = parse(fd)

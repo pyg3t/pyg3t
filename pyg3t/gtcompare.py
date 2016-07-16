@@ -45,7 +45,7 @@ known_headers = ['Project-Id-Version', 'Report-Msgid-Bugs-To',
 def compare_headers(headers1, headers2, fd):
     headers_to_do = set(known_headers)
     headers_done = set()
-    
+
     for key in headers1.keys() + headers1.keys():
         headers_to_do.add(key)
 
@@ -58,7 +58,7 @@ def compare_headers(headers1, headers2, fd):
 
     def differs(key):
         return headers1[key] != headers2[key]
-    
+
     def check(key):
         if differs(key):
             print('Changed header %s' % key, file=fd)
@@ -74,7 +74,7 @@ def compare_headers(headers1, headers2, fd):
         pass
     else:
         header_done('Project-Id-Version')
-    
+
     try:
         date1, date2 = get('POT-Creation-Date')
     except KeyError:
@@ -108,7 +108,7 @@ def compare_headers(headers1, headers2, fd):
         else:
             print('Translation revision dates coincide', file=fd)
         header_done('PO-Revision-Date')
-    
+
     def process_header(header):
         if header in headers_done:
             return # already handled
@@ -116,11 +116,11 @@ def compare_headers(headers1, headers2, fd):
             check(header)
         except KeyError:
             if header in headers1 and not header in headers1:
-                print('Removed header %s' % ': '.join([header, 
+                print('Removed header %s' % ': '.join([header,
                                                        headers1[header]]),
                       file=fd)
             elif not header in headers1 and header in headers2:
-                print('Added header %s' % ': '.join([header, 
+                print('Added header %s' % ': '.join([header,
                                                      headers2[header]]),
                       file=fd)
             else:
@@ -130,7 +130,7 @@ def compare_headers(headers1, headers2, fd):
     # Copy the list as process_header makes changes to the list
     for header in list(known_headers):
         process_header(header)
-    
+
     # The remaining ones which are "unknown"
     for header in list(headers_to_do):
         process_header(header)
@@ -149,13 +149,13 @@ def compare(cat1, cat2, fd):
 
     # TODO
     # info about comments?
-    # 
+    #
     # An option to print messages by classification,
     # e.g. to print all the conflicts, print all the common msgs, ...
-    
+
     n1 = len(msgs1)
     n2 = len(msgs2)
-    
+
     def compare_msgids(source, dest):
         missing = []
         for key in source:
@@ -199,20 +199,20 @@ def compare(cat1, cat2, fd):
 
         if first_only:
             u, f, t = stats(msgs1[key] for key in first_only)
-            print('%d msgids removed [u:%4d, f:%4d, t:%4d].' 
+            print('%d msgids removed [u:%4d, f:%4d, t:%4d].'
                   % (len(first_only), u, f, t), file=fd)
         else:
             print('No msgids removed.', file=fd)
-        
+
         if second_only:
             u, f, t = stats(msgs2[key] for key in second_only)
-            print('%d msgids added   [u:%4d, f:%4d, t:%4d].' 
+            print('%d msgids added   [u:%4d, f:%4d, t:%4d].'
                   % (len(second_only), u, f, t), file=fd)
         else:
             print('No msgids added.', file=fd)
         print('%d msgids in common.' % len(common), file=fd)
         print(file=fd)
-    
+
     transitions = dict(uu=0,
                        uf=0,
                        ut=0,
@@ -222,7 +222,7 @@ def compare(cat1, cat2, fd):
                        tu=0,
                        tf=0,
                        tt=0)
-    
+
     def getstate(msg):
         if msg.untranslated:
             return 'u'
@@ -235,7 +235,7 @@ def compare(cat1, cat2, fd):
     for key in common:
         msg1 = msgs1[key]
         msg2 = msgs2[key]
-        
+
         # u -> u : nothing happened
         # u -> f : doesn't normally happen
         # u -> t : string in f1 has been translated in f2
@@ -245,10 +245,10 @@ def compare(cat1, cat2, fd):
         # t -> u : doesn't normally happen unless f2 newer than f1
         # t -> f : doesn't normally happen unless f2 newer than f1
         # t -> t : nothing happened
-        
+
         transition = getstate(msg1) + getstate(msg2)
         transitions[transition] += 1
-        
+
         descriptions = dict(u='untranslated',
                             f='fuzzy',
                             t='translated')
@@ -263,7 +263,7 @@ def compare(cat1, cat2, fd):
                 print('%d messages remain %s.' % (N, d1), file=fd)
             else:
                 print('%d %s messages changed to %s.' % (N, d1, d2), file=fd)
-    
+
     conflicts = 0
     for key in common:
         msg1 = msgs1[key]
@@ -278,20 +278,20 @@ def compare(cat1, cat2, fd):
               file=fd)
     else:
         print('There are no conflicts among translated messages.', file=fd)
-    
+
 
 @pyg3tmain
 def main():
     parser = build_parser()
     opts, args = parser.parse_args()
-    
+
     fd = Encoder(sys.stdout, 'utf-8')
 
     if len(args) != 2:
         parser.error('Error: Requires exactly 2 files; got %d' % len(args))
 
     file1, file2 = args
-    
+
     input1 = open(file1)
     input2 = open(file2)
     cat1 = parse(input1)

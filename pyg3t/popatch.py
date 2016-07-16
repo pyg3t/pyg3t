@@ -44,7 +44,7 @@ class PoPatch:
 
         Returns output file object if present or None
         """
-        
+
         for line in fileobject.readlines():
             line = line.decode('utf8') # XXX utf8
             if line.startswith('\n'):
@@ -134,7 +134,7 @@ def main():
             raise SystemExit(3)
     else:
         outfile = sys.stdout
-    
+
     outfile = Encoder(outfile, 'utf8')
     popatch = PoPatch()
 
