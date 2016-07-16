@@ -4,8 +4,8 @@ import sys
 from subprocess import Popen, PIPE
 from optparse import OptionParser, OptionGroup
 
-from pyg3t.gtparse import parse, Message, Catalog
-from pyg3t.util import pyg3tmain, Encoder
+from pyg3t.gtparse import parse, Message, Catalog, get_encoded_stdout
+from pyg3t.util import pyg3tmain
 
 
 def build_parser():
@@ -15,8 +15,8 @@ def build_parser():
                      'msgids from MSGID_FILEs where applicable, printing '
                      'the resulting catalog to stdout.  The result is '
                      'guaranteed to be template-compatible with MSGID_FILE.')
-    p.add_option('--msgmerge', action='store_true',
-                 help='use msgmerge for fuzzy matching.')
+    #p.add_option('--msgmerge', action='store_true', # XXX temporarily disabled
+    #             help='use msgmerge for fuzzy matching.')
     mode_opts = OptionGroup(p, 'Merge modes')
 
     modes = ['left', 'right', 'translationproject']
@@ -89,14 +89,14 @@ def main():
             p.error('Expected two arguments, got %d' % len(args))
         fname1, fname2 = args
 
-        if opts.msgmerge:
-            msgmerge = Popen(['msgmerge', fname1, fname2],
-                             stdout=PIPE,
-                             stderr=PIPE)
-            cat1 = parse(msgmerge.stdout)
-        else:
-            cat1 = parse(open(fname1))
-        cat2 = parse(open(fname2))
+        #if opts.msgmerge:
+        #    msgmerge = Popen(['msgmerge', fname1, fname2],
+        #                     stdout=PIPE,
+        #                     stderr=PIPE)
+        #    cat1 = parse(msgmerge.stdout) # XXX encoding??
+        #else:
+        cat1 = parse(open(fname1, 'rb'))
+        cat2 = parse(open(fname2, 'rb'))
 
         if opts.mode == 'left':
             overwrite = True
