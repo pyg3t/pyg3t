@@ -13,7 +13,7 @@ class Counter:
         self.selector = selector
         self.count = 0
         self.total = 0
-    
+
     def evaluate(self, msg):
         result = self.selector.evaluate(msg)
         if result:
@@ -69,12 +69,12 @@ class OrSelector:
                 return True
         return False
 
-        
+
 class AndSelector:
     def __init__(self, selectors):
         self.name = 'and: %s' % list(selectors)
         self.selectors = selectors
-        
+
     def evaluate(self, msg):
         for selector in self.selectors:
             if not selector.evaluate(msg):
@@ -103,7 +103,7 @@ class PoSelect:
 #class LineNumberMsgPrinter:
 #    def __init__(self, printer):
 #        self.printer = printer
-#    
+#
 #    def write(self, msg):
 #        print 'Line %d' % msg.meta['lineno']
 #        self.printer.write(msg)
@@ -118,7 +118,7 @@ def build_parser():
 
     selection = OptionGroup(parser, 'Selection options')
     output = OptionGroup(parser, 'Output options')
-    
+
     selection.add_option('-t', '--translated', action='store_true',
                       help='select translated messages')
     selection.add_option('-u', '--untranslated', action='store_true',
@@ -132,7 +132,7 @@ def build_parser():
     selection.add_option('-a', '--and', action='store_true', dest='and_',
                          help='require all, rather than any, selection '
                          'criterion to trigger selection')
-                      
+
     output.add_option('-n', '--line-number', action='store_true',
                       help='print line numbers of selected messages')
     output.add_option('-s', '--summary', action='store_true',
@@ -160,11 +160,11 @@ def main():
 
     if len(args) == 0:
         args = ['-']
-    
+
     is_multifile = len(args) > 1
-    
+
     files = getfiles(args)
-    
+
     selectors = []
     if opts.translated:
         selectors.append(TranslatedSelector())
@@ -176,20 +176,20 @@ def main():
         selectors.append(PluralSelector())
 
     selectors = [Counter(selector) for selector in selectors]
-    
+
     if opts.and_:
         superselector = AndSelector(selectors)
     else:
         superselector = OrSelector(selectors)
     if opts.invert:
         superselector = NegatingSelector(superselector)
-    
+
     counter = Counter(superselector)
     poselect = PoSelect(counter)
-    
+
     for fname, fd in files:
         #printer = MsgPrinter(Encoder(sys.stdout, ))
-        
+
         #if opts.line_number:
         #    printer = LineNumberMsgPrinter(printer)
         try:
