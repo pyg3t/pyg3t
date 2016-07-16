@@ -204,12 +204,12 @@ def main():
     parser = build_parser()
     opts, args = parser.parse_args()
 
-    known_tags = []
-    if opts.tags_from:
-        known_tags = open(opts.tags_from).read().split()
+    #known_tags = []
+    #if opts.tags_from:
+    #    known_tags = open(opts.tags_from).read().split()
 
-    check_tags = opts.tags or opts.tags_from
-    gtxml = GTXMLChecker(check_tags, known_tags)
+    check_tags = False #opts.tags or opts.tags_from
+    gtxml = GTXMLChecker()#check_tags, known_tags)
     from pyg3t.gtparse import get_encoded_stdout
     out = get_encoded_stdout('utf8')
     #out = Encoder(sys.stdout, 'utf8') # overwritten below as necessary
