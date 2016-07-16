@@ -21,11 +21,11 @@ from __future__ import print_function, unicode_literals
 import sys
 from optparse import OptionParser
 from difflib import unified_diff
-from pyg3t.gtparse import parse
+from pyg3t.gtparse import parse, get_encoded_stdout
 from pyg3t import __version__
 from pyg3t.gtdifflib import FancyWDiffFormat
 from pyg3t.gtdifflib import diff as wdiff
-from pyg3t.util import pyg3tmain, Encoder
+from pyg3t.util import pyg3tmain
 
 
 class PoDiff:
@@ -235,9 +235,10 @@ def __build_parser():
     parser.add_option('-m', '--no-line-numbers', action='store_false',
                       dest='line_numbers',
                       help='do not prefix line number (opposite of -l)')
-    parser.add_option('-o', '--output', metavar='FILE',
-                      help='send output to FILE instead of '
-                      'standard out')
+    #parser.add_option('-o', '--output', metavar='FILE',
+    #                  help='send output to FILE instead of '
+    #                  'standard out')
+    # XXX reenable this
     parser.add_option('-r', '--relax', action='store_true', default=False,
                       help='allow for files with different base, i.e. '
                       'where the msgids are not pairwise the same. But still '
@@ -266,41 +267,42 @@ def main():  # pylint: disable-msg=R0912
         option_parser.error('podiff takes exactly two arguments')
 
     # Open file for writing, if it is not one of the input files
-    if opts.output:
-        if opts.output in (args[0], args[1]):
-            option_parser.error('The output file you have specified is the '
-                                'same as one of the input files. This is not '
-                                'allowed, as it may cause a loss of work.')
+    #if opts.output:
+    #    if opts.output in (args[0], args[1]):
+    #        option_parser.error('The output file you have specified is the '
+    #                            'same as one of the input files. This is not '
+    #                            'allowed, as it may cause a loss of work.')
 
-        try:
-            out = open(opts.output, 'w')
-        except IOError, err:
-            print('Could not open output file for writing. '
-                  'open() gave the following error:', file=sys.stderr)
-            print(err, file=sys.stderr)
-            raise SystemExit(4)
-    else:
-        out = sys.stdout
+    #    try:
+    #        out = open(opts.output, 'w')
+    #    except IOError as err:
+    #        print('Could not open output file for writing. '
+    #              'open() gave the following error:', file=sys.stderr)
+    #        print(err, file=sys.stderr)
+    #        raise SystemExit(4)
+    #else:
+    #    out = get_encoded_stdout('utf-8')
 
     # Load files into catalogs
     try:
         if args[0] == '-':
-            cat_old = parse(sys.stdin)
+            cat_old = parse(sys.stdin) # XXX
         else:
-            cat_old = parse(open(args[0]))
+            cat_old = parse(open(args[0], 'rb'))
 
         if args[1] == '-':
-            cat_new = parse(sys.stdin)
+            cat_new = parse(sys.stdin) # XXX
         else:
-            cat_new = parse(open(args[1]))
-    except IOError, err:
+            cat_new = parse(open(args[1], 'rb'))
+    except IOError as err:
         print('Could not open one of the input files for '
               'reading. open() gave the following error:', file=sys.stderr)
         print(err, file=sys.stderr)
         raise SystemExit(5)
 
     # Get PoDiff instanse
-    out = Encoder(out, cat_new.encoding)
+    # XXXXXX stdout
+    out = get_encoded_stdout(cat_new.encoding)
     podiff = PoDiff(out, opts.line_numbers, opts.color)
 
     # Diff the files

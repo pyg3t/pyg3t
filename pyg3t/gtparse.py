@@ -565,7 +565,7 @@ def lowlevel_parse_binary(fd):
     """Detect encoding of binary file fd and yield all chunks, encoded."""
 
     def find_header(try_charset, errors):
-        srw = stream_encoder(fd, try_charset, errors=errors)
+        srw = _stream_encoder(fd, try_charset, errors=errors)
         msgs_before_header = []
         parser = lowlevel_parse_encoded(srw)
         for msg in parser:
@@ -658,7 +658,7 @@ def parse(fd):
     return cat
 
 
-def stream_encoder(fd, encoding, errors='strict'):
+def _stream_encoder(fd, encoding, errors='strict'):
     info = lookup(encoding)
     srw = StreamReaderWriter(fd, info.streamreader, info.streamwriter,
                              errors=errors)
@@ -666,7 +666,7 @@ def stream_encoder(fd, encoding, errors='strict'):
 
 def get_encoded_stdout(encoding, errors='strict'):
     if sys.version_info[0] == 3:
-        return stream_encoder(sys.stdout.buffer, encoding, errors=errors)
+        return _stream_encoder(sys.stdout.buffer, encoding, errors=errors)
     else:
         from util import Py2Encoder
         return Py2Encoder(sys.stdout, encoding)
