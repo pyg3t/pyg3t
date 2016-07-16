@@ -281,13 +281,11 @@ class Message(object):
         for c in self.comments:
             if not c.startswith('#|'):
                 lines.append(c)
-                lines.append('\n')
         if self.flags:
             lines.append(self.flagstostring())
         for c in self.comments:
             if c.startswith('#|'):
                 lines.append(c)
-                lines.append('\n')
         if self.has_context:
             lines.append(wrap_declaration('msgctxt', self.msgctxt))
         lines.append(wrap_declaration('msgid', self.msgid))
@@ -474,8 +472,10 @@ class FileWrapper:
     def __next__(self):
         line = None
         while not line or line.isspace():
-            line = next(self.fd).rstrip('\r\n')
+            line = next(self.fd)
             self.lineno += 1
+        if line.endswith('\r\n') or line.endswith('\r'):
+            line = line.rstrip('\r\n') + '\n'
         return line
     next = __next__  # Python2
 
@@ -504,12 +504,14 @@ def lowlevel_parse_encoded(fd):
 
     def _devour(pattern, line, tokens):
         return devour(pattern, pat['continuation'], line, fd, tokens,
-                   msg.rawlines)
+                      msg.rawlines)
 
     line = next(fd)
     while True:
         msg = MessageChunk()
 
+        # 'pat' will change to another set of patterns if the message
+        # turns out to be obsolete
         pat = patterns
 
         try:

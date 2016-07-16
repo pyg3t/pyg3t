@@ -8,8 +8,8 @@ import re
 from optparse import OptionParser, OptionGroup
 
 from pyg3t import __version__
-from pyg3t.gtparse import parse
-from pyg3t.util import Colorizer, pyg3tmain, Encoder
+from pyg3t.gtparse import parse, get_encoded_stdout
+from pyg3t.util import Colorizer, pyg3tmain
 
 
 class GTGrep:
@@ -32,7 +32,7 @@ class GTGrep:
         def re_compile(pattern, name):
             try:
                 return re.compile(pattern, re.UNICODE|flags)
-            except re.error, err:
+            except re.error as err:
                 raise re.error('bad %s pattern "%s": %s' % (name, pattern,
                                                             err))
         
@@ -193,8 +193,8 @@ def build_parser():
 def args_iter(args, parser): # open sequentially as needed
     for arg in args:
         try:
-            fd = open(arg, 'r')
-        except IOError, err:
+            fd = open(arg, 'rb')
+        except IOError as err:
             parser.error(err)
         yield arg, fd
 
@@ -205,7 +205,7 @@ def main():
     opts, args = parser.parse_args()
     
     charset = 'UTF-8' # yuck
-    out = Encoder(sys.stdout, charset)
+    out = get_encoded_stdout(charset)
     
     patterns = {}
     keys = ['msgid', 'msgstr', 'msgctxt', 'comment']
@@ -213,13 +213,17 @@ def main():
     for key in keys + negative_keys:
         pattern = getattr(opts, key)
         if pattern is not None:
-            patterns[key] = pattern.decode(charset)
+            if sys.version_info[0] == 2:
+                pattern = pattern.decode(charset)
+            patterns[key] = pattern
     
     match_all = True
     
     if not patterns:
         try:
-            pattern = args.pop(0).decode(charset)
+            pattern = args.pop(0)
+            if sys.version_info[0] == 2:
+                pattern = pattern.decode(charset)
         except IndexError:
             parser.error('No PATTERNs given')
             raise SystemExit(17)
@@ -255,7 +259,7 @@ def main():
     if opts.filter:
         try:
             filterpattern = re.compile('[%s]' % opts.filtered_chars)
-        except re.error, err:
+        except re.error as err:
             parser.error('Bad filter pattern "%s": %s' % (opts.filtered_chars,
                                                           err))
 
@@ -271,7 +275,7 @@ def main():
                       ignorecase=not opts.case,
                       filterpattern=filterpattern,
                       match_all=match_all)
-    except re.error, err:
+    except re.error as err:
         parser.error(err)
 
     global_matchcount = 0
