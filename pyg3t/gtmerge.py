@@ -106,7 +106,7 @@ def main():
             # XXX more complicated modes?
 
         cat = merge(cat1, cat2, overwrite)
-        out = Encoder(sys.stdout, cat.encoding)
+        out = get_encoded_stdout(cat.encoding)
         for msg in cat:
             print(msg.tostring(), file=out)#.tostring()
         #for line in cat1.obsoletes:
@@ -116,9 +116,9 @@ def main():
         # mode is 'translationproject'
         msgstrfile = args[0]
         msgidfiles = args[1:]
-        strcat = parse(open(msgstrfile))
+        strcat = parse(open(msgstrfile, 'rb'))
         for msgidfile in msgidfiles:
-            idcat = parse(open(msgidfile))
+            idcat = parse(open(msgidfile, 'rb'))
             if not os.path.exists('merge'):
                 os.mkdir('merge')
             if not os.path.isdir('merge'):
