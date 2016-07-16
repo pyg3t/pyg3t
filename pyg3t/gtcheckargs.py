@@ -3,8 +3,8 @@ import sys
 import re
 from optparse import OptionParser
 
-from pyg3t.gtparse import parse
-from pyg3t.util import NullDevice, pyg3tmain, Encoder
+from pyg3t.gtparse import parse, get_encoded_stdout
+from pyg3t.util import NullDevice, pyg3tmain
 
 
 description = """Check translations of command-line options in po-files."""
@@ -205,20 +205,20 @@ def main():
 
     debug = None
     if opts.diagnostics:
-        debug = Encoder(sys.stdout, 'utf8')
+        debug = get_encoded_stdout('utf8')
 
     checker = OptionChecker(debugfile=debug)
-    out = Encoder(sys.stdout, 'utf8')
+    out = get_encoded_stdout('utf8')
 
     for arg in args:
-        fd = open(arg)
+        fd = open(arg, 'rb')
         cat = parse(fd)
         for msg in cat:
             # we ignore plurals.  Who would write command-like
             # arguments with multiple plural versions?
             try:
                 checker.checkoptions(msg)
-            except BadOption, e:
+            except BadOption as e:
                 errcount += 1
                 if not opts.quiet:
                     string = 'Line %d: %s' % (msg.meta['lineno'], e.args[0])
