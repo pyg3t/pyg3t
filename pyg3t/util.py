@@ -72,7 +72,7 @@ def getfiles(args):
             name = '<stdin>'
             yield name, sys.stdin
         else:
-            fd = open(arg)
+            fd = open(arg, 'rb')
             yield arg, fd
 
 

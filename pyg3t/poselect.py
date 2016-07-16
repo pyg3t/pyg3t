@@ -3,8 +3,8 @@ import sys
 from optparse import OptionParser, OptionGroup
 
 from pyg3t import __version__
-from pyg3t.util import getfiles, pyg3tmain, Encoder
-from pyg3t.gtparse import parse
+from pyg3t.util import getfiles, pyg3tmain
+from pyg3t.gtparse import parse, get_encoded_stdout
 
 
 class Counter:
@@ -194,9 +194,9 @@ def main():
         #    printer = LineNumberMsgPrinter(printer)
         try:
             cat = parse(fd)
-        except IOError, m:
+        except IOError as m:
             p.error(m)
-        out = Encoder(sys.stdout, cat.encoding)
+        out = get_encoded_stdout(cat.encoding)#Encoder(sys.stdout, cat.encoding)
         selected = poselect.select(cat)
 
         def printcount(count):
