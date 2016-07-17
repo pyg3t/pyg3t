@@ -68,6 +68,8 @@ def parse_header_data(msgstr):
         if not line or line.isspace():
             continue  # wtf
         tokens = line.split(':', 1)
+        if len(tokens) != 2:
+            continue # XXXXXX write warning
         #try:
         key, value = tokens  # Chance of shenanigans?
         #except ValueError:
@@ -346,6 +348,15 @@ class ObsoleteMessage(Message):
         return '\n'.join(lines)
 
 
+# Yuck!!
+# XXXXX We need a special case for the chunk of comments that sometimes
+# loafs unwelcomely at EOF.
+# This will likely cause lots of trouble.
+class OnlyComments(ObsoleteMessage):
+    def tostring(self):
+        return ''.join(comment for comment in self.comments)
+
+
 def is_wrappable(declaration, string):
     if len(string) + len(declaration) > 75:
         return True
@@ -403,7 +414,9 @@ class PoError(ValueError):
 obsolete_pattern = re.compile(r'\s*#~')
 obsolete_extraction_pattern = re.compile(r'\s*#~\s*(?P<line>.*)')
 
-charset_extraction_pattern = re.compile(r'^Content-Type:\s*text/plain;'
+# XXX Content-Type should generally be text/plain
+# TODO Issue warning otherwise.
+charset_extraction_pattern = re.compile(r'^Content-Type:\s*[^;]*;'
                                         r'\s*charset=(?P<charset>[^\\]*)')
 
 
@@ -610,16 +623,21 @@ def iterparse(fd):
             else:
                 comments.append(line)
 
-        # XXXX prevmsgid
-        if chunk.is_obsolete:
-            msgclass = ObsoleteMessage
-        else:
-            msgclass = Message
 
         def join(tokens):
             if tokens is None:
                 return None
             return ''.join(tokens)
+
+        # XXXX prevmsgid
+        if len(chunk.msgid_lines) == 0:
+            chunk.msgid_lines = ['XXXXXXXX'] # XXX
+            chunk.msgstrs = ['XXXXXXXX'] # XXX
+            msgclass = OnlyComments
+        elif chunk.is_obsolete:
+            msgclass = ObsoleteMessage
+        else:
+            msgclass = Message
 
         msgstr = None
         if len(chunk.msgstrs) > 0:
@@ -636,7 +654,7 @@ def iterparse(fd):
         yield msg
         # ignore 'fname', 'encoding' in meta
 
-encoding_pattern = re.compile(r'text/plain;\s*charset=(?P<encoding>[^\s]+)')
+encoding_pattern = re.compile(r'[^;]*;\s*charset=(?P<encoding>[^\s]+)')
 
 def parse(fd):
     try:
@@ -659,7 +677,7 @@ def parse(fd):
     headers = parse_header_data(msgs[0].msgstr)
     encoding_line = headers['Content-Type']
     match = re.match(encoding_pattern, encoding_line)
-    assert match is not None
+    assert match is not None, (encoding_pattern.pattern, encoding_line)
     encoding = match.group(1)
 
     cat = Catalog(fname, encoding, msgs)
