@@ -2,12 +2,11 @@ from __future__ import print_function, unicode_literals
 import sys
 import re
 from optparse import OptionParser
-from StringIO import StringIO
 from difflib import SequenceMatcher
 
-from popatch import PoPatch
 from pyg3t.gtparse import parse, get_encoded_stdout
 from pyg3t.util import Colorizer, pyg3tmain
+from pyg3t.popatch import PoPatch, split_diff_as_bytes
 
 
 def print_msg_diff(differ, oldmsg, newmsg, fd):
@@ -157,23 +156,24 @@ def main():
     # After this we re-parse them and diff them word-wise.
     popatch = PoPatch()
     fd = open(fname, 'rb')
-    inputfd = StringIO()
-    #print >> inputfd, fd.read()
-    print(fd.read(), file=inputfd)
+
+
+    oldbytes, newbytes = split_diff_as_bytes(fd)
+    oldcat = parse(iter(oldbytes))
+    newcat = parse(iter(newbytes))
 
     out = get_encoded_stdout('utf8')
-    cats = []
 
-    for isnew in [False, True]:
-        inputfd.seek(0)
-        outfd = StringIO()
-        popatch.version_of_podiff(inputfd, out=Encoder(outfd, 'utf8'),
-                                  new=isnew)
-        outfd.seek(0)
-        cat = parse(outfd)
-        cats.append(cat)
+    #for isnew in [False, True]:
+    #    inputfd.seek(0)
+    #    outfd = StringIO()
+    #    popatch.version_of_podiff(inputfd, out,#out=Encoder(outfd, 'utf8'),
+    #                              new=isnew)
+    #    outfd.seek(0)
+    #    cat = parse(outfd)
+    #    cats.append(cat)
 
-    oldcat, newcat = cats
+    #oldcat, newcat = cats
 
     differ = MSGDiffer()
 
@@ -181,7 +181,7 @@ def main():
         p.error('The catalogs have different length.  Not supported '
                 'by gtwdiff as of now')
 
-    for oldmsg, newmsg in zip(*cats):
+    for oldmsg, newmsg in zip(oldcat, newcat):
         if opts.previous:
             if oldmsg.has_previous_msgid:
                 if oldmsg.msgid != newmsg.msgid:

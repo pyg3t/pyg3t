@@ -1,6 +1,6 @@
 from __future__ import print_function, unicode_literals
 import sys
-from pyg3t.gtparse import PoError, PoHeaderError
+from pyg3t.gtparse import PoError, PoHeaderError, get_encoded_stdout
 # will this eventually become a circular import?
 # Maybe PoSyntaxError should be defined un util so that all modules
 # can use util without util using any of them
@@ -64,6 +64,33 @@ class Colorizer:
 class NullDevice:
     def write(self, txt):
         pass
+
+
+def get_bytes_output(name):
+    if name == '-':
+        try:
+            return sys.stdout.buffer
+        except AttributeError:  # Py2
+            return sys.stdout  # Already writes bytes
+    else:
+        return open(name, 'wb')
+
+
+def get_bytes_input(name):
+    if name == '-':
+        try:
+            return sys.stdin.buffer
+        except AttributeError:  # Py2
+            return sys.stdin  # Already reads bytes
+    else:
+        return open(name, 'rb')
+
+
+def get_encoded_output(name, encoding):
+    if name == '-':
+        return get_encoded_stdout(encoding)
+    else:
+        return open(name, 'w', encoding=encoding)
 
 
 def getfiles(args):

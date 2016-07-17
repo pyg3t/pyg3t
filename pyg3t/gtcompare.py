@@ -3,8 +3,8 @@ import sys
 from optparse import OptionParser
 from dateutil.parser import parse as parse_date
 
-from pyg3t.gtparse import parse
-from pyg3t.util import pyg3tmain, Encoder
+from pyg3t.gtparse import parse, get_encoded_stdout
+from pyg3t.util import pyg3tmain
 
 
 def build_parser():
@@ -285,15 +285,15 @@ def main():
     parser = build_parser()
     opts, args = parser.parse_args()
 
-    fd = Encoder(sys.stdout, 'utf-8')
+    fd = get_encoded_stdout('utf-8')
 
     if len(args) != 2:
         parser.error('Error: Requires exactly 2 files; got %d' % len(args))
 
     file1, file2 = args
 
-    input1 = open(file1)
-    input2 = open(file2)
+    input1 = open(file1, 'rb')
+    input2 = open(file2, 'rb')
     cat1 = parse(input1)
     cat2 = parse(input2)
 

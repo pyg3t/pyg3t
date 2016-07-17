@@ -561,32 +561,40 @@ class PoSyntaxError(ValueError):
     pass
 
 
+class ReadBuffer:
+    def __init__(self, fd):
+        self.fd = fd
+        self.bytelines = []
+
+    def __next__(self):
+        line = next(self.fd)
+        self.bytelines.append(line)
+        return line.decode('utf8', errors='replace')
+    next = __next__
+
+    def decode(self, charset):
+        return [line.decode(charset) for line in self.bytelines]
+
 def lowlevel_parse_binary(fd):
     """Detect encoding of binary file fd and yield all chunks, encoded."""
 
-    def find_header(try_charset, errors):
-        srw = _stream_encoder(fd, try_charset, errors=errors)
-        msgs_before_header = []
-        parser = lowlevel_parse_encoded(srw)
+    def find_header():
+        rbuf = ReadBuffer(fd)
+        parser = lowlevel_parse_encoded(rbuf)
         for msg in parser:
-            msgs_before_header.append(msg)
             if msg.get_msgid() == '':
                 charset = get_charset(msg.msgstrs[0])
-                return charset, msgs_before_header, parser
-
+                return charset, rbuf.bytelines
         raise PoSyntaxError('No header found in file %s' % fd.name)
 
     # Non-strict parsing to find header and extract charset:
-    charset, _, _ = find_header('utf-8', errors='replace')
-    assert charset is not None
+    charset, lines = find_header()
 
-    # Parse from scratch with correct charset:
-    fd.seek(0)
-    _charset, leading_msgs, parser = find_header(charset, errors='strict')
-    assert lookup(_charset) == lookup(charset)
+    import itertools
+    from codecs import iterdecode
+    parser = lowlevel_parse_encoded(iterdecode(itertools.chain(lines, fd),
+                                               encoding=charset))
 
-    for msg in leading_msgs:
-        yield msg
     for msg in parser:
         yield msg
 
@@ -671,6 +679,12 @@ def get_encoded_stdout(encoding, errors='strict'):
         from util import Py2Encoder
         return Py2Encoder(sys.stdout, encoding)
 
+
+def get_unencoded_stdin():
+    if sys.version_info[0] == 3:
+        return sys.stdin.buffer
+    else:
+        return sys.stdin
 
 def main():
     out = get_encoded_stdout('utf-8')
