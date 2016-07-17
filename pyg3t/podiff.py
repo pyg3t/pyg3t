@@ -159,8 +159,8 @@ class PoDiff:
                                     self.wdiff_formatter)
         new_msg.msgid = wdiff(old_msg.msgid, new_msg.msgid,
                               self.wdiff_formatter)
-        if new_msg.has_plurals:
-            assert old_msg.has_plurals
+        if new_msg.isplural:
+            assert old_msg.isplural
             new_msg.msgid_plural = wdiff(old_msg.msgid_plural,
                                          new_msg.msgid_plural,
                                          self.wdiff_formatter)
@@ -241,7 +241,6 @@ def __build_parser():
     parser.add_option('-o', '--output', metavar='FILE',
                       help='send output to FILE instead of '
                       'standard out')
-    # XXX reenable this
     parser.add_option('-r', '--relax', action='store_true', default=False,
                       help='allow for files with different base, i.e. '
                       'where the msgids are not pairwise the same. But still '
@@ -272,12 +271,12 @@ def main():  # pylint: disable-msg=R0912
     # Load files into catalogs
     try:
         if args[0] == '-':
-            cat_old = parse(get_unencoded_stdin()) # XXX
+            cat_old = parse(get_unencoded_stdin())
         else:
             cat_old = parse(open(args[0], 'rb'))
 
         if args[1] == '-':
-            cat_new = parse(get_unencoded_stdin()) # XXX
+            cat_new = parse(get_unencoded_stdin())
         else:
             cat_new = parse(open(args[1], 'rb'))
     except IOError as err:
@@ -304,9 +303,6 @@ def main():  # pylint: disable-msg=R0912
     else:
         out = get_encoded_stdout('utf-8')
 
-    # Get PoDiff instanse
-    # XXXXXX stdout
-    #out = get_encoded_stdout(cat_new.encoding)
     podiff = PoDiff(out, opts.line_numbers, opts.color)
 
     # Diff the files
@@ -323,5 +319,3 @@ def main():  # pylint: disable-msg=R0912
                                 'to read.')
 
         podiff.diff_catalogs_strict(cat_old, cat_new)
-
-    return

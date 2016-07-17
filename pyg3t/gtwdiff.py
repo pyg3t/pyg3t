@@ -22,7 +22,7 @@ def print_msg_diff(differ, oldmsg, newmsg, fd):
               file=fd)
     print(differ.maybe_wrapdiff('msgid', oldmsg.msgid, newmsg.msgid),
           file=fd)
-    if oldmsg.hasplurals or newmsg.hasplurals:
+    if oldmsg.isplural or newmsg.isplural:
         print(differ.maybe_wrapdiff('msgid_plural', oldmsg.msgid_plural,
                                     newmsg.msgid_plural), file=fd)
     if len(oldmsg.msgstrs) == 1:

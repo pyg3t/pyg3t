@@ -187,7 +187,7 @@ class POABC:
                                                          msg.msgstr)
         warnings.extend(warnings1)
 
-        if msg.hasplurals:
+        if msg.isplural:
             msgid_plural = msg.msgid_plural
             for msgstr in msg.msgstrs[1:]:
                 msgid, msgstr, morewarns = self.check_stringpair(msg,

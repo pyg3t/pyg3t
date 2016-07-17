@@ -233,6 +233,10 @@ class Message(object):
         return self.fuzzyflag and not self.untranslated
 
     @property
+    def isplural(self):
+        return self.msgid_plural is not None
+
+    @property
     def istranslated(self):
         return self.msgstr != '' and not self.fuzzyflag
 
@@ -243,10 +247,6 @@ class Message(object):
     @property
     def has_previous_msgid(self):
         return self.previous_msgid is not None
-
-    @property
-    def hasplurals(self):
-        return self.msgid_plural is not None
 
     @property
     def key(self):
@@ -291,7 +291,7 @@ class Message(object):
         if self.has_context:
             lines.append(wrap_declaration('msgctxt', self.msgctxt))
         lines.append(wrap_declaration('msgid', self.msgid))
-        if self.hasplurals:
+        if self.isplural:
             lines.append(wrap_declaration('msgid_plural', self.msgid_plural))
             for i, msgstr in enumerate(self.msgstrs):
                 lines.append(wrap_declaration('msgstr[%d]' % i, msgstr))

@@ -60,7 +60,7 @@ class GTGrep:
         def checkid(pattern, msg):
             if search(pattern, msg.msgid):
                 return True
-            if msg.hasplurals and search(pattern, msg.msgid_plural):
+            if msg.isplural and search(pattern, msg.msgid_plural):
                 return True
             return False
 

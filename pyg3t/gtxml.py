@@ -229,7 +229,7 @@ def main():
     #        #encoding = cat.encoding
     #        for msg in cat:
     #            addtags(msg.msgid)
-    #            if msg.hasplurals:
+    #            if msg.isplural:
     #                addtags(msg.msgid_plural)
     #    for tag in tags:
     #        print(tag, file=out)

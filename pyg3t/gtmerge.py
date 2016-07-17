@@ -152,7 +152,7 @@ def main():
             for key in ordered_keys:
                 newheaderlines.append(': '.join([key, dstheaderdict[key]]))
             newheaderlines.append('')
-            assert not dstheader.hasplurals
+            assert not dstheader.isplural
             dstheader.msgstrs[0] = '\\n'.join(newheaderlines)
 
             fd = Encoder(open(dstfname, 'w'), idcat.encoding)

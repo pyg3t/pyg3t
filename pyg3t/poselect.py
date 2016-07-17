@@ -55,7 +55,7 @@ class PluralSelector:
     name = 'Plural'
 
     def evaluate(self, msg):
-        return msg.hasplurals
+        return msg.isplural
 
 
 class OrSelector:
