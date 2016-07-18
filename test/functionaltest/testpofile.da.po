@@ -1,4 +1,14 @@
-# Dummy po-file for testing purposes.
+# This is the standard test po-file of pyg3t.
+#
+#  This file should be as naughty as possible:
+#
+#  * It should contain the most depraved syntactical transgressions
+#    ever conceived by mind or machine
+#  * It should flaunt the foulest textual perversions that were ever
+#    expressed as a string of characters
+#  * It should shamelessly parade the most blasphemous abnormality ever
+#    to disgrace time and space
+#  * And yet it still passes msgfmt.
 #
 msgid ""
 msgstr ""
@@ -158,7 +168,7 @@ msgstr "<blinke>Knap</blinke>"
 #~ msgid "A ugly obsolete chunk"
 #~ msgstr "En grim forældet bid"
 
-#~| msgid "Previous msgid in a obsolete"
+#~| msgid "Previous msgid in a obsolete improperly commented"
 #~ msgid "Yikes"
 #~ msgstr "Giver problemer"
 
@@ -174,3 +184,5 @@ msgstr "<blinke>Knap</blinke>"
 #~ "   Kom Jabbervokken, med flammende øjne,\n"
 #~ "Hvifflende gennem den tulgige skov,\n"
 #~ "   Og burblede som den kom!\n"
+
+# Trailing ghostly, disembodied comments
