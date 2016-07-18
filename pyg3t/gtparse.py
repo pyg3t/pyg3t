@@ -19,9 +19,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import print_function
 from __future__ import unicode_literals
-from codecs import lookup, StreamReaderWriter
+from codecs import lookup, StreamReaderWriter, iterdecode
+import itertools
 import re
 import sys
+
+py3 = sys.version_info[0] == 3
+py2 = sys.version_info[0] == 2
 
 
 def isstringtype(obj):
@@ -279,29 +283,29 @@ class Message(object):
             return ''
 
     def tostring(self): # maybe add line length argument for wrapping?
-        lines = []
-        for c in self.comments:
-            if not c.startswith('#|'):
-                lines.append(c)
+        lines = list(self.comments)
         if self.flags:
             lines.append(self.flagstostring())
-        for c in self.comments:
-            if c.startswith('#|'):
-                lines.append(c)
+        if self.has_previous_msgid:
+            lines += wrap_declaration('#| msgid', self.previous_msgid,
+                                      continuation='#| "')
         if self.has_context:
-            lines.append(wrap_declaration('msgctxt', self.msgctxt))
-        lines.append(wrap_declaration('msgid', self.msgid))
+            lines += wrap_declaration('msgctxt', self.msgctxt)
+        lines += wrap_declaration('msgid', self.msgid)
         if self.isplural:
-            lines.append(wrap_declaration('msgid_plural', self.msgid_plural))
+            lines += wrap_declaration('msgid_plural', self.msgid_plural)
             for i, msgstr in enumerate(self.msgstrs):
-                lines.append(wrap_declaration('msgstr[%d]' % i, msgstr))
+                lines += wrap_declaration('msgstr[%d]' % i, msgstr)
         else:
-            lines.append(wrap_declaration('msgstr', self.msgstr))
+            lines += wrap_declaration('msgstr', self.msgstr)
         string = ''.join(lines)
         return string
 
-    #def __str__(self):
-    #    return self.tostring()
+    def __str__(self):
+        string = self.tostring()
+        if py2:
+            string = string.encode('utf-8')
+        return string
 
     def copy(self):
         return self.__class__(self.msgid, self.msgstrs, self.msgid_plural,
@@ -368,7 +372,7 @@ def is_wrappable(declaration, string):
     return False
 
 
-def wrap_declaration(declaration, string):
+def wrap_declaration(declaration, string, continuation='"', end='"\n'):
     if is_wrappable(declaration, string):
         tokens = []
         tokens.append('%s ""\n' % declaration)
@@ -379,12 +383,12 @@ def wrap_declaration(declaration, string):
         for linetoken in linetokens:
             lines = wrap(linetoken)
             for line in lines:
-                tokens.append('"')
+                tokens.append(continuation)
                 tokens.append(line)
-                tokens.append('"\n')
-        return ''.join(tokens)
+                tokens.append(end)
+        return tokens #''.join(tokens)
     else:
-        return '%s "%s"\n' % (declaration, string)
+        return ['%s "%s"\n' % (declaration, string)]
 
 
 class PoHeaderError(ValueError):
@@ -414,7 +418,7 @@ class PoError(ValueError):
 obsolete_pattern = re.compile(r'\s*#~')
 obsolete_extraction_pattern = re.compile(r'\s*#~\s*(?P<line>.*)')
 
-# XXX Content-Type should generally be text/plain
+# Content-Type should generally be text/plain
 # TODO Issue warning otherwise.
 charset_extraction_pattern = re.compile(r'^Content-Type:\s*[^;]*;'
                                         r'\s*charset=(?P<charset>[^\\]*)')
@@ -428,11 +432,49 @@ def get_charset(header_msgstr_lines):
             return charset
 
 
+class PoSyntaxError(ValueError):
+    pass
+
+class ParseError(PoSyntaxError):
+    def __init__(self, regex, line, prev_lines, *args, **kwargs):
+        self.regex = regex
+        self.line = line
+        self.prev_lines = prev_lines
+        self.lineno = '<unknown>'
+        self.fname = '<unknown>'
+        super(ParseError, self).__init__(*args, **kwargs)
+
+    def get_errmsg(self):
+        lines = ['Bad syntax',
+                 'Filename: %s' % self.fname,
+                 'Expected line to match regex: %s' % self.regex,
+                 'Actual line: %s' % self.line.rstrip('\n'),
+                 'Representation: %s' % repr(self.line),
+                 '',
+                 'Context:',
+                 '']
+
+        linestr = 'L%s:' % self.lineno
+        indent = ' ' * len(linestr)
+        for line in self.prev_lines:
+            lines.append('%s %s' % (indent, line.rstrip('\n')))
+        lines.append('%s %s' % (linestr, self.line.rstrip('\n')))
+        return '\n'.join(lines)
+
+    def __str__(self):
+        return self.get_errmsg().encode('utf8') # XXX
+
 def devour(pattern, continuation, line, fd, tokens, lines):
     match = pattern.match(line)
-    assert match, (pattern.pattern, repr(line))
+    if not match:
+        raise ParseError(pattern.pattern, line, lines,
+                         'Expected %s but found %s'
+                         % (pattern.pattern, repr(line)))
     while match:
         token = match.group(1)
+        print('arg tokn=<%s> group=<%s>' % (token, match.group()), repr(line))
+        if token is None:
+            sdfkjsdf
         tokens.append(token)
         lines.append(line)
         line = next(fd)
@@ -445,6 +487,7 @@ class MessageChunk:
         self.lineno = None
         self.is_obsolete = False
         self.comment_lines = []
+        self.prevmsgid_lines = None
         self.msgctxt_lines = None
         self.msgid_lines = []
         self.msgid_plural_lines = None
@@ -477,6 +520,7 @@ class EchoWrapper:
         return line
     next = __next__  # Python2
 
+
 class FileWrapper:
     def __init__(self, fd):
         self.fd = fd
@@ -494,6 +538,8 @@ class FileWrapper:
 
 
 patterns = {'comment': re.compile(r'\s*(?P<line>#.*)'),
+            'prev_msgid': re.compile(r'\s*#\|\s*msgid\s*"(?P<line>.*?)"\s*$'),
+            'prev_msgid_continuation': re.compile(r'\s*#\|\s*"(?P<line>.*?)"\s*$'),
             'msgctxt': re.compile(r'\s*msgctxt\s*"(?P<line>.*?)"\s*$'),
             'msgid': re.compile(r'\s*msgid\s*"(?P<line>.*?)"\s*$'),
             'msgid_plural': re.compile(r'\s*msgid_plural'
@@ -505,9 +551,10 @@ patterns = {'comment': re.compile(r'\s*(?P<line>#.*)'),
 
 obsolete_patterns = {}
 for key in patterns:
-    obsolete_patterns[key] = re.compile(r'\s*#~\s*' + patterns[key].pattern)
-# Special care for horribly malformed comments in obsoletes:
-#obsolete_patterns['comment'] = re.compile(r'\s*#~\s*(?!msg)(?P<line>.*)')
+    obsolete_patterns[key] = re.compile(r'\s*#~' + patterns[key].pattern)
+# We won't bother with prevmsgid in obsoletes!
+# This we use a pattern that matches nothing:
+obsolete_patterns['prev_msgid'] = re.compile('.^')
 
 def lowlevel_parse_encoded(fd):
     """Yield all chunks in fd, where fd must have correct encoding."""
@@ -515,9 +562,13 @@ def lowlevel_parse_encoded(fd):
     #fd = EchoWrapper(fd)  # Enable to print all lines
     fd = FileWrapper(fd)
 
-    def _devour(pattern, line, tokens):
-        return devour(pattern, pat['continuation'], line, fd, tokens,
+    def _devour(pattern, line, tokens, continuation=None):
+        if continuation is None:
+            continuation = pat['continuation']
+        return devour(pattern, continuation, line, fd, tokens,
                       msg.rawlines)
+
+    prev_msg = None  # We keep this for constructing better errmsgs
 
     line = next(fd)
     while True:
@@ -532,10 +583,14 @@ def lowlevel_parse_encoded(fd):
                 if obsolete_pattern.match(line) and not msg.is_obsolete:
                     msg.is_obsolete = True
                     pat = obsolete_patterns
-                    continue
-
-                msg.comment_lines.append(line)
-                line = next(fd)
+                elif pat['prev_msgid'].match(line):
+                    msg.prevmsgid_lines = []
+                    line = _devour(pat['prev_msgid'],
+                                   line, msg.prevmsgid_lines,
+                                   continuation=pat['prev_msgid_continuation'])
+                else:
+                    msg.comment_lines.append(line)
+                    line = next(fd)
 
             if pat['msgctxt'].match(line):
                 msg.msgctxt_lines = []
@@ -560,13 +615,18 @@ def lowlevel_parse_encoded(fd):
         except StopIteration:
             yield msg
             return
-        except AssertionError:  # XXX better error
+        except ParseError as err:
             if msg.is_obsolete:
                 line = next(fd)
                 continue  # Discard garbage
-            else:
-                raise
+
+            err.lineno = fd.lineno
+            if prev_msg is not None:
+                # Add more lines of context to error message
+                err.prev_lines = prev_msg.rawlines + ['\n'] + err.prev_lines
+            raise
         else:
+            prev_msg = msg
             yield msg
 
 
@@ -601,15 +661,17 @@ def lowlevel_parse_binary(fd):
         raise PoSyntaxError('No header found in file %s' % fd.name)
 
     # Non-strict parsing to find header and extract charset:
-    charset, lines = find_header()
+    try:
+        charset, lines = find_header()
 
-    import itertools
-    from codecs import iterdecode
-    parser = lowlevel_parse_encoded(iterdecode(itertools.chain(lines, fd),
-                                               encoding=charset))
+        parser = lowlevel_parse_encoded(iterdecode(itertools.chain(lines, fd),
+                                                   encoding=charset))
 
-    for msg in parser:
-        yield msg
+        for msg in parser:
+            yield msg
+    except ParseError as err:
+        err.fname = fd.name
+        raise
 
 
 def iterparse(fd):
@@ -630,6 +692,7 @@ def iterparse(fd):
             return ''.join(tokens)
 
         # XXXX prevmsgid
+
         if len(chunk.msgid_lines) == 0:
             chunk.msgid_lines = ['XXXXXXXX'] # XXX
             chunk.msgstrs = ['XXXXXXXX'] # XXX
@@ -644,6 +707,7 @@ def iterparse(fd):
             msgstr = [join(lines) for lines in chunk.msgstrs]
 
         msg = msgclass(comments=comments,
+                       previous_msgid=join(chunk.prevmsgid_lines),
                        flags=flags,
                        msgctxt=join(chunk.msgctxt_lines),
                        msgid=join(chunk.msgid_lines),
@@ -666,11 +730,17 @@ def parse(fd):
     # or comments in other inappropriate locations
     msgs = []
 
+    #try:
     for msg in iterparse(fd):
         if msg.msgid == '':
             msgs.insert(0, msg)
         else:
             msgs.append(msg)
+    #except ParseError as err:
+    #    err.fname = fname
+        #errmsg = err.get_errmsg()
+        #print(errmsg, file=sys.stderr)  # XXX Mind encoding
+    #    raise
     assert len(msgs) >= 1
     assert msgs[0].msgid == ''
 

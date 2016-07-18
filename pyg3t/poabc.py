@@ -8,7 +8,7 @@ from optparse import OptionParser
 
 from pyg3t.gtparse import parse, get_encoded_stdout
 from pyg3t.gtxml import GTXMLChecker
-from pyg3t.util import pyg3tmain
+from pyg3t.util import pyg3tmain, get_bytes_input
 from pyg3t import __version__
 import xml.sax
 
@@ -244,10 +244,8 @@ def main():
         raise SystemExit(1)
 
     fname = args[0]
-    if fname == '-':
-        fd = sys.stdin  # XXX how to wrap this?
-    else:
-        fd = open(fname, 'rb')
+
+    fd = get_bytes_input(fname)
 
     # XXX does this work with multiple files actually?
     cat = parse(fd)
