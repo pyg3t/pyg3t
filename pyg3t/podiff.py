@@ -150,9 +150,9 @@ class PoDiff:
                 self.number_of_diff_chunks += 1
 
     def diff_two_msgs_color(self, old_msg, new_msg):
-        new_msg.comments = wdiff('XXX'.join(old_msg.comments),
-                                 'XXX'.join(new_msg.comments),
-                                 self.wdiff_formatter).split('XXX')
+        new_msg.comments = wdiff('\0'.join(old_msg.comments),
+                                 '\0'.join(new_msg.comments),
+                                 self.wdiff_formatter).split('\0')
         if new_msg.has_context:
             assert old_msg.has_context
             new_msg.msgctxt = wdiff(old_msg.msgctxt, new_msg.msgctxt,
