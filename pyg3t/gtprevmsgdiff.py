@@ -1,17 +1,16 @@
 from __future__ import print_function, unicode_literals
-import sys
 
 from optparse import OptionParser
-from pyg3t.gtparse import parse, get_encoded_stdout
+from pyg3t.gtparse import parse
 from pyg3t.gtdifflib import DefaultWDiffFormat, FancyWDiffFormat, diff
-from pyg3t.util import pyg3tmain
+from pyg3t.util import pyg3tmain, get_encoded_stdout
 
 
 @pyg3tmain
 def main():
     usage = '%prog [OPTION] POFILE'
-    description = 'Print wordwise diff of msgid and previous msgid ' \
-        'entries in gettext message catalogs.'
+    description = ('Print wordwise diff of msgid and previous msgid '
+                   'entries in gettext message catalogs.')
     p = OptionParser(usage=usage, description=description)
     p.add_option('--fancy', action='store_true',
                  help='use colors to highlight changes')

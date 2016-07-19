@@ -1,11 +1,9 @@
 from __future__ import print_function, unicode_literals
 import os
-import sys
-from subprocess import Popen, PIPE
 from optparse import OptionParser, OptionGroup
 
-from pyg3t.gtparse import parse, Message, Catalog, get_encoded_stdout
-from pyg3t.util import pyg3tmain
+from pyg3t.gtparse import parse, Message, Catalog
+from pyg3t.util import pyg3tmain, get_encoded_output
 
 
 def build_parser():
@@ -31,7 +29,7 @@ def build_parser():
                 'keeping header of MSGID_FILE '
                 'compatible with upload to Launchpad.',
                 versionport='transfer as many strings as possible, '
-                'but update header to contain ... blahblah') # XXX
+                'but update header to contain ... blahblah') # TODO implement
     for mode in modes:
         mode_opts.add_option('--%s' % mode, action='store_const',
                              default=modes[0],
@@ -103,17 +101,17 @@ def main():
         else:
             assert opts.mode == 'right'
             overwrite = False
-            # XXX more complicated modes?
+            # more complicated modes?
 
         cat = merge(cat1, cat2, overwrite)
-        out = get_encoded_stdout(cat.encoding)
+        out = get_encoded_output('-', cat.encoding)
         for msg in cat:
-            print(msg.tostring(), file=out)#.tostring()
+            print(msg.tostring(), file=out)
         #for line in cat1.obsoletes:
-        #    print line, # XXX keep which obsoletes?
+        #    print line, # keep which obsoletes?
         # obsoletes must also be unique, and must not clash with existing msgs
     else:
-        # mode is 'translationproject'
+        assert opts.mode == 'translationproject'
         msgstrfile = args[0]
         msgidfiles = args[1:]
         strcat = parse(open(msgstrfile, 'rb'))
@@ -153,9 +151,9 @@ def main():
                 newheaderlines.append(': '.join([key, dstheaderdict[key]]))
             newheaderlines.append('')
             assert not dstheader.isplural
-            dstheader.msgstrs[0] = '\\n'.join(newheaderlines)
+            dstheader.msgstrs[0] = r'\n'.join(newheaderlines)
 
-            fd = Encoder(open(dstfname, 'w'), idcat.encoding)
+            fd = get_encoded_output(dstfname, idcat.encoding)
             for msg in dstcat:
                 print(msg, file=fd)
             fd.close()

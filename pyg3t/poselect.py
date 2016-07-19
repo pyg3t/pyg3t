@@ -1,10 +1,9 @@
 from __future__ import print_function, unicode_literals
-import sys
 from optparse import OptionParser, OptionGroup
 
 from pyg3t import __version__
-from pyg3t.util import getfiles, pyg3tmain
-from pyg3t.gtparse import parse, get_encoded_stdout
+from pyg3t.util import getfiles, pyg3tmain, get_encoded_stdout
+from pyg3t.gtparse import parse
 
 
 class Counter:

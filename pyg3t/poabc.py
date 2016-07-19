@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 
 from __future__ import print_function, unicode_literals
-import sys
-import fileinput
-import itertools
 from optparse import OptionParser
 
-from pyg3t.gtparse import parse, get_encoded_stdout
+from pyg3t.gtparse import parse
 from pyg3t.gtxml import GTXMLChecker
-from pyg3t.util import pyg3tmain, get_bytes_input
+from pyg3t.util import pyg3tmain, get_bytes_input, get_encoded_stdout
 from pyg3t import __version__
 import xml.sax
 
@@ -238,10 +235,9 @@ def main():
     nargs = len(args)
     if nargs == 0:
         cmdparser.print_help()
-        raise SystemExit(0)
+        cmdparser.exit()
     elif nargs > 1:
-        print('One file at a time, please.', file=sys.stderr)
-        raise SystemExit(1)
+        cmdparser.error('One file at a time, please.')
 
     fname = args[0]
 

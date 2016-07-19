@@ -19,13 +19,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import print_function
 from __future__ import unicode_literals
-from codecs import lookup, StreamReaderWriter, iterdecode
+from codecs import iterdecode
+from pyg3t.util import py2, PoSyntaxError
+
 import itertools
 import re
 import sys
-
-py3 = sys.version_info[0] == 3
-py2 = sys.version_info[0] == 2
 
 
 def isstringtype(obj):
@@ -97,7 +96,7 @@ def _get_header(msgs):
 
 class Catalog(object):
     """A Catalog represents one gettext catalog, or po-file."""
-    def __init__(self, fname, encoding, msgs):
+    def __init__(self, fname, encoding, msgs, trailing_comments=None):
         self.fname = fname
         self.encoding = encoding
         _msgs = []
@@ -111,6 +110,7 @@ class Catalog(object):
         self.msgs = _msgs
         self.obsoletes = obsoletes
         self.header = _get_header(self.msgs)
+        self.trailing_comments = trailing_comments
         assert 'headers' in self.header.meta
 
     def dict(self):
@@ -313,6 +313,8 @@ class Message(object):
                               comments=list(self.comments),
                               meta=self.meta.copy(), flags=self.flags.copy())
 
+# XXXXXXX get previous msgctxt at some point, #| msgctxt "..."
+
     #def decode(self):
     #    encoding = self.meta['encoding']
     #    msgvars = vars(self)
@@ -356,7 +358,7 @@ class ObsoleteMessage(Message):
 # XXXXX We need a special case for the chunk of comments that sometimes
 # loafs unwelcomely at EOF.
 # This will likely cause lots of trouble.
-class OnlyComments(ObsoleteMessage):
+class TrailingComments(ObsoleteMessage):
     def tostring(self):
         return ''.join(comment for comment in self.comments)
 
@@ -390,29 +392,6 @@ def wrap_declaration(declaration, string, continuation='"', end='"\n'):
     else:
         return ['%s "%s"\n' % (declaration, string)]
 
-
-class PoHeaderError(ValueError):
-    pass
-
-
-class PoError(ValueError):
-    """Error raised by the parser containing user-friendly error messages."""
-    def __init__(self, errmsg, fname=None, lineno=None,
-                 original_error=None,
-                 last_lines=None):
-        ValueError.__init__(self, errmsg)
-        self.errmsg = errmsg
-        self.fname = fname
-        self.lineno = lineno
-        self.original_error = original_error
-        self.last_lines = last_lines
-
-    def format(self):
-        if self.lineno is None:
-            return 'Syntax error: %s' % self.errmsg
-        else:
-            return 'Syntax error near line %d: %s' % (self.lineno, self.errmsg)
-
 #---------------------------------------------------
 
 obsolete_pattern = re.compile(r'\s*#~')
@@ -428,15 +407,13 @@ def get_charset(header_msgstr_lines):
     for line in header_msgstr_lines:
         match = charset_extraction_pattern.match(line)
         if match:
-            charset = match.group(1)
+            charset = match.group('charset')
             return charset
 
 
-class PoSyntaxError(ValueError):
-    pass
-
 class ParseError(PoSyntaxError):
-    def __init__(self, regex, line, prev_lines, *args, **kwargs):
+    def __init__(self, header, regex, line, prev_lines, *args, **kwargs):
+        self.header = header
         self.regex = regex
         self.line = line
         self.prev_lines = prev_lines
@@ -445,10 +422,11 @@ class ParseError(PoSyntaxError):
         super(ParseError, self).__init__(*args, **kwargs)
 
     def get_errmsg(self):
-        lines = ['Bad syntax',
+        lines = ['Bad syntax while parsing',
                  'Filename: %s' % self.fname,
-                 'Expected line to match regex: %s' % self.regex,
-                 'Actual line: %s' % self.line.rstrip('\n'),
+                 'Current regex: %s' % self.regex,
+                 'Current line: %s' % self.line.rstrip('\n'),
+                 'Reason: %s' % self.header,
                  'Representation: %s' % repr(self.line),
                  '',
                  'Context:',
@@ -467,14 +445,15 @@ class ParseError(PoSyntaxError):
 def devour(pattern, continuation, line, fd, tokens, lines):
     match = pattern.match(line)
     if not match:
-        raise ParseError(pattern.pattern, line, lines,
-                         'Expected %s but found %s'
-                         % (pattern.pattern, repr(line)))
+        raise ParseError('Current line does not match regex',
+                         regex=pattern.pattern, line=line, prev_lines=lines)
     while match:
-        token = match.group(1)
-        print('arg tokn=<%s> group=<%s>' % (token, match.group()), repr(line))
+        token = match.group('line')
         if token is None:
-            sdfkjsdf
+            raise ParseError('Line matches regex but extracts nothing.'
+                             '  This is an internal error.  Please report it.',
+                             regex=match.re.pattern, line=line,
+                             prev_lines=lines)
         tokens.append(token)
         lines.append(line)
         line = next(fd)
@@ -618,6 +597,8 @@ def lowlevel_parse_encoded(fd):
         except ParseError as err:
             if msg.is_obsolete:
                 line = next(fd)
+                # Should we save the current lines as comments in next msg?
+                prev_msg = msg
                 continue  # Discard garbage
 
             err.lineno = fd.lineno
@@ -628,10 +609,6 @@ def lowlevel_parse_encoded(fd):
         else:
             prev_msg = msg
             yield msg
-
-
-class PoSyntaxError(ValueError):
-    pass
 
 
 class ReadBuffer:
@@ -675,9 +652,28 @@ def lowlevel_parse_binary(fd):
 
 
 def iterparse(fd):
+    trailing_comments = None
+
     for chunk in lowlevel_parse_binary(fd):
         flags = []
         comments = []
+
+        meta={'rawlines': chunk.rawlines,
+              'lineno': chunk.lineno}
+
+        # We should not do any more loops after we get the trailing comments
+        assert trailing_comments is None
+
+        if len(chunk.msgid_lines) == 0:
+            # There is no msgid.  This can only be a chunk of trailing comments
+            # Any other chunk would pertain to an actual message.
+            trailing_comments = TrailingComments(msgid=None,
+                                                 msgstr='',
+                                                 comments=chunk.comment_lines,
+                                                 meta=meta)
+            yield trailing_comments
+            continue
+
         for line in chunk.comment_lines:
             if line.startswith('#,'):
                 flags.extend(flag.strip() for flag in
@@ -685,19 +681,12 @@ def iterparse(fd):
             else:
                 comments.append(line)
 
-
         def join(tokens):
             if tokens is None:
                 return None
             return ''.join(tokens)
 
-        # XXXX prevmsgid
-
-        if len(chunk.msgid_lines) == 0:
-            chunk.msgid_lines = ['XXXXXXXX'] # XXX
-            chunk.msgstrs = ['XXXXXXXX'] # XXX
-            msgclass = OnlyComments
-        elif chunk.is_obsolete:
+        if chunk.is_obsolete:
             msgclass = ObsoleteMessage
         else:
             msgclass = Message
@@ -713,12 +702,12 @@ def iterparse(fd):
                        msgid=join(chunk.msgid_lines),
                        msgid_plural=join(chunk.msgid_plural_lines),
                        msgstr=msgstr,
-                       meta={'rawlines': chunk.rawlines,
-                             'lineno': chunk.lineno})
+                       meta=meta)
         yield msg
-        # ignore 'fname', 'encoding' in meta
 
-encoding_pattern = re.compile(r'[^;]*;\s*charset=(?P<encoding>[^\s]+)')
+
+encoding_pattern = re.compile(r'[^;]*;\s*charset=(?P<charset>[^\s]+)')
+
 
 def parse(fd):
     try:
@@ -736,45 +725,26 @@ def parse(fd):
             msgs.insert(0, msg)
         else:
             msgs.append(msg)
-    #except ParseError as err:
-    #    err.fname = fname
-        #errmsg = err.get_errmsg()
-        #print(errmsg, file=sys.stderr)  # XXX Mind encoding
-    #    raise
+
     assert len(msgs) >= 1
     assert msgs[0].msgid == ''
+
+    trailing_comments = []
+    if msgs[-1].msgid is None:
+        trailing_comments = msgs.pop().comments
 
     headers = parse_header_data(msgs[0].msgstr)
     encoding_line = headers['Content-Type']
     match = re.match(encoding_pattern, encoding_line)
     assert match is not None, (encoding_pattern.pattern, encoding_line)
-    encoding = match.group(1)
+    encoding = match.group('charset')
 
-    cat = Catalog(fname, encoding, msgs)
+    cat = Catalog(fname, encoding, msgs, trailing_comments=trailing_comments)
     return cat
 
 
-def _stream_encoder(fd, encoding, errors='strict'):
-    info = lookup(encoding)
-    srw = StreamReaderWriter(fd, info.streamreader, info.streamwriter,
-                             errors=errors)
-    return srw
-
-def get_encoded_stdout(encoding, errors='strict'):
-    if sys.version_info[0] == 3:
-        return _stream_encoder(sys.stdout.buffer, encoding, errors=errors)
-    else:
-        from util import Py2Encoder
-        return Py2Encoder(sys.stdout, encoding)
-
-
-def get_unencoded_stdin():
-    if sys.version_info[0] == 3:
-        return sys.stdin.buffer
-    else:
-        return sys.stdin
-
 def main():
+    from pyg3t.util import get_encoded_stdout
     out = get_encoded_stdout('utf-8')
     fname = sys.argv[1]
 

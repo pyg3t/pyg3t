@@ -3,8 +3,8 @@ import sys
 import re
 from optparse import OptionParser
 
-from pyg3t.gtparse import parse, get_encoded_stdout
-from pyg3t.util import NullDevice, pyg3tmain
+from pyg3t.gtparse import parse
+from pyg3t.util import NullDevice, pyg3tmain, get_encoded_stdout
 
 
 description = """Check translations of command-line options in po-files."""
@@ -64,7 +64,7 @@ class Option:
         self.lines = lines
 
         self.firstindent = len(self.group)
-        self.groups = [group for group in match.groups()[1:]
+        self.groups = [g for g in match.groups()[1:]
                        if group is not None]
 
         if len(lines) > 1:

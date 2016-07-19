@@ -1,12 +1,11 @@
 from __future__ import print_function, unicode_literals
-import sys
 import re
 from optparse import OptionParser
 from difflib import SequenceMatcher
 
-from pyg3t.gtparse import parse, get_encoded_stdout
-from pyg3t.util import Colorizer, pyg3tmain
-from pyg3t.popatch import PoPatch, split_diff_as_bytes
+from pyg3t.gtparse import parse
+from pyg3t.util import Colorizer, pyg3tmain, get_encoded_stdout
+from pyg3t.popatch import split_diff_as_bytes
 
 
 def print_msg_diff(differ, oldmsg, newmsg, fd):
@@ -154,7 +153,6 @@ def main():
     # PoPatch.
     #
     # After this we re-parse them and diff them word-wise.
-    popatch = PoPatch()
     fd = open(fname, 'rb')
 
 
@@ -163,18 +161,6 @@ def main():
     newcat = parse(iter(newbytes))
 
     out = get_encoded_stdout('utf8')
-
-    #for isnew in [False, True]:
-    #    inputfd.seek(0)
-    #    outfd = StringIO()
-    #    popatch.version_of_podiff(inputfd, out,#out=Encoder(outfd, 'utf8'),
-    #                              new=isnew)
-    #    outfd.seek(0)
-    #    cat = parse(outfd)
-    #    cats.append(cat)
-
-    #oldcat, newcat = cats
-
     differ = MSGDiffer()
 
     if len(oldcat) != len(newcat): # XXX not very general

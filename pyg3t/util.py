@@ -1,9 +1,9 @@
 from __future__ import print_function, unicode_literals
 import sys
-from pyg3t.gtparse import PoError, PoHeaderError, get_encoded_stdout
-# will this eventually become a circular import?
-# Maybe PoSyntaxError should be defined un util so that all modules
-# can use util without util using any of them
+
+
+py3 = sys.version_info[0] == 3
+py2 = sys.version_info[0] == 2
 
 
 class Py2Encoder:
@@ -68,20 +68,14 @@ class NullDevice:
 
 def get_bytes_output(name):
     if name == '-':
-        try:
-            return sys.stdout.buffer
-        except AttributeError:  # Py2
-            return sys.stdout  # Already writes bytes
+        return sys.stdout.buffer if py3 else sys.stdout
     else:
         return open(name, 'wb')
 
 
 def get_bytes_input(name):
     if name == '-':
-        try:
-            return sys.stdin.buffer
-        except AttributeError:  # Py2
-            return sys.stdin  # Already reads bytes
+        return sys.stdin.buffer if py3 else sys.stdin
     else:
         return open(name, 'rb')
 
@@ -91,6 +85,37 @@ def get_encoded_output(name, encoding):
         return get_encoded_stdout(encoding)
     else:
         return open(name, 'w', encoding=encoding)
+
+from codecs import lookup
+from codecs import StreamReaderWriter
+def _stream_encoder(fd, encoding, errors='strict'):
+    info = lookup(encoding)
+    srw = StreamReaderWriter(fd, info.streamreader, info.streamwriter,
+                             errors=errors)
+    return srw
+
+
+_unencoded_stdin = sys.stdin.buffer if sys.version_info == 3 else sys.stdin
+_unencoded_stdout = sys.stdout.buffer if sys.version_info == 3 else sys.stdout
+#_unencoded_stderr = sys.stderr.buffer if sys.version_info == 3 else sys.stderr
+
+def get_encoded_stdout(encoding, errors='strict'):
+    if py3:
+        return _stream_encoder(sys.stdout.buffer, encoding, errors=errors)
+    else:
+        from util import Py2Encoder
+        return Py2Encoder(sys.stdout, encoding)
+
+
+def get_unencoded_stdin():
+    if sys.version_info[0] == 3:
+        return sys.stdin.buffer
+    else:
+        return sys.stdin
+
+
+class PoSyntaxError(ValueError):
+    pass
 
 
 def getfiles(args):
@@ -111,19 +136,22 @@ def pyg3tmain(main):
         except KeyboardInterrupt:
             print('Interrupted by keyboard', file=sys.stderr)
             raise SystemExit(1)
-        except PoError as err:
-            maxlength = len('%d' % err.lineno)
-            print(err.errmsg, file=sys.stderr)
-            print('-' * len(err.errmsg), file=sys.stderr)
-            lineoffset = 1 + err.lineno - len(err.last_lines)
-            for i, line in enumerate(err.last_lines):
-                lineno = lineoffset + i
-                print(('%d' % lineno).rjust(maxlength), line, end='',
-                      file=sys.stderr)
-            print(file=sys.stderr)
-            raise SystemExit(-1)
-        except PoHeaderError as err:
-            for arg in err.args:
-                print(arg, file=sys.stderr)
-            raise SystemExit(-1)
+        except PoSyntaxError as err:
+            print(str(err), file=sys.stderr)
+            raise SystemExit(2)
+        #except PoError as err:
+        #    maxlength = len('%d' % err.lineno)
+        #    print(err.errmsg, file=sys.stderr)
+        #    print('-' * len(err.errmsg), file=sys.stderr)
+        #    lineoffset = 1 + err.lineno - len(err.last_lines)
+        #    for i, line in enumerate(err.last_lines):
+        #        lineno = lineoffset + i
+        #        print(('%d' % lineno).rjust(maxlength), line, end='',
+        #              file=sys.stderr)
+        #    print(file=sys.stderr)
+        #    raise SystemExit(-1)
+        #except PoHeaderError as err:
+        #    for arg in err.args:
+        #        print(arg, file=sys.stderr)
+        #    raise SystemExit(-1)
     return main_decorator

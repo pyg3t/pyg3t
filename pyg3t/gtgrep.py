@@ -8,8 +8,8 @@ import re
 from optparse import OptionParser, OptionGroup
 
 from pyg3t import __version__
-from pyg3t.gtparse import parse, get_encoded_stdout
-from pyg3t.util import Colorizer, pyg3tmain
+from pyg3t.gtparse import parse
+from pyg3t.util import Colorizer, pyg3tmain, get_encoded_stdout
 
 
 class GTGrep:
@@ -315,9 +315,8 @@ def main():
 
             highlighter = MatchColorizer('light blue')
 
-            match_highlight_pattern = '|'.join([pattern
-                                                for pattern
-                                                in patterns.values()])
+            match_highlight_pattern = '|'.join([patterns[key] for key
+                                                in sorted(patterns.keys())])
             match_highlight_pattern = re.compile(match_highlight_pattern)
 
             for msg in matches:

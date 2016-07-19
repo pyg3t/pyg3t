@@ -2,8 +2,8 @@ from __future__ import print_function, unicode_literals
 import codecs
 from optparse import OptionParser
 from itertools import chain
-from pyg3t.util import pyg3tmain
-from pyg3t.gtparse import parse, get_encoded_stdout
+from pyg3t.util import pyg3tmain, get_encoded_stdout
+from pyg3t.gtparse import parse
 from pyg3t.charsets import get_gettext_encoding_name
 
 

@@ -22,11 +22,11 @@ import sys
 from io import open
 from optparse import OptionParser
 from difflib import unified_diff
-from pyg3t.gtparse import parse, get_encoded_stdout, get_unencoded_stdin
+from pyg3t.gtparse import parse
 from pyg3t import __version__
 from pyg3t.gtdifflib import FancyWDiffFormat
 from pyg3t.gtdifflib import diff as wdiff
-from pyg3t.util import pyg3tmain
+from pyg3t.util import pyg3tmain, get_encoded_stdout, get_unencoded_stdin
 
 
 class PoDiff:

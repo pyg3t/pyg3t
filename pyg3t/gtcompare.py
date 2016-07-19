@@ -1,10 +1,14 @@
 from __future__ import print_function, unicode_literals
-import sys
 from optparse import OptionParser
 from datetime import datetime
 
-from pyg3t.gtparse import parse, get_encoded_stdout
-from pyg3t.util import pyg3tmain
+from pyg3t.gtparse import parse
+from pyg3t.util import pyg3tmain, get_encoded_stdout
+
+
+_timefmt = '%Y-%m-%d %H:%M%z'
+def standard_strptime(date):
+    return datetime.strptime(date, _timefmt)
 
 
 def build_parser():
@@ -81,10 +85,8 @@ def compare_headers(headers1, headers2, fd):
         pass
     else:
         if date1 != date2:
-            timefmt = '%Y-%m-%d %H:%M%z'
-            #datetime.strptime('2009-04-18 18:06+0200
-            d1 = datetime.strptime(date1, timefmt)#parse_date(date1)
-            d2 = datetime.strptime(date2, timefmt)#parse_date(date2)
+            d1 = standard_strptime(date1)
+            d2 = standard_strptime(date2)
             if d1 < d2:
                 print('Template of second file is more recent', file=fd)
             else:
@@ -99,8 +101,8 @@ def compare_headers(headers1, headers2, fd):
         pass
     else:
         if date1 != date2:
-            d1 = parse_date(date1)
-            d2 = parse_date(date2)
+            d1 = standard_strptime(date1)
+            d2 = standard_strptime(date2)
             if d1 < d2:
                 print('Translations in second file were revised more recently',
                       file=fd)

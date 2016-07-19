@@ -6,7 +6,7 @@ import xml.sax
 from optparse import OptionParser
 
 from pyg3t.gtparse import parse
-from pyg3t.util import Colorizer, pyg3tmain
+from pyg3t.util import Colorizer, pyg3tmain, get_encoded_stdout
 
 
 class SuspiciousTagsError(ValueError):
@@ -25,14 +25,17 @@ class XMLElementSet(xml.sax.handler.ContentHandler):
 class GTXMLChecker:
     """XML parser class for checking bad xml in gettext translations.
 
-    An msg is considered ill-formed if its msgid is valid xml while at
-    least one msgstr is not.  Note that this is a heuristic; the msgid may
-    happen to form valid xml by accident."""
-    def __init__(self, compare_tags=False, known_tags=None):
-        self.compare_tags = compare_tags
-        if known_tags is None:
-            known_tags = set()
-        self.known_tags = set(known_tags)
+    An msg is considered ill-formed if its msgid contains something
+    that looks like xml, and is well-formed except possibly missing a
+    root element, while at least one msgstr is not.  Note that this is
+    a heuristic, as the msgid may happen to look like xml by
+    accident."""
+    def __init__(self):#, compare_tags=False, known_tags=None):
+        pass
+        #self.compare_tags = compare_tags
+        #if known_tags is None:
+        #    known_tags = set()
+        #self.known_tags = set(known_tags)
 
     def _filter(self, string):
         # Surround the string with a root tag
@@ -57,17 +60,17 @@ class GTXMLChecker:
         #if not '<' in msgid:
         #    return True
         try:
-            msgid_elements = self.parse_xml_elements(msgid)
+            self.parse_xml_elements(msgid)
         except xml.sax.SAXParseException:
-            return True # msgid is probably not supposed to be xml
+            return True  # msgid is probably not supposed to be xml
         for msgstr in msg.msgstrs:
-            msgstr_elements = self.parse_xml_elements(msgstr)
+            self.parse_xml_elements(msgstr)
 
-        if self.compare_tags:
-            for tag in msgstr_elements:
-                if not (tag in msgid_elements or tag in self.known_tags):
-                    msg = 'Unrecognized element "%s" found in msgstr' % tag
-                    raise SuspiciousTagsError(msg)
+        #if self.compare_tags:
+        #    for tag in msgstr_elements:
+        #        if not (tag in msgid_elements or tag in self.known_tags):
+        #            msg = 'Unrecognized element "%s" found in msgstr' % tag
+        #            raise SuspiciousTagsError(msg)
 
         return True
 
@@ -208,9 +211,8 @@ def main():
     #if opts.tags_from:
     #    known_tags = open(opts.tags_from).read().split()
 
-    check_tags = False #opts.tags or opts.tags_from
+    #check_tags = False #opts.tags or opts.tags_from
     gtxml = GTXMLChecker()#check_tags, known_tags)
-    from pyg3t.gtparse import get_encoded_stdout
     out = get_encoded_stdout('utf8')
     #out = Encoder(sys.stdout, 'utf8') # overwritten below as necessary
 
