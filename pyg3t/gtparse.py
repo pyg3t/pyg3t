@@ -440,7 +440,10 @@ class ParseError(PoSyntaxError):
         return '\n'.join(lines)
 
     def __str__(self):
-        return self.get_errmsg().encode('utf8') # XXX
+        msg = self.get_errmsg()
+        if py2:
+            msg = msg.encode(sys.stderr.encoding)
+        return msg
 
 def devour(pattern, continuation, line, fd, tokens, lines):
     match = pattern.match(line)
