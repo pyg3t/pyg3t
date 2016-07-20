@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import print_function
 from __future__ import unicode_literals
 from codecs import iterdecode
-from pyg3t.util import py2, PoSyntaxError
+from pyg3t.util import py2, PoError
 
 import itertools
 import re
@@ -91,7 +91,27 @@ def _get_header(msgs):
             msg.meta['headers'] = parse_header_data(msg.msgstr)
             return msg
     else:
-        raise ValueError('header not found in msgs')
+        raise ValueError('Header not found in msgs')
+
+
+class DuplicateMessageError(PoError):
+    def __init__(self, msg1, msg2, fname):
+        self.msg1 = msg1
+        self.msg2 = msg2
+        self.fname = fname
+
+    def get_errmsg(self):
+        line1 = self.msg1.meta.get('lineno', '<unknown>')
+        line2 = self.msg2.meta.get('lineno', '<unknown>')
+        linestring1 = 'Message at line %s' % line1
+        linestring2 = 'Message at line %s' % line2
+        lines = ['Conflicting messages in file %s' % self.fname,
+                 'Two messages have identical msgctxt and msgid', '',
+                 linestring1, '-' * len(linestring1),
+                 self.msg1.tostring(),
+                 linestring2, '-' * len(linestring2),
+                 self.msg2.tostring()]
+        return '\n'.join(lines)
 
 
 class Catalog(object):
@@ -119,7 +139,10 @@ class Catalog(object):
         Values are Messages and keys are tuples of (msgid, msgctxt)."""
         d = {}
         for msg in self.msgs:
-            d[msg.key] = msg
+            key = msg.key
+            if key in d:
+                raise DuplicateMessageError(d[key], msg, self.fname)
+            d[key] = msg
         return d
 
     def __iter__(self):
@@ -411,15 +434,15 @@ def get_charset(header_msgstr_lines):
             return charset
 
 
-class ParseError(PoSyntaxError):
-    def __init__(self, header, regex, line, prev_lines, *args, **kwargs):
+class ParseError(PoError):
+    def __init__(self, header, regex, line, prev_lines):
         self.header = header
         self.regex = regex
         self.line = line
         self.prev_lines = prev_lines
         self.lineno = '<unknown>'
         self.fname = '<unknown>'
-        super(ParseError, self).__init__(*args, **kwargs)
+        super(ParseError, self).__init__()
 
     def get_errmsg(self):
         lines = ['Bad syntax while parsing',
@@ -439,11 +462,6 @@ class ParseError(PoSyntaxError):
         lines.append('%s %s' % (linestr, self.line.rstrip('\n')))
         return '\n'.join(lines)
 
-    def __str__(self):
-        msg = self.get_errmsg()
-        if py2:
-            msg = msg.encode(sys.stderr.encoding)
-        return msg
 
 def devour(pattern, continuation, line, fd, tokens, lines):
     match = pattern.match(line)
@@ -638,7 +656,7 @@ def lowlevel_parse_binary(fd):
             if msg.get_msgid() == '':
                 charset = get_charset(msg.msgstrs[0])
                 return charset, rbuf.bytelines
-        raise PoSyntaxError('No header found in file %s' % fd.name)
+        raise PoError('No header found in file %s' % fd.name)
 
     # Non-strict parsing to find header and extract charset:
     try:
@@ -718,11 +736,8 @@ def parse(fd):
     except AttributeError:
         fname = '<unknown>'
 
-    # XXX what happens if there are garbage comments in the end?
-    # or comments in other inappropriate locations
     msgs = []
 
-    #try:
     for msg in iterparse(fd):
         if msg.msgid == '':
             msgs.insert(0, msg)

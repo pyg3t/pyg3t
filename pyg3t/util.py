@@ -114,8 +114,15 @@ def get_unencoded_stdin():
         return sys.stdin
 
 
-class PoSyntaxError(ValueError):
-    pass
+class PoError(Exception):
+    def get_errmsg(self):
+        return super(PoError, self).__str__()
+
+    def __str__(self):
+        msg = self.get_errmsg()
+        if py2:
+            msg = msg.encode(sys.stderr.encoding)
+        return msg
 
 
 def getfiles(args):
@@ -136,7 +143,7 @@ def pyg3tmain(main):
         except KeyboardInterrupt:
             print('Interrupted by keyboard', file=sys.stderr)
             raise SystemExit(1)
-        except PoSyntaxError as err:
+        except PoError as err:
             print(str(err), file=sys.stderr)
             raise SystemExit(2)
         #except PoError as err:
