@@ -5,6 +5,8 @@
 
 from distutils.core import setup
 import pyg3t
+# It seems questionable to import the package when it is not installed.
+# But sphinx does it, so it must be okay.
 
 long_description = """\
 PyG3T, the Python gettext Translation Toolkit, is a collection of
@@ -23,7 +25,7 @@ scriptnames = ['gtcat',
                'podiff',
                'popatch',
                'poselect']
-scripts = ['bin/%s' % scriptname 
+scripts = ['bin/%s' % scriptname
            for scriptname in scriptnames]
 
 setup(name='pyg3t',
@@ -32,10 +34,9 @@ setup(name='pyg3t',
       #author_email='',
       maintainer='PyG3T development team',
       #maintainer_email='',
-      url='https://launchpad.net/pyg3t',
+      url='https://github.com/pyg3t/pyg3t',
       description='PyG3T, python gettext translation toolkit',
       long_description=long_description,
-      download_url='https://launchpad.net/pyg3t/+download',
       #classifiers=[],
       platforms='all',
       packages=packages,
