@@ -2,7 +2,7 @@ from __future__ import print_function, unicode_literals
 import codecs
 from optparse import OptionParser
 from itertools import chain
-from pyg3t.util import pyg3tmain, get_encoded_stdout
+from pyg3t.util import pyg3tmain, get_encoded_stdout, get_bytes_input
 from pyg3t.gtparse import parse
 from pyg3t.charsets import get_gettext_encoding_name
 
@@ -25,7 +25,7 @@ def main():
     opts, args = p.parse_args()
 
     for arg in args:
-        cat = parse(open(arg, 'rb'))
+        cat = parse(get_bytes_input(arg))
 
         if opts.encoding is not None:
             src_encoding = cat.encoding
@@ -53,3 +53,5 @@ def main():
         out = get_encoded_stdout(dst_encoding)
         for msg in chain(cat, cat.obsoletes):
             print(msg.tostring(), file=out)
+        for line in cat.trailing_comments:
+            print(line, file=out)
