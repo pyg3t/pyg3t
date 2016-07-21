@@ -23,6 +23,7 @@ Contents:
    getting_started
    examples
    api_documentation
+   glossary
 
 
 

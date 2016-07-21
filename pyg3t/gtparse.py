@@ -27,6 +27,34 @@ import re
 import sys
 
 
+# It is recommended that the license should be the first comment in each source
+# code file, but it doesn't make a good module level doc string, so supply one
+# manually
+
+__doc__ = """
+The gtparse module contains the basic functionality to parse
+:term:`gettext catalog` s (.po files). The most important items are:
+
+ * The :py:func:`.parse` function, which parses an entire gettext catalog from
+   a file. **This function is the main entry point for the module**.
+ * The basic types for a single :py:class:`.Message` and for a single
+   :py:class:`.ObsoleteMessage` .
+ * The basic type for a :py:class:`.Catalog` that represents an entire gettext
+   catalog worth of messages
+
+.. data:: patterns
+
+    Dictionary of compiled regular expression objects used to parse active
+    messages in the .po files.  Each regex parses one line.
+
+.. data:: obsolete_patterns
+
+    Dictionary of compiled regular expression objects, corresponding to
+    :py:data:`.patterns` with ``'#~'`` prefixed.  Used to parse
+    obsolete messages in the .po files
+""".lstrip()
+
+
 def isstringtype(obj):
     return hasattr(obj, 'isalpha')
 
@@ -42,6 +70,25 @@ def isstringtype(obj):
 
 
 def chunkwrap(chunks):
+    """Returns a generator of lines, from the content in :term:`chunk` s,
+    wrapped to a max length of 77 characters.
+
+    Similar in functionality to:
+
+    .. code-block:: python
+
+       textwrapper.TextWrapper(width=77,
+                               replace_whitespace=False,
+                               expand_tabs=False,
+                               drop_whitespace=False)
+
+    but since TextWrapper in Python 2.5 does not support the
+    ``drop_whitespace=False`` option, this implementation is used until
+    support for Python 2.5 is dropped.
+
+    Args:
+        chunks (iterable): :term:`Chunk` s of text to wrap
+    """
     tokens = []
     chars = 0
     for chunk in chunks:
@@ -57,15 +104,41 @@ def chunkwrap(chunks):
         yield ''.join(tokens)
 
 
-wordseparator = re.compile(r'(\s+)')
-
-
-def wrap(text):
-    chunks = iter(wordseparator.split(text))
+def wrap(text, wordsep=re.compile(r'(\s+)')):
+    """Wrap text to 77 characters and return as list of lines."""
+    chunks = iter(wordsep.split(text))
     return list(chunkwrap(chunks))
 
 
 def parse_header_data(msgstr):
+    """Parse the data in the .po file header.
+
+    Header data looks like this:
+
+    .. code-block:: python
+
+       Project-Id-Version: nautilus
+       Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?
+       product=nautilus&keywords=I18N+L10N&component=Internationalization (i18n)
+       POT-Creation-Date: 2015-08-26 23:10+0000
+       PO-Revision-Date: 2015-03-14 03:30+0100
+       Last-Translator: Ask Hjorth Larsen <asklarsen@gmail.com>
+       Language-Team: Danish <dansk@dansk-gruppen.dk>
+       Language: da
+       MIME-Version: 1.0
+       Content-Type: text/plain; charset=UTF-8
+       Content-Transfer-Encoding: 8bit
+       Plural-Forms: nplurals=2; plural=(n != 1);
+
+    where each line is a key, value pair of header data separated by the
+    first colon.
+
+    Args:
+        msgstr (string): The message that contains the header
+
+    Returns:
+        dict: Key, value pairs of header info. All keys and values are strings.
+    """
     headers = {}
     for line in msgstr.split(r'\n'):
         if not line or line.isspace():
@@ -115,7 +188,25 @@ class DuplicateMessageError(PoError):
 
 
 class Catalog(object):
-    """A Catalog represents one gettext catalog, or po-file."""
+    """A Catalog represents one gettext catalog, or po-file.
+
+    Args:
+        fname (string): Filename of the source
+        encoding (string): The encoding of the source
+        msgs (iterable): Iterable of :py:class:`.Message` or
+            :py:class:`.ObsoleteMessage`
+
+    Attributes:
+        fname (str): The filename of the source
+        encoding (str): The encoding of the source
+        msgs (list): The list of messages (:py:class:`.Message`) in the
+            catalog
+        obsoletes (list): The list of obsolete messages
+            (:py:class:`.ObsoleteMessage`) in the catalog
+        header (:py:class:`.Message`): The message corresponding to the header
+            of the .po file
+        trailing_comments (list of strings): Trailing comments after messages
+    """
     def __init__(self, fname, encoding, msgs, trailing_comments=None):
         self.fname = fname
         self.encoding = encoding
@@ -146,52 +237,65 @@ class Catalog(object):
         return d
 
     def __iter__(self):
+        """Return an iterator of the (non-obsolete) messages."""
         return iter(self.msgs)
 
     def __len__(self):
+        """Return the number of (non-obsolete) messages."""
         return len(self.msgs)
 
     def __getitem__(self, index):
+        """Return an item by index among (non-obsolete) messages."""
         return self.msgs[index]
 
 
 class Message(object):
-    """This class represents a po-file entry.
+    """This class represents a :term:`message` in a :term:`gettext catalog`
 
-    Contains attributes that describe:
+    Parameters:
+        msgid (string): The :term:`msgid`
+        msgstr (string or list): The translated :term:`msgstr` s
+        msgid_plural (string): msgid plural if any, otherwise None
+        msgctxt (string): Context message of any, otherwise None
+        comments (list): Newline-terminated strings (or None if none)
+                         Comments should include #.  They should not include lines
+                         that specify flags or previous msgid/msgctxt.
+        meta (dict): Optional metadata (linenumber, raw text from po-file)
+        flags (iterable): Strings specififying flags ('fuzzy', etc.)
+        previous_msgid: None, or a string if there is a previous msgid.
+        previous_msgctxt: ............................ XXX
 
-    * msgid (possibly plural)
-    * msgstr(s)
-    * comments
-    * miscellaneous informations (flags, translation status)"""
+    If this message was loaded from a file using the parse() function,
+    the meta dictionary will contain the following keys:
+
+     * 'lineno': the original line number of the message in the po-file
+     * 'encoding': the encoding of the po-file
+     * 'rawlines': the original text in the po-file as a a list of
+       newline-terminated lines
+
+     It is understood that the properties of a Message may be
+     changed programmatically so as to render it inconsistent with
+     its rawlines and/or lineno.
+
+    Attributes:
+        msgid (str): The :term:`msgid`
+        msgid_plural (str): The plural msgid if any, otherwise None
+        msgstr (list): The translated :term:`msgstr` s
+        comments (list): Newline terminated comments strs
+        msgctxt (str): The msgid context if any, otherwise None
+        flags (set): Flags (strs) that are set if they are present
+        previous_msgid (str): The previous msgid if any, otherwise None
+        is_obsolete (bool): Whether the message is obsolete
+        meta (dict): The metadata dictionary
+    """
 
     is_obsolete = False
 
     def __init__(self, msgid, msgstr, msgid_plural=None,
                  msgctxt=None, comments=None, meta=None,
                  flags=None, previous_msgid=None):
-        """Create a Message, representing one message from a message catalog.
+        """Create a Message, representing one message from a message catalog."""
 
-        Parameters:
-         * msgid: string
-         * msgstr: string, or list of strings for plurals
-         * msgid_plural: None, or a string if there are plurals
-         * msgctxt: None, or a string if there is a message context
-         * comments: list of newline-terminated strings ([] or None if none)
-         * meta: dict of optional metadata (linenumber, raw text from po-file)
-         * flags: an iterable of strings specififying flags ('fuzzy', etc.)
-
-         If this message was loaded from a file using the parse() function,
-         the meta dictionary will contain the following keys:
-          * 'lineno': the original line number of the message in the po-file
-          * 'encoding': the encoding of the po-file
-          * 'rawlines': the original text in the po-file as a a list of
-                        newline-terminated lines
-
-         It is understood that the properties of a Message may be
-         changed programmatically so as to render it inconsistent with
-         its rawlines and/or lineno.
-        """
         self.msgid = msgid
         self.msgid_plural = msgid_plural
 
@@ -245,38 +349,52 @@ class Message(object):
 
     @property
     def msgstr(self):
+        """The :term:`msgstr`, or first translation in case of plurals."""
         return self.msgstrs[0]
 
     @property
     def untranslated(self):
+        """Whether the message is untranslated."""
         return self.msgstr == ''
 
     @property
     def fuzzyflag(self):
+        """Whether the :term:`fuzzy` flag is set."""
         return 'fuzzy' in self.flags
 
     @property
     def isfuzzy(self):
+        """Whether the message is :term:`fuzzy`."""
         return self.fuzzyflag and not self.untranslated
 
     @property
     def isplural(self):
+        """Whether the message has plurals."""
         return self.msgid_plural is not None
 
     @property
     def istranslated(self):
+        """Whether the message is translated."""
         return self.msgstr != '' and not self.fuzzyflag
 
     @property
     def has_context(self):
+        """Whether the message has context."""
         return self.msgctxt is not None
 
     @property
     def has_previous_msgid(self):
+        """Whether the message has a previous msgid."""
         return self.previous_msgid is not None
+
+    # XXXXXXXXXXXX previous msgctxt
 
     @property
     def key(self):
+        """The tuple (msgid, msgctxt).
+
+        This can be considered a unique (within the catalog) key for use e.g.
+        in a dict."""
         return (self.msgid, self.msgctxt)
 
     def get_comments(self, pattern='', strip=False):
@@ -295,17 +413,50 @@ class Message(object):
                 if line.startswith(pattern)]
 
     def rawstring(self):
+        """Get original text for this message.
+
+        Returns the original text :term:`chunk` that this message was parsed
+        from, as a string.
+
+        Returns:
+            (string): The original raw text chunk
+
+        Raises:
+            KeyError: If there are no raw lines in the metadata"""
         if 'rawlines' not in self.meta:
             raise KeyError('No raw lines for this Message')
         return ''.join(self.meta['rawlines'])
 
     def flagstostring(self):
+        """Return a flag string on the form: ``"#, flag0, flag1, flag2\\n"``."""
         if self.flags:
             return '#, %s\n' % ', '.join(sorted(self.flags))
         else:
             return ''
 
     def tostring(self): # maybe add line length argument for wrapping?
+        """Return :term:`gettext catalog` string form of this message.
+
+        The string will be on the form. First all comments that are not
+        previous msgid (if any), then the flags (if any), then the previous
+        msgid (if any), then the context (if any) and finnaly the :term:`msgid`
+        and the :term:`msgstr`.
+
+        .. code-block:: po
+
+            #  translator-comments
+            #. extracted-comments
+            #: reference...
+            #, flag...
+            #| msgctxt previous-context
+            #| msgid previous-untranslated-string
+            msgctxt context
+            msgid untranslated-string
+            msgstr translated-string
+
+        Example from the `gettext reference documentation
+        <http://www.gnu.org/software/gettext/manual/html_node/PO-Files.html>`_
+        """
         lines = list(self.comments)
         if self.flags:
             lines.append(self.flagstostring())
@@ -331,36 +482,25 @@ class Message(object):
         return string
 
     def copy(self):
+        """Return a copy of this message."""
         return self.__class__(self.msgid, self.msgstrs, self.msgid_plural,
                               msgctxt=self.msgctxt,
                               comments=list(self.comments),
                               meta=self.meta.copy(), flags=self.flags.copy())
 
-# XXXXXXX get previous msgctxt at some point, #| msgctxt "..."
-
-    #def decode(self):
-    #    encoding = self.meta['encoding']
-    #    msgvars = vars(self)
-
-    #    kwargs = {}
-    #    for key in ['comments', 'msgstrs', 'flags']:
-    #        kwargs[key] = [string.decode(encoding) for string in msgvars[key]]
-    #    kwargs['msgstr'] = kwargs.pop('msgstrs')
-    #    for key in ['msgid', 'msgid_plural', 'msgctxt']:
-    #        if msgvars[key] is None:
-    #            kwargs[key] = None
-    #        else:
-    #            kwargs[key] = msgvars[key].decode(encoding)
-    #    meta = msgvars['meta'].copy()
-    #    kwargs['meta'] = meta
-    #    return self.__class__(**kwargs)
-
 
 class ObsoleteMessage(Message):
+    """Represents an obsolete :term:`message` in a :term:`gettext catalog`."""
 
     is_obsolete = True
 
     def tostring(self):
+        """Return :term:`gettext catalog` string form of this obsolete message.
+
+        This string is on the form described in :py:meth:`.Message.tostring`
+        where all lines that does not already start with an '#~' gets it
+        prepended."""
+
         string = Message.tostring(self)
         lines = []
 
@@ -387,6 +527,9 @@ class TrailingComments(ObsoleteMessage):
 
 
 def is_wrappable(declaration, string):
+    """Return whether a declaration should be wrapped into multiple lines.
+
+    See :py:func:`.wrap_declaration` for details on the arguments."""
     if len(string) + len(declaration) > 75:
         return True
     newlineindex = string.find(r'\n')
@@ -398,6 +541,34 @@ def is_wrappable(declaration, string):
 
 
 def wrap_declaration(declaration, string, continuation='"', end='"\n'):
+    """Return the declaration followed by a wrapped form of the string
+
+    .. note:: The wrapping takes place linewise and the splitting of lines
+        respects escaped newlines. This is done in an attempt to preserve the
+        visual presentation of the string
+
+    If the declaration and the string will not fit in a single line, the
+    declaration if left on a line for itself, followed merely by an empty
+    string.
+
+    Example:
+
+    .. code-block:: po
+
+        msgid "This is a short msgid"
+
+        msgid ""
+        "This is a msgid with a very long msgid, in fact it just keeps going "
+        "and going and going.
+
+    Args:
+        declaration (str): A declaration in a :term:`message` such as msgid,
+            msgstr or msgctxt
+        string (str): The string to wrap i.e. the content of the declaration
+
+    Returns:
+        str: The declaration followed by a wraped for of the string
+    """
     if is_wrappable(declaration, string):
         tokens = []
         tokens.append('%s ""\n' % declaration)
@@ -731,6 +902,14 @@ encoding_pattern = re.compile(r'[^;]*;\s*charset=(?P<charset>[^\s]+)')
 
 
 def parse(fd):
+    """Parse .po file content from a file-like object.
+
+    Args:
+       input (file): A file-like object in binary mode
+
+    Returns:
+        Catalog: A message catalog"""
+
     try:
         fname = fd.name
     except AttributeError:
