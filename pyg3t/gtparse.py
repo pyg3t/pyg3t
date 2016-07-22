@@ -321,9 +321,29 @@ class Message(object):
 
     def __init__(self, msgid, msgstr, msgid_plural=None,
                  msgctxt=None, comments=None, meta=None,
-                 flags=None, previous_msgid=None):
-        """Create a Message, representing one message from a message catalog."""
+                 flags=None, previous_msgctxt=None, previous_msgid=None):
+        """Create a Message, representing one message from a message catalog.
 
+        Parameters:
+         * msgid: string
+         * msgstr: string, or list of strings for plurals
+         * msgid_plural: None, or a string if there are plurals
+         * msgctxt: None, or a string if there is a message context
+         * comments: list of newline-terminated strings ([] or None if none)
+         * meta: dict of optional metadata (linenumber, raw text from po-file)
+         * flags: an iterable of strings specififying flags ('fuzzy', etc.)
+
+         If this message was loaded from a file using the parse() function,
+         the meta dictionary will contain the following keys:
+          * 'lineno': the original line number of the message in the po-file
+          * 'encoding': the encoding of the po-file
+          * 'rawlines': the original text in the po-file as a a list of
+                        newline-terminated lines
+
+         It is understood that the properties of a Message may be
+         changed programmatically so as to render it inconsistent with
+         its rawlines and/or lineno.
+        """
         self.msgid = msgid
         self.msgid_plural = msgid_plural
 
@@ -354,6 +374,7 @@ class Message(object):
         #
         # XXX Or maybe we already do that?
 
+        self.previous_msgctxt = previous_msgctxt
         self.previous_msgid = previous_msgid
         if meta is None:
             meta = {}
@@ -411,11 +432,13 @@ class Message(object):
         return self.msgctxt is not None
 
     @property
+    def has_previous_msgctxt(self):
+        return self.previous_msgctxt is not None
+
+    @property
     def has_previous_msgid(self):
         """Whether the message has a previous msgid."""
         return self.previous_msgid is not None
-
-    # XXXXXXXXXXXX previous msgctxt
 
     @property
     def key(self):
@@ -488,6 +511,9 @@ class Message(object):
         lines = list(self.comments)
         if self.flags:
             lines.append(self.flagstostring())
+        if self.has_previous_msgctxt:
+            lines += wrap_declaration('#| msgctxt', self.previous_msgctxt,
+                                      continuation='#| "')
         if self.has_previous_msgid:
             lines += wrap_declaration('#| msgid', self.previous_msgid,
                                       continuation='#| "')
@@ -686,6 +712,7 @@ class MessageChunk:
         self.lineno = None
         self.is_obsolete = False
         self.comment_lines = []
+        self.prevmsgctxt_lines = None
         self.prevmsgid_lines = None
         self.msgctxt_lines = None
         self.msgid_lines = []
@@ -737,8 +764,9 @@ class FileWrapper:
 
 
 patterns = {'comment': re.compile(r'\s*(?P<line>#.*)'),
+            'prev_msgctxt': re.compile(r'\s*#\|\s*msgctxt\s*"(?P<line>.*?)"\s*$'),
             'prev_msgid': re.compile(r'\s*#\|\s*msgid\s*"(?P<line>.*?)"\s*$'),
-            'prev_msgid_continuation': re.compile(r'\s*#\|\s*"(?P<line>.*?)"\s*$'),
+            'prev_continuation': re.compile(r'\s*#\|\s*"(?P<line>.*?)"\s*$'),
             'msgctxt': re.compile(r'\s*msgctxt\s*"(?P<line>.*?)"\s*$'),
             'msgid': re.compile(r'\s*msgid\s*"(?P<line>.*?)"\s*$'),
             'msgid_plural': re.compile(r'\s*msgid_plural'
@@ -782,11 +810,16 @@ def lowlevel_parse_encoded(fd):
                 if obsolete_pattern.match(line) and not msg.is_obsolete:
                     msg.is_obsolete = True
                     pat = obsolete_patterns
+                elif pat['prev_msgctxt'].match(line):
+                    msg.prevmsgctxt_lines = []
+                    line = _devour(pat['prev_msgctxt'],
+                                   line, msg.prevmsgctxt_lines,
+                                   continuation=pat['prev_continuation'])
                 elif pat['prev_msgid'].match(line):
                     msg.prevmsgid_lines = []
                     line = _devour(pat['prev_msgid'],
                                    line, msg.prevmsgid_lines,
-                                   continuation=pat['prev_msgid_continuation'])
+                                   continuation=pat['prev_continuation'])
                 else:
                     msg.comment_lines.append(line)
                     line = next(fd)
@@ -916,6 +949,7 @@ def iterparse(fd):
             msgstr = [join(lines) for lines in chunk.msgstrs]
 
         msg = msgclass(comments=comments,
+                       previous_msgctxt=join(chunk.prevmsgctxt_lines),
                        previous_msgid=join(chunk.prevmsgid_lines),
                        flags=flags,
                        msgctxt=join(chunk.msgctxt_lines),
