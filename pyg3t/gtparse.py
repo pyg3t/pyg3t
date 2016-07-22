@@ -292,7 +292,7 @@ class Message(object):
         meta (dict): Optional metadata (linenumber, raw text from po-file)
         flags (iterable): Strings specififying flags ('fuzzy', etc.)
         previous_msgid: None, or a string if there is a previous msgid.
-        previous_msgctxt: ............................ XXX
+        previous_msgctxt: None, or a string if there is a previous msgctxt.
 
     If this message was loaded from a file using the parse() function,
     the meta dictionary will contain the following keys:
@@ -692,12 +692,9 @@ def devour(pattern, continuation, line, fd, tokens, lines):
                          regex=pattern.pattern, line=line, prev_lines=lines)
     while match:
         token = match.group('line')
-        if token is None:
-            raise ParseError('Line matches regex but extracts nothing.'
-                             '  This is an internal error.  Please report it.',
-                             regex=match.re.pattern, line=line,
-                             prev_lines=lines)
-        tokens.append(token)
+        # Token can "legally" be None for the line 'msgid' (without any ""!)
+        if token is not None:
+            tokens.append(token)
         lines.append(line)
         line = next(fd)
         match = continuation.match(line)
@@ -759,19 +756,23 @@ class FileWrapper:
         return line
     next = __next__  # Python2
 
+_line_pattern = r'"(?P<line>.*?)"'
+# Careful: Always add trailing $ to not match escaped \" within strings
+
+def build_pattern(name):
+    # Note: It is actually optional whether a line follows a header
+    return re.compile(r'\s*%s\s*(%s)?\s*$' % (name, _line_pattern))
 
 patterns = {'comment': re.compile(r'\s*(?P<line>#.*)'),
-            'prev_msgctxt': re.compile(r'\s*#\|\s*msgctxt\s*"(?P<line>.*?)"\s*$'),
-            'prev_msgid': re.compile(r'\s*#\|\s*msgid\s*"(?P<line>.*?)"\s*$'),
-            'prev_continuation': re.compile(r'\s*#\|\s*"(?P<line>.*?)"\s*$'),
-            'msgctxt': re.compile(r'\s*msgctxt\s*"(?P<line>.*?)"\s*$'),
-            'msgid': re.compile(r'\s*msgid\s*"(?P<line>.*?)"\s*$'),
-            'msgid_plural': re.compile(r'\s*msgid_plural'
-                                       r'\s*"(?P<line>.*?)"\s*$'),
-            'msgstr': re.compile(r'\s*msgstr\s*"(?P<line>.*?)"\s*$'),
-            'msgstrs': re.compile(r'\s*msgstr\[[0-9]*\]'
-                                  r'\s*"(?P<line>.*?)"\s*$'),
-            'continuation': re.compile(r'\s*"(?P<line>.*?)"\s*$')}
+            'prev_msgctxt': build_pattern(r'#\|\s*msgctxt'),
+            'prev_msgid': build_pattern(r'#\|\s*msgid'),
+            'prev_continuation': build_pattern(r'#\|'),
+            'msgctxt': build_pattern('msgctxt'),
+            'msgid': build_pattern(r'msgid'),
+            'msgid_plural': build_pattern(r'msgid_plural'),
+            'msgstr': build_pattern(r'msgstr'),
+            'msgstrs': build_pattern(r'msgstr\[[0-9]+\]'),
+            'continuation': re.compile(r'\s*%s\s*$' % _line_pattern)}
 
 obsolete_patterns = {}
 for key in patterns:
@@ -819,6 +820,7 @@ def lowlevel_parse_encoded(fd):
                                    continuation=pat['prev_continuation'])
                 else:
                     msg.comment_lines.append(line)
+                    msg.rawlines.append(line)
                     line = next(fd)
 
             if pat['msgctxt'].match(line):

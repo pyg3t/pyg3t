@@ -163,6 +163,12 @@ msgstr "      --coffee=MÆNGDE    Lav MÆNGDE kaffe"
 msgid "<blink>Button</blink>"
 msgstr "<blinke>Knap</blinke>"
 
+# "msgid" followed directly by newline.  Such decadence!
+msgid
+"This syntax is not supposed to exist"
+msgstr
+""
+
 # A lot of the files from GNOME are even uglier, they have obsolete
 # messages where the translator created comment has the ordinary prefix
 #~ msgid "A ugly obsolete chunk"
