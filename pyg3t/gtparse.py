@@ -249,8 +249,9 @@ class Catalog(object):
         self.msgs = _msgs
         self.obsoletes = obsoletes
         self.header = _get_header(self.msgs)
+        self.header_data = self.header.meta['headers']
         self.trailing_comments = trailing_comments
-        assert 'headers' in self.header.meta
+        #assert 'headers' in self.header.meta
 
     def dict(self):
         """Return a dict with the contents of this catalog.
@@ -366,13 +367,6 @@ class Message(object):
         self.flags = set(flags)
 
         self.msgctxt = msgctxt
-
-        # XXX right now the comments are always written as is, even if
-        # someone changed the fuzzy flag programmatically.  We should
-        # make it so the printed comments will be generated from the
-        # programmed representation of the flags
-        #
-        # XXX Or maybe we already do that?
 
         self.previous_msgctxt = previous_msgctxt
         self.previous_msgid = previous_msgid
@@ -537,10 +531,13 @@ class Message(object):
 
     def copy(self):
         """Return a copy of this message."""
-        return self.__class__(self.msgid, self.msgstrs, self.msgid_plural,
+        return self.__class__(self.msgid, self.msgstrs,
+                              msgid_plural=self.msgid_plural,
                               msgctxt=self.msgctxt,
                               comments=list(self.comments),
-                              meta=self.meta.copy(), flags=self.flags.copy())
+                              meta=self.meta.copy(), flags=self.flags.copy(),
+                              previous_msgctxt=self.previous_msgctxt,
+                              previous_msgid=self.previous_msgid)
 
 
 class ObsoleteMessage(Message):
