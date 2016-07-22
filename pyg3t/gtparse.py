@@ -26,6 +26,33 @@ import itertools
 import re
 import sys
 
+# It is recommended that the license should be the first comment in each source
+# code file, but it doesn't make a good module level doc string, so supply one
+# manually
+
+__doc__ = """
+The gtparse module contains the basic functionality to parse
+:term:`gettext catalog` s (.po files). The most important items are:
+
+ * The :py:func:`.parse` function, which parses an entire gettext catalog from
+   a file. **This function is the main entry point for the module**.
+ * The basic types for a single :py:class:`.Message` and for a single
+   :py:class:`.ObsoleteMessage` .
+ * The basic type for a :py:class:`.Catalog` that represents an entire gettext
+   catalog worth of messages
+
+.. data:: patterns
+
+    Dictionary of compiled regular expression objects used to parse active
+    messages in the .po files.  Each regex parses one line.
+
+.. data:: obsolete_patterns
+
+    Dictionary of compiled regular expression objects, corresponding to
+    :py:data:`.patterns` with ``'#~'`` prefixed.  Used to parse
+    obsolete messages in the .po files
+""".lstrip()
+
 
 # It is recommended that the license should be the first comment in each source
 # code file, but it doesn't make a good module level doc string, so supply one
@@ -57,6 +84,7 @@ The gtparse module contains the basic functionality to parse
 
 def isstringtype(obj):
     return hasattr(obj, 'isalpha')
+
 
 #from textwrap import TextWrapper
 #wrapper = TextWrapper(width=77,
