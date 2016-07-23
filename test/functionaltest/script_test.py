@@ -82,45 +82,22 @@ def test_gtcat():
 
 def test_gtcheckargs():
     """Functional test for gtcheckargs"""
-    expected = ''\
-        'Line 149: Different number of options/vars or bad separators\n'\
-        '------------------------------------------------------------\n'\
-        '# Command line options with faulty translation\n'\
-        'msgid "  -c, --coffee=AMOUNT    Make AMOUNT of coffee"\n'\
-        'msgstr "      --coffee=MÆNGDE    Lav MÆNGDE kaffe"\n\n'\
-        'Found 1 error.\n'.encode('utf8')
+    with open(prepend_path('gtcheckargs_expected_output'), 'rb') as file_:
+        expected = file_.read()
     standardtest(['gtcheckargs', FILE], expected, return_code=1)
 
 
 def test_gtcompare():
     """Functional test for gtcompare"""
-    expected = ''\
-        'Template creation dates coincide\n'\
-        'Translation revision dates coincide\n'\
-        '\n'\
-        'Each file contains 20 msgids, and they are all identical.\n'\
-        '\n'\
-        '5 messages remain untranslated.\n'\
-        '0 untranslated messages changed to fuzzy.\n'\
-        '0 untranslated messages changed to translated.\n'\
-        '0 fuzzy messages changed to untranslated.\n'\
-        '2 messages remain fuzzy.\n'\
-        '0 fuzzy messages changed to translated.\n'\
-        '0 translated messages changed to untranslated.\n'\
-        '0 translated messages changed to fuzzy.\n'\
-        '13 messages remain translated.\n'\
-        '\n'\
-        'There are no conflicts among translated messages.\n'.encode('utf-8')
+    with open(prepend_path('gtcompare_expected_output'), 'rb') as file_:
+        expected = file_.read()
     standardtest(['gtcompare', FILE, FILE], expected)
 
 
 def test_gtgrep():
     """functional test for gtgrep"""
-    expected = ''\
-        '# Translated string\n'\
-        '#: helloworld.c:42\n'\
-        'msgid "Hello world!"\n'\
-        'msgstr "Hej verden!"\n\n'.encode('utf-8')
+    with open(prepend_path('gtgrep_expected_output'), 'rb') as file_:
+        expected = file_.read()
     standardtest(['gtgrep', '-i', 'hello', '-s', 'hej', FILE], expected)
 
 
@@ -133,11 +110,8 @@ def test_gtmerge():
 
 def test_gtprevmsgdiff():
     """Functional test for gtprevmsgdiff"""
-    expected = ''\
-        '--- Line 47 (untranslated) --------------------------------------'\
-        '-------------\n'\
-        'How many <-software translators|French people+> does it take to '\
-        'change a light bulb?\n'.encode('utf-8')
+    with open(prepend_path('gtprevmsgdiff_expected_output'), 'rb') as file_:
+        expected = file_.read()
     standardtest(['gtprevmsgdiff', FILE], expected)
 
 
