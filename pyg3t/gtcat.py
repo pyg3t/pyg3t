@@ -3,7 +3,7 @@ import codecs
 from optparse import OptionParser
 from itertools import chain
 from pyg3t.util import pyg3tmain, get_encoded_stdout, get_bytes_input
-from pyg3t.gtparse import parse
+from pyg3t.gtparse import iparse
 from pyg3t.charsets import get_gettext_encoding_name
 
 
@@ -25,33 +25,30 @@ def main():
     opts, args = p.parse_args()
 
     for arg in args:
-        cat = parse(get_bytes_input(arg))
+        cat = iparse(get_bytes_input(arg))
+        header = next(cat)
+        src_encoding = header.meta['encoding']
 
         if opts.encoding is not None:
-            src_encoding = cat.encoding
+            try:
+                codecinfo = codecs.lookup(opts.encoding)
+            except LookupError as err:
+                p.error(str(err))
 
-            codecinfo = codecs.lookup(opts.encoding)
             dst_encoding = codecinfo.name
+            gettext_name = get_gettext_encoding_name(dst_encoding)
 
-            header = cat.header
-
-            lines = header.msgstr.split('\\n')
+            lines = header.msgstr.split(r'\n')
             for i, line in enumerate(lines):
                 if line.startswith('Content-Type:'):
                     break
-            else:
-                p.error('Cannot find Content-Type in header')
-            gettext_name = get_gettext_encoding_name(dst_encoding)
-            line = line.replace('charset=%s' % src_encoding,
-                                'charset=%s' % gettext_name)
+            line = r'Content-Type: text/plain; charset=%s' % gettext_name
             lines[i] = line
-            header.msgstrs[0] = '\\n'.join(lines)
-            assert len(header.msgstrs) == 1
+            header.msgstrs[0] = r'\n'.join(lines)
         else:
-            dst_encoding = cat.encoding
+            dst_encoding = src_encoding
 
         out = get_encoded_stdout(dst_encoding)
-        for msg in chain(cat, cat.obsoletes):
+        print(header.tostring(), file=out)
+        for msg in cat:
             print(msg.tostring(), file=out)
-        for line in cat.trailing_comments:
-            print(line, file=out)
