@@ -24,12 +24,17 @@ for name in _gettext_encodings:
     _encoding_map[pyname] = name
 
 
+def get_normalized_encoding_name(name):
+    codec_info = lookup(name)
+    return codec_info.name
+
+
 def get_gettext_encoding_name(name):
     codec_info = lookup(name)
     pyname = codec_info.name
     gettextname = _encoding_map[pyname]
     if gettextname is None:
-        raise ValueError('Unregocnized encoding %s.' % name)
+        raise LookupError('Unregocnized encoding %s.' % name)
     return gettextname
 
 
