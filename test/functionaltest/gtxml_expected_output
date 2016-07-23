@@ -1,11 +1,11 @@
-At line 89: mismatched tag
+At line 99: mismatched tag
 --------------------------
 # Invalid xml in msgstr, bad leading case, bad trailing char
 #: xml.c:2
 msgid "See <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen</a>"
 msgstr "se <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen<a/>!"
 
-At line 116: not well-formed (invalid token)
+At line 126: not well-formed (invalid token)
 --------------------------------------------
 # Translator credits
 #: credits.c:42

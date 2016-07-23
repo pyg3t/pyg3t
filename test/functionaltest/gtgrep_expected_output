@@ -1,0 +1,5 @@
+# Translated string
+#: helloworld.c:42
+msgid "Hello world!"
+msgstr "Hej verden!"
+

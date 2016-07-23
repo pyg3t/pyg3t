@@ -1,0 +1,7 @@
+Line 159: Different number of options/vars or bad separators
+------------------------------------------------------------
+# Command line options with faulty translation
+msgid "  -c, --coffee=AMOUNT    Make AMOUNT of coffee"
+msgstr "      --coffee=MÆNGDE    Lav MÆNGDE kaffe"
+
+Found 1 error.

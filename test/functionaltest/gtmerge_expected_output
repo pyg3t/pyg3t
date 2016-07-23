@@ -1,4 +1,14 @@
-# Dummy po-file for testing purposes.
+# This is the standard test po-file of pyg3t.
+#
+#  This file should be as naughty as possible:
+#
+#  * It should contain the most depraved syntactical transgressions
+#    ever conceived by mind or machine
+#  * It should flaunt the foulest textual perversions that were ever
+#    expressed as a string of characters
+#  * It should shamelessly parade the most blasphemous abnormality ever
+#    to disgrace time and space
+#  * And yet it still passes msgfmt.
 #
 msgid ""
 msgstr ""
@@ -7,6 +17,7 @@ msgstr ""
 "PO-Revision-Date: 2009-04-18 18:06+0200\n"
 "Last-Translator: Ask Hjorth Larsen <asklarsen@gmail.com>\n"
 "Language-Team: Dansk <dansk@dansk-gruppen.dk>\n"
+"Language: da\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -123,7 +134,7 @@ msgid "this message has no comments!  Also starting character mismatch"
 msgstr ""
 "Denne besked har ingen kommentarer!  Også uoverensstemmelse med starttegn"
 
-# Dansk vokal som første bogstav
+ # Dansk vokal som første bogstav.  Grimme mellemrum rundt omkring.
 msgid "Open file"
 msgstr "Åbn fil"
 
@@ -142,4 +153,8 @@ msgstr "      --coffee=MÆNGDE    Lav MÆNGDE kaffe"
 # Correct XML using unknown tags in msgstr
 msgid "<blink>Button</blink>"
 msgstr "<blinke>Knap</blinke>"
+
+# "msgid" followed directly by newline.  Such decadence!
+msgid "This syntax is not supposed to exist"
+msgstr ""
 

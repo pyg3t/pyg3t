@@ -1,4 +1,4 @@
---- Line 30 (new.po) -----------
+--- Line 29 (new.po) -----------
  # Danish translation of Anjuta.
  # Copyright (C) 2001-2009 Free Software Foundation, Inc.
  # Gitte Wange <gitte@babytux.dk>, 2001-2002.
@@ -41,32 +41,32 @@
  "Last-Translator: Ask Hjorth Larsen <asklarsen@gmail.com>\n"
  "Language-Team: <dansk@dansk-gruppen.dk>\n"
  "MIME-Version: 1.0\n"
--"Content-Type: text/plain; charset=iso8859-1\n"
+-"Content-Type: text/plain; charset=ISO-8859-1\n"
 +"Content-Type: text/plain; charset=UTF-8\n"
  "Content-Transfer-Encoding: 8bit\n"
  "X-Generator: KBabel 0.9.5\n"
  "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
---- Line 46 (new.po) -----------
+--- Line 45 (new.po) -----------
  #: ../anjuta.desktop.in.in.h:1
  msgid "Anjuta IDE"
 -msgstr "Anjuta IDE"
 +msgstr "Anjuta IDE…"
 
---- Line 50 (new.po) -----------
+--- Line 49 (new.po) -----------
  #: ../anjuta.desktop.in.in.h:2
 -#, fuzzy
  msgid "Develop software in an integrated development environment"
  msgstr "Skriv software i et integreret udviklingsmiljø"
 
---- Line 54 (new.po) -----------
+--- Line 53 (new.po) -----------
  #: ../anjuta.desktop.in.in.h:3 ../src/about.c:204
 -#, fuzzy
  msgid "Integrated Development Environment"
 -msgstr "Integreret udviklingsmiljø"
 +msgstr "Integreret udviklingsmiljø (IDE)"
 
---- Line 60 (new.po) -----------
+--- Line 59 (new.po) -----------
 +# False diff test
  #: ../libanjuta/anjuta-c-module.c:203
  #, c-format
@@ -75,7 +75,7 @@
 +msgstr ""
 +"Kan ikke finde udvidelsesmodulet %s"
 
---- Line 68 (new.po) -----------
+--- Line 64 (new.po) -----------
  #: ../libanjuta/anjuta-plugin-manager.c:1197
  msgid ""
  "These are the plugins selected by you when Anjuta prompted to choose one of "
@@ -89,14 +89,14 @@
 +"moduler. Fjernelse af det foretrukne modul vil lade Anjuta spørge dig om et "
 +"nyt modul igen."
 
---- Line 77 (new.po) -----------
+--- Line 76 (new.po) -----------
 +# This entry is only present in the new file
 +#: ../libanjuta/anjuta-encodings.c:169 ../libanjuta/anjuta-encodings.c:229
 +#: ../libanjuta/anjuta-encodings.c:270
 +msgid "Turkish"
 +msgstr "Tyrkisk"
 
---- Line 82 (new.po) -----------
+--- Line 81 (new.po) -----------
 +# This entry is only present in the new file
 +#: ../libanjuta/anjuta-encodings.c:171
 +msgid "Nordic"
