@@ -262,7 +262,7 @@ class Catalog(object):
         self.msgs = _msgs
         self.obsoletes = obsoletes
         assert self.msgs[0].msgid == ''
-        self.header_data = self.header.meta['headers']
+        self.headers = self.msgs[0].meta['headers']
         self.trailing_comments = trailing_comments
         #assert 'headers' in self.header.meta
 
@@ -712,11 +712,10 @@ class MessageChunk:
         self.msgid_lines = []
         self.msgid_plural_lines = None
         self.msgstrs = []
-        self.header_data = None
 
         self.rawlines = []
 
-    def build(self)
+    def build(self):
         meta={'rawlines': self.rawlines,
               'lineno': self.lineno}
 
@@ -932,7 +931,7 @@ def parse_binary(fd):
         parser = parse_encoded(rbuf)
         for msg in parser:
             if msg.msgid == '':
-                charset, header = parse_header_data(msg.msgstrs[0])
+                charset, headers = parse_header_data(msg.msgstrs[0])
                 #msg.meta['charset'] = charset
                 #msg.meta['headers'] = header
                 return charset, rbuf.bytelines
