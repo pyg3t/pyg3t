@@ -21,7 +21,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 from codecs import iterdecode
 from pyg3t.util import py2, PoError
-
+from pyg3t.charsets import get_normalized_encoding_name
 import itertools
 import re
 import sys
@@ -36,6 +36,8 @@ The gtparse module contains the basic functionality to parse
 
  * The :py:func:`.parse` function, which parses an entire gettext catalog from
    a file. **This function is the main entry point for the module**.
+ * The :py:func:`.iparse` function similarly parses a file but returns an
+   iterator over the messages.  First message is guaranteed to be the header.
  * The basic types for a single :py:class:`.Message` and for a single
    :py:class:`.ObsoleteMessage` .
  * The basic type for a :py:class:`.Catalog` that represents an entire gettext
@@ -138,6 +140,14 @@ def wrap(text, wordsep=re.compile(r'(\s+)')):
     return list(chunkwrap(chunks))
 
 
+# Content-Type should generally be text/plain
+# TODO Issue warning otherwise.
+#charset_extraction_pattern = re.compile(r'^Content-Type:\s*[^;]*;'
+#                                        r'\s*charset=(?P<charset>[^\\]*)')
+charset_extraction_pattern = re.compile(r'[^;]*;'
+                                        r'\s*charset=(?P<charset>[^\\]*)')
+
+
 def parse_header_data(msgstr):
     """Parse the data in the .po file header.
 
@@ -180,19 +190,24 @@ def parse_header_data(msgstr):
         #    key = tokens[0]
         #    value = ''  # This should probably not be the case but isn't ugly
             # enough to complain extremely loudly about by default
-        #key = key.strip()
-        #value = value.strip()
         headers[key.strip()] = value.strip()
-    return headers
 
+    if 'Content-Type' not in headers:
+        raise PoError('Content-Type not in headers: %s' % headers)
+    match = charset_extraction_pattern.match(headers['Content-Type'])
+    if not match:
+        raise PoError('Cannot extract charset from header "%s"' %
+                      headers['Content-Type'])
 
-def _get_header(msgs):
-    for msg in msgs:
-        if msg.msgid == '':
-            msg.meta['headers'] = parse_header_data(msg.msgstr)
-            return msg
-    else:
-        raise ValueError('Header not found in msgs')
+    # Normalize charset
+    charset_string = match.group('charset')
+    try:
+        charset = get_normalized_encoding_name(charset_string)
+    except LookupError as err:
+        raise PoError('Charset not recognized: %s' % str(err))
+
+    # Extract more info?
+    return charset, headers
 
 
 class DuplicateMessageError(PoError):
@@ -231,8 +246,6 @@ class Catalog(object):
             catalog
         obsoletes (list): The list of obsolete messages
             (:py:class:`.ObsoleteMessage`) in the catalog
-        header (:py:class:`.Message`): The message corresponding to the header
-            of the .po file
         trailing_comments (list of strings): Trailing comments after messages
     """
     def __init__(self, fname, encoding, msgs, trailing_comments=None):
@@ -248,7 +261,7 @@ class Catalog(object):
 
         self.msgs = _msgs
         self.obsoletes = obsoletes
-        self.header = _get_header(self.msgs)
+        assert self.msgs[0].msgid == ''
         self.header_data = self.header.meta['headers']
         self.trailing_comments = trailing_comments
         #assert 'headers' in self.header.meta
@@ -642,19 +655,6 @@ def wrap_declaration(declaration, string, continuation='"', end='"\n'):
 obsolete_pattern = re.compile(r'\s*#~')
 obsolete_extraction_pattern = re.compile(r'\s*#~\s*(?P<line>.*)')
 
-# Content-Type should generally be text/plain
-# TODO Issue warning otherwise.
-charset_extraction_pattern = re.compile(r'^Content-Type:\s*[^;]*;'
-                                        r'\s*charset=(?P<charset>[^\\]*)')
-
-
-def get_charset(header_msgstr_lines):
-    for line in header_msgstr_lines:
-        match = charset_extraction_pattern.match(line)
-        if match:
-            charset = match.group('charset')
-            return charset
-
 
 class ParseError(PoError):
     def __init__(self, header, regex, line, prev_lines):
@@ -712,22 +712,63 @@ class MessageChunk:
         self.msgid_lines = []
         self.msgid_plural_lines = None
         self.msgstrs = []
+        self.header_data = None
 
         self.rawlines = []
 
-    def __iter__(self):
-        lists = [self.comment_lines, self.msgctxt_lines, self.msgid_lines,
-                 self.msgid_plural_lines] + self.msgstrs
-        for _list in lists:
-            if _list is None:
-                continue
-            for line in _list:
-                yield line
+    def build(self)
+        meta={'rawlines': self.rawlines,
+              'lineno': self.lineno}
 
-    def get_msgid(self):
-        if not self.msgid_lines:
-            return None
-        return ''.join(self.msgid_lines)
+        if len(self.msgid_lines) == 0:
+            # There is no msgid.  This can only be a chunk of trailing comments
+            # Any other chunk would pertain to an actual message.
+            trailing_comments = TrailingComments(msgid=None,
+                                                 msgstr='',
+                                                 comments=self.comment_lines,
+                                                 meta=meta)
+            return trailing_comments
+
+        def join(tokens):
+            if tokens is None:
+                return None
+            return ''.join(tokens)
+
+        flags = []
+        comments = []
+
+        for line in self.comment_lines:
+            if line.startswith('#,'):
+                flags.extend(flag.strip() for flag in
+                             line[3:].split(','))
+            else:
+                comments.append(line)
+
+        if self.is_obsolete:
+            msgclass = ObsoleteMessage
+        else:
+            msgclass = Message
+
+        msgid = join(self.msgid_lines)
+        msgstr = None
+        if len(self.msgstrs) > 0:
+            msgstr = [join(lines) for lines in self.msgstrs]
+
+        if msgid == '':
+            charset, headers = parse_header_data(msgstr[0])
+            meta['encoding'] = charset
+            meta['headers'] = headers
+
+        msg = msgclass(comments=comments,
+                       previous_msgctxt=join(self.prevmsgctxt_lines),
+                       previous_msgid=join(self.prevmsgid_lines),
+                       flags=flags,
+                       msgctxt=join(self.msgctxt_lines),
+                       msgid=join(self.msgid_lines),
+                       msgid_plural=join(self.msgid_plural_lines),
+                       msgstr=msgstr,
+                       meta=meta)
+        return msg
 
 
 class EchoWrapper:
@@ -774,6 +815,7 @@ patterns = {'comment': re.compile(r'\s*(?P<line>#.*)'),
             'msgstrs': build_pattern(r'msgstr\[[0-9]+\]'),
             'continuation': re.compile(r'\s*%s\s*$' % _line_pattern)}
 
+
 obsolete_patterns = {}
 for key in patterns:
     obsolete_patterns[key] = re.compile(r'\s*#~' + patterns[key].pattern)
@@ -781,8 +823,12 @@ for key in patterns:
 # This we use a pattern that matches nothing:
 obsolete_patterns['prev_msgid'] = re.compile('.^')
 
-def lowlevel_parse_encoded(fd):
-    """Yield all chunks in fd, where fd must have correct encoding."""
+def parse_encoded(fd):
+    """Yield all messages in fd.
+
+    The strategy is to go one line at a time, always adding that line
+    to a list.  When a new message starts, or there are no more lines,
+    yield whatever is there."""
 
     #fd = EchoWrapper(fd)  # Enable to print all lines
     fd = FileWrapper(fd)
@@ -844,7 +890,7 @@ def lowlevel_parse_encoded(fd):
                 line = _devour(pat['msgstr'], line, lines)
 
         except StopIteration:
-            yield msg
+            yield msg.build()
             return
         except ParseError as err:
             if msg.is_obsolete:
@@ -860,7 +906,7 @@ def lowlevel_parse_encoded(fd):
             raise
         else:
             prev_msg = msg
-            yield msg
+            yield msg.build()
 
 
 class ReadBuffer:
@@ -877,87 +923,51 @@ class ReadBuffer:
     def decode(self, charset):
         return [line.decode(charset) for line in self.bytelines]
 
-def lowlevel_parse_binary(fd):
+
+def parse_binary(fd):
     """Detect encoding of binary file fd and yield all chunks, encoded."""
 
     def find_header():
         rbuf = ReadBuffer(fd)
-        parser = lowlevel_parse_encoded(rbuf)
+        parser = parse_encoded(rbuf)
         for msg in parser:
-            if msg.get_msgid() == '':
-                charset = get_charset(msg.msgstrs[0])
+            if msg.msgid == '':
+                charset, header = parse_header_data(msg.msgstrs[0])
+                #msg.meta['charset'] = charset
+                #msg.meta['headers'] = header
                 return charset, rbuf.bytelines
         raise PoError('No header found in file %s' % fd.name)
 
     # Non-strict parsing to find header and extract charset:
+    charset, lines = find_header()
+
+    parser = parse_encoded(iterdecode(itertools.chain(lines, fd),
+                                      encoding=charset))
+
+    # Always yield header first.  We buffer the messsages (again) until
+    # we find the header, yield the header, then those in the buffer
+    msgs = []
+
+    for msg in parser:
+        msgs.append(msg)
+        if msg.msgid == '':
+            break
+
+    yield msgs.pop()
+    for msg in msgs:
+        yield msg
+    for msg in parser:
+        yield msg
+
+
+def iparse(fd):
+    # Can we add more info to exceptions?
     try:
-        charset, lines = find_header()
-
-        parser = lowlevel_parse_encoded(iterdecode(itertools.chain(lines, fd),
-                                                   encoding=charset))
-
-        for msg in parser:
-            yield msg
+        for chunk in parse_binary(fd):
+            yield chunk
     except ParseError as err:
         err.fname = fd.name
         raise
-
-
-def iterparse(fd):
-    trailing_comments = None
-
-    for chunk in lowlevel_parse_binary(fd):
-        flags = []
-        comments = []
-
-        meta={'rawlines': chunk.rawlines,
-              'lineno': chunk.lineno}
-
-        # We should not do any more loops after we get the trailing comments
-        assert trailing_comments is None
-
-        if len(chunk.msgid_lines) == 0:
-            # There is no msgid.  This can only be a chunk of trailing comments
-            # Any other chunk would pertain to an actual message.
-            trailing_comments = TrailingComments(msgid=None,
-                                                 msgstr='',
-                                                 comments=chunk.comment_lines,
-                                                 meta=meta)
-            yield trailing_comments
-            continue
-
-        for line in chunk.comment_lines:
-            if line.startswith('#,'):
-                flags.extend(flag.strip() for flag in
-                             line[3:].split(','))
-            else:
-                comments.append(line)
-
-        def join(tokens):
-            if tokens is None:
-                return None
-            return ''.join(tokens)
-
-        if chunk.is_obsolete:
-            msgclass = ObsoleteMessage
-        else:
-            msgclass = Message
-
-        msgstr = None
-        if len(chunk.msgstrs) > 0:
-            msgstr = [join(lines) for lines in chunk.msgstrs]
-
-        msg = msgclass(comments=comments,
-                       previous_msgctxt=join(chunk.prevmsgctxt_lines),
-                       previous_msgid=join(chunk.prevmsgid_lines),
-                       flags=flags,
-                       msgctxt=join(chunk.msgctxt_lines),
-                       msgid=join(chunk.msgid_lines),
-                       msgid_plural=join(chunk.msgid_plural_lines),
-                       msgstr=msgstr,
-                       meta=meta)
-        yield msg
-
 
 encoding_pattern = re.compile(r'[^;]*;\s*charset=(?P<charset>[^\s]+)')
 
@@ -976,14 +986,7 @@ def parse(fd):
     except AttributeError:
         fname = '<unknown>'
 
-    msgs = []
-
-    for msg in iterparse(fd):
-        if msg.msgid == '':
-            msgs.insert(0, msg)
-        else:
-            msgs.append(msg)
-
+    msgs = list(iparse(fd))
     assert len(msgs) >= 1
     assert msgs[0].msgid == ''
 
@@ -991,11 +994,7 @@ def parse(fd):
     if msgs[-1].msgid is None:
         trailing_comments = msgs.pop().comments
 
-    headers = parse_header_data(msgs[0].msgstr)
-    encoding_line = headers['Content-Type']
-    match = re.match(encoding_pattern, encoding_line)
-    assert match is not None, (encoding_pattern.pattern, encoding_line)
-    encoding = match.group('charset')
+    encoding = msgs[0].meta['encoding']
 
     cat = Catalog(fname, encoding, msgs, trailing_comments=trailing_comments)
     return cat

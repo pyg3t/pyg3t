@@ -141,15 +141,14 @@ def compare_headers(headers1, headers2, fd):
 
 
 def compare(cat1, cat2, fd):
-    compare_headers(cat1.header.meta['headers'], cat2.header.meta['headers'],
-                    fd)
+    compare_headers(cat1.headers, cat2.headers, fd)
     print(file=fd)
 
     msgs1 = cat1.dict()
     msgs2 = cat2.dict()
 
-    msgs1.pop(cat1.header.key)
-    msgs2.pop(cat2.header.key)
+    msgs1.pop(cat1.msgs[0].key)
+    msgs2.pop(cat2.msgs[0].key)
 
     # TODO
     # info about comments?
