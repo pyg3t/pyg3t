@@ -82,24 +82,24 @@ def test_wrap():
 
 def test_parse_header():
     """Test the parse_header function"""
-    # Should raise if there is header
+    # Should raise if there is no Content-Type in header
     with pytest.raises(PoError) as exception:
         parse_header_data(PARSE_HEADER_IN_ERROR)
-    assert 'Content-Type not in headers' in str(exception)
+    assert exception.value.errtype == 'no-content-type'
 
     # Should raise if there is Content-Type but the charset cannot be
     # extracter
     header = PARSE_HEADER_IN_ERROR + '\\nContent-Type:'
     with pytest.raises(PoError) as exception:
         parse_header_data(header)
-    assert 'Cannot extract charset from header' in str(exception)
+    assert exception.value.errtype == 'no-charset'
 
     # Should raise if there is a charset, but not a known one
     header = PARSE_HEADER_IN_ERROR +\
              '\\nContent-Type: text/plain; charset=UTF-15'
     with pytest.raises(PoError) as exception:
         parse_header_data(header)
-    assert 'Charset not recognized' in str(exception)
+    assert exception.value.errtype == 'bad-charset'
 
     # Test proper parse of correct header
     assert parse_header_data(PARSE_HEADER_IN) == ('utf-8', PARSE_HEADER_OUT)

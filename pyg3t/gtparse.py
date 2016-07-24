@@ -138,7 +138,7 @@ def parse_header_data(msgstr):
         headers[key.strip()] = value.strip()
 
     if 'Content-Type' not in headers:
-        raise PoError('no-content-type'
+        raise PoError('no-content-type',
                       'Content-Type not in headers: %s' % headers)
     match = charset_extraction_pattern.match(headers['Content-Type'])
     if not match:
