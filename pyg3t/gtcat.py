@@ -1,10 +1,9 @@
 from __future__ import print_function, unicode_literals
-import codecs
 from optparse import OptionParser
-from itertools import chain
 from pyg3t.util import pyg3tmain, get_encoded_stdout, get_bytes_input
 from pyg3t.gtparse import iparse
-from pyg3t.charsets import get_gettext_encoding_name
+from pyg3t.charsets import get_gettext_encoding_name, \
+    get_normalized_encoding_name
 
 
 def build_parser():
@@ -31,12 +30,10 @@ def main():
 
         if opts.encoding is not None:
             try:
-                codecinfo = codecs.lookup(opts.encoding)
+                gettext_name = get_gettext_encoding_name(opts.encoding)
+                dst_encoding = get_normalized_encoding_name(opts.encoding)
             except LookupError as err:
                 p.error(str(err))
-
-            dst_encoding = codecinfo.name
-            gettext_name = get_gettext_encoding_name(dst_encoding)
 
             lines = header.msgstr.split(r'\n')
             for i, line in enumerate(lines):

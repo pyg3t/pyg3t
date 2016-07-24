@@ -1,6 +1,5 @@
 from codecs import lookup
 
-
 # Encodings taken verbatim from
 # https://www.gnu.org/software/gettext/manual/html_node/Header-Entry.html
 _gettext_encodings = set("""
@@ -18,10 +17,10 @@ for name in _gettext_encodings:
     try:
         codec_info = lookup(name)
     except LookupError:
-        pyname = None
+        pass
     else:
         pyname = codec_info.name
-    _encoding_map[pyname] = name
+        _encoding_map[pyname] = name
 
 
 def get_normalized_encoding_name(name):
@@ -32,9 +31,9 @@ def get_normalized_encoding_name(name):
 def get_gettext_encoding_name(name):
     codec_info = lookup(name)
     pyname = codec_info.name
-    gettextname = _encoding_map[pyname]
+    gettextname = _encoding_map.get(pyname)
     if gettextname is None:
-        raise LookupError('Unregocnized encoding %s.' % name)
+        raise LookupError('Unsupported encoding %s' % name)
     return gettextname
 
 
@@ -45,7 +44,7 @@ def main():
         try:
             codec_info = lookup(name)
         except LookupError:
-            print('Unregocnized: >>>  %s <<<' % name)
+            print('Unrecognized: >>>  %s <<<' % name)
         else:
             pyname = codec_info.name
             print('%s -> %s' % (pyname, name))
