@@ -88,17 +88,6 @@ def isstringtype(obj):
     return hasattr(obj, 'isalpha')
 
 
-#from textwrap import TextWrapper
-#wrapper = TextWrapper(width=77,
-#                      replace_whitespace=False,
-#                      expand_tabs=False,
-#                      drop_whitespace=False)
-
-# Built-in textwrapper doesn't support the drop_whitespace=False
-# option before 2.6, and it's sort of nice to support 2.5 still.
-# So this is sort of equivalent to the TextWrapper
-
-
 def chunkwrap(chunks):
     """Returns a generator of lines, from the content in :term:`chunk` s,
     wrapped to a max length of 77 characters.
