@@ -644,6 +644,13 @@ obsolete_pattern = re.compile(r'\s*#~')
 obsolete_extraction_pattern = re.compile(r'\s*#~\s*(?P<line>.*)')
 
 
+def getfilename(fd):
+    try:
+        name = fd.name
+    except AttributeError:
+        name = '<unknown>'
+    return name
+
 class ParseError(PoError):
     def __init__(self, header, regex, line, prev_lines):
         self.header = header
@@ -925,7 +932,7 @@ def parse_binary(fd):
                 #msg.meta['charset'] = charset
                 #msg.meta['headers'] = header
                 return charset, rbuf.bytelines
-        raise PoError('No header found in file %s' % fd.name)
+        raise PoError('No header found in file %s' % getfilename(fd))
 
     # Non-strict parsing to find header and extract charset:
     charset, lines = find_header()
@@ -950,19 +957,22 @@ def parse_binary(fd):
 
 
 def iparse(fd):
+    """Parse .po file and yield all Messages.
+
+    The only requirement of fd is that it iterates over lines."""
     # Can we add more info to exceptions?
     try:
-        for chunk in parse_binary(fd):
-            yield chunk
+        for msg in parse_binary(fd):
+            yield msg
     except ParseError as err:
-        err.fname = fd.name
+        err.fname = getfilename(fd)
         raise
 
 encoding_pattern = re.compile(r'[^;]*;\s*charset=(?P<charset>[^\s]+)')
 
 
 def parse(fd):
-    """Parse .po file content from a file-like object.
+    """Parse .po file and return a Catalog.
 
     Args:
        input (file): A file-like object in binary mode
@@ -970,10 +980,7 @@ def parse(fd):
     Returns:
         Catalog: A message catalog"""
 
-    try:
-        fname = fd.name
-    except AttributeError:
-        fname = '<unknown>'
+    fname = getfilename(fd)
 
     msgs = list(iparse(fd))
     assert len(msgs) >= 1
