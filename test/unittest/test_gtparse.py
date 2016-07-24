@@ -12,6 +12,7 @@ try:
 except ImportError:
     from mock import MagicMock
 
+from pyg3t.util import PoError
 from pyg3t.gtparse import (
     isstringtype, wrap, parse_header_data,  # _get_header
 )
@@ -44,7 +45,7 @@ def test_wrap():
             assert wrap_chunk == next(content_iter)
 
 
-PARSE_HEADER_IN = (
+PARSE_HEADER_IN_ERROR = (
     'a: æøå\\n'
     '\\n'  # blank line should be ignored
     'b: multiple words\\n'
@@ -52,13 +53,35 @@ PARSE_HEADER_IN = (
     'c-key-with-multiple-words: 8\\n'
     'def'  # No key-value separator present, line (at present) also ignored
 )
+PARSE_HEADER_IN = PARSE_HEADER_IN_ERROR +\
+                  '\\nContent-Type: text/plain; charset=UTF-8'
 PARSE_HEADER_OUT = {
-    'a': 'æøå', 'b': 'multiple words', 'c-key-with-multiple-words': '8'
+    'a': 'æøå', 'b': 'multiple words', 'c-key-with-multiple-words': '8',
+    'Content-Type': 'text/plain; charset=UTF-8',
 }
-#def test_parse_header():
-#    """Test the parse_header function"""
-#    print(parse_header_data(PARSE_HEADER_IN))
-#    assert parse_header_data(PARSE_HEADER_IN) == PARSE_HEADER_OUT
+def test_parse_header():
+    """Test the parse_header function"""
+    # Should raise if there is header
+    with pytest.raises(PoError) as exception:
+        parse_header_data(PARSE_HEADER_IN_ERROR)
+    assert 'Content-Type not in headers' in str(exception)
+
+    # Should raise if there is Content-Type but the charset cannot be
+    # extracter
+    header = PARSE_HEADER_IN_ERROR + '\\nContent-Type:'
+    with pytest.raises(PoError) as exception:
+        parse_header_data(header)
+    assert 'Cannot extract charset from header' in str(exception)
+
+    # Should raise if there is a charset, but not a known one
+    header = PARSE_HEADER_IN_ERROR +\
+             '\\nContent-Type: text/plain; charset=UTF-15'
+    with pytest.raises(PoError) as exception:
+        parse_header_data(header)
+    assert 'Charset not recognized' in str(exception)
+
+    # Test proper parse of correct header
+    assert parse_header_data(PARSE_HEADER_IN) == ('utf-8', PARSE_HEADER_OUT)
 
 
 # test _get_header

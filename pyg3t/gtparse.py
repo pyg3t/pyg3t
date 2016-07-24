@@ -176,6 +176,10 @@ def parse_header_data(msgstr):
 
     Returns:
         dict: Key, value pairs of header info. All keys and values are strings.
+
+    Raises:
+        PoError: On missing 'Content-Type' field, on 'Content-Type field from
+            which the charset cannot be extracted or on a unknown charset
     """
     headers = {}
     for line in msgstr.split(r'\n'):
