@@ -8,16 +8,50 @@ from os import path
 
 import pytest
 try:
-    from unittest.mock import MagicMock
+    from unittest.mock import Mock
 except ImportError:
-    from mock import MagicMock
+    from mock import Mock
 
 from pyg3t.util import PoError
 from pyg3t.gtparse import parse_header_data
 from pyg3t.message import (
-    isstringtype, wrap,  # _get_header
+    isstringtype, wrap,  Catalog
 )
 
+### Test data
+PARSE_HEADER_IN_ERROR = (
+    'a: æøå\\n'
+    '\\n'  # blank line should be ignored
+    'b: multiple words\\n'
+    ' \\n'  # line with space should be ignored
+    'c-key-with-multiple-words: 8\\n'
+    'def'  # No key-value separator present, line (at present) also ignored
+)
+PARSE_HEADER_IN = PARSE_HEADER_IN_ERROR +\
+                  '\\nContent-Type: text/plain; charset=UTF-8'
+PARSE_HEADER_OUT = {
+    'a': 'æøå', 'b': 'multiple words', 'c-key-with-multiple-words': '8',
+    'Content-Type': 'text/plain; charset=UTF-8',
+}
+
+
+### Fixtures
+@pytest.fixture
+def msgs():
+    """Make a list of mock msgs"""
+    msgs = []
+    for msgid in ('', 'a', 'b'):
+        # Make sure the mock complains if we access any other attributes
+        msg = Mock(spec_set=['msgid', 'is_obsolete', 'meta'])
+        msg.msgid = msgid
+        msg.is_obsolete = False
+        msgs.append(msg)
+    header_msg = msgs[0]
+    header_msg.meta = {'headers': PARSE_HEADER_OUT}
+    return msgs
+
+
+### Tests
 ISSTRINGTYPE = (('å', True), ('å'.encode('utf-8'), True), (1, False))
 def test_isstringtype():
     """Test the isstriptype function"""
@@ -46,20 +80,6 @@ def test_wrap():
             assert wrap_chunk == next(content_iter)
 
 
-PARSE_HEADER_IN_ERROR = (
-    'a: æøå\\n'
-    '\\n'  # blank line should be ignored
-    'b: multiple words\\n'
-    ' \\n'  # line with space should be ignored
-    'c-key-with-multiple-words: 8\\n'
-    'def'  # No key-value separator present, line (at present) also ignored
-)
-PARSE_HEADER_IN = PARSE_HEADER_IN_ERROR +\
-                  '\\nContent-Type: text/plain; charset=UTF-8'
-PARSE_HEADER_OUT = {
-    'a': 'æøå', 'b': 'multiple words', 'c-key-with-multiple-words': '8',
-    'Content-Type': 'text/plain; charset=UTF-8',
-}
 def test_parse_header():
     """Test the parse_header function"""
     # Should raise if there is header
@@ -85,27 +105,26 @@ def test_parse_header():
     assert parse_header_data(PARSE_HEADER_IN) == ('utf-8', PARSE_HEADER_OUT)
 
 
-# test _get_header
-# def test__get_header():
-#     """Test the _get_header function"""
-#     # Form mock msgs
-#     msgs = []
-#     for n in range(3):
-#         msg = MagicMock()
-#         msg.meta = {}
-#         msg.msgid = 'o'
-#         msg.msgstr = 'h'
-#         msgs.append(msg)
+# TODO: Test DuplicateMessageError
 
-#     # test that having no header raises an exception
-#     with pytest.raises(ValueError) as exception:
-#         _get_header(msgs)
-#     assert str(exception).endswith('Header not found in msgs')
 
-#     # Test that it finds the header and fills in the metadata correctly
-#     header = msgs[1]
-#     header.msgid = ''
-#     header.msgstr = PARSE_HEADER_IN
-#     identified_header = _get_header(msgs)
-#     assert header == identified_header
-#     assert header.meta['headers'] == PARSE_HEADER_OUT
+class TestCatalog(object):
+    """Test the Catalog class"""
+
+    def test___init__(self, msgs):
+        """Test the __init__ method___"""
+        # Test normal __init__ and sorting into msgs and obsoletes
+        msgs[1].is_obsolete = True
+        catalog = Catalog('filename', 'encoding', msgs, 'trailing_comment')
+        assert catalog.fname == 'filename'
+        assert catalog.encoding == 'encoding'
+        obsoletes = [msgs.pop(1)]
+        assert catalog.msgs == msgs
+        assert catalog.obsoletes == obsoletes
+        assert catalog.headers == PARSE_HEADER_OUT
+        assert catalog.trailing_comments == 'trailing_comment'
+
+        # Test trailin_comments default
+        catalog = Catalog('filename', 'encoding', msgs)
+        assert catalog.trailing_comments is None
+
