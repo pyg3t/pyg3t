@@ -119,15 +119,15 @@ def build_parser():
     output = OptionGroup(parser, 'Output options')
 
     selection.add_option('-t', '--translated', action='store_true',
-                      help='select translated messages')
+                         help='select translated messages')
     selection.add_option('-u', '--untranslated', action='store_true',
-                      help='select untranslated messages')
+                         help='select untranslated messages')
     selection.add_option('-f', '--fuzzy', action='store_true',
-                      help='select fuzzy messages')
+                         help='select fuzzy messages')
     selection.add_option('-p', '--plural', action='store_true',
-                      help='select messages with plural forms')
+                         help='select messages with plural forms')
     selection.add_option('-v', '--invert', action='store_true',
-                      help='invert selection criterion')
+                         help='invert selection criterion')
     selection.add_option('-a', '--and', action='store_true', dest='and_',
                          help='require all, rather than any, selection '
                          'criterion to trigger selection')
@@ -195,7 +195,7 @@ def main():
             cat = parse(fd)
         except IOError as m:
             p.error(m)
-        out = get_encoded_stdout(cat.encoding)#Encoder(sys.stdout, cat.encoding)
+        out = get_encoded_stdout(cat.encoding)
         selected = poselect.select(cat)
 
         def printcount(count):

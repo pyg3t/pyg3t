@@ -6,9 +6,8 @@ from pyg3t.gtparse import parse
 from pyg3t.util import pyg3tmain, get_encoded_stdout
 
 
-_timefmt = '%Y-%m-%d %H:%M%z'
 def standard_strptime(date):
-    return datetime.strptime(date, _timefmt)
+    return datetime.strptime(date, '%Y-%m-%d %H:%M%z')
 
 
 def build_parser():
@@ -119,16 +118,16 @@ def compare_headers(headers1, headers2, fd):
         try:
             check(header)
         except KeyError:
-            if header in headers1 and not header in headers1:
+            if header in headers1 and header not in headers1:
                 print('Removed header %s' % ': '.join([header,
                                                        headers1[header]]),
                       file=fd)
-            elif not header in headers1 and header in headers2:
+            elif header not in headers1 and header in headers2:
                 print('Added header %s' % ': '.join([header,
                                                      headers2[header]]),
                       file=fd)
             else:
-                assert not header in headers1 and not header in headers2
+                assert header not in headers1 and header not in headers2
         header_done(header)
 
     # Copy the list as process_header makes changes to the list
@@ -162,7 +161,7 @@ def compare(cat1, cat2, fd):
     def compare_msgids(source, dest):
         missing = []
         for key in source:
-            if not key in dest:
+            if key not in dest:
                 missing.append(key)
         return missing
 

@@ -99,7 +99,7 @@ class GTGrep:
             tests.append(Check(checkcomments, comment_pattern, '--comment'))
         if icomment_pattern is not None:
             inversetests.append(Check(checkcomments, icomment_pattern,
-                                  '--icomment'))
+                                      '--icomment'))
         if msgctxt_pattern is not None:
             tests.append(Check(checkctxt, msgctxt_pattern, '--msgctxt'))
         if imsgctxt_pattern is not None:

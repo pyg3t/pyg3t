@@ -1,4 +1,5 @@
 from __future__ import print_function, unicode_literals
+from codecs import lookup, StreamReaderWriter
 import sys
 
 
@@ -15,8 +16,6 @@ class Py2Encoder:
         if not isinstance(txt, unicode):
             if txt == b'\n' or txt == b'':
                 pass
-            #else:
-            #    raise ValueError('Grrrr: %s %s' % (type(txt), repr(txt)))
             txt = unicode(txt)
         self.fd.write(txt.encode(self.encoding))
 
@@ -86,8 +85,7 @@ def get_encoded_output(name, encoding):
     else:
         return open(name, 'w', encoding=encoding)
 
-from codecs import lookup
-from codecs import StreamReaderWriter
+
 def _stream_encoder(fd, encoding, errors='strict'):
     info = lookup(encoding)
     srw = StreamReaderWriter(fd, info.streamreader, info.streamwriter,
@@ -98,6 +96,7 @@ def _stream_encoder(fd, encoding, errors='strict'):
 _unencoded_stdin = sys.stdin.buffer if sys.version_info == 3 else sys.stdin
 _unencoded_stdout = sys.stdout.buffer if sys.version_info == 3 else sys.stdout
 #_unencoded_stderr = sys.stderr.buffer if sys.version_info == 3 else sys.stderr
+
 
 def get_encoded_stdout(encoding, errors='strict'):
     if py3:
@@ -146,19 +145,4 @@ def pyg3tmain(main):
         except PoError as err:
             print(str(err), file=sys.stderr)
             raise SystemExit(2)
-        #except PoError as err:
-        #    maxlength = len('%d' % err.lineno)
-        #    print(err.errmsg, file=sys.stderr)
-        #    print('-' * len(err.errmsg), file=sys.stderr)
-        #    lineoffset = 1 + err.lineno - len(err.last_lines)
-        #    for i, line in enumerate(err.last_lines):
-        #        lineno = lineoffset + i
-        #        print(('%d' % lineno).rjust(maxlength), line, end='',
-        #              file=sys.stderr)
-        #    print(file=sys.stderr)
-        #    raise SystemExit(-1)
-        #except PoHeaderError as err:
-        #    for arg in err.args:
-        #        print(arg, file=sys.stderr)
-        #    raise SystemExit(-1)
     return main_decorator

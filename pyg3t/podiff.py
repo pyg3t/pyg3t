@@ -285,7 +285,6 @@ def main():  # pylint: disable-msg=R0912
         print(err, file=sys.stderr)
         raise SystemExit(5)
 
-
     # Open file for writing, if it is not one of the input files
     if opts.output:
         if opts.output in (args[0], args[1]):

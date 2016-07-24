@@ -155,7 +155,6 @@ def main():
     # After this we re-parse them and diff them word-wise.
     fd = open(fname, 'rb')
 
-
     oldbytes, newbytes = split_diff_as_bytes(fd)
     oldcat = parse(iter(oldbytes))
     newcat = parse(iter(newbytes))

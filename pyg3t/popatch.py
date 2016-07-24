@@ -46,6 +46,7 @@ def split_diff_as_bytes(fd):
             raise ValueError('Unrecognized diff content %s' % line)
     return old, new
 
+
 class PoPatch:
     """PoPatch contains methods for patching a podiff into a pofile or to
     out the new or old versions of the content in a podiff."""

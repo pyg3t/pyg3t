@@ -177,12 +177,9 @@ def parse_header_data(msgstr):
         tokens = line.split(':', 1)
         if len(tokens) != 2:
             continue # XXXXXX write warning
-        #try:
         key, value = tokens  # Chance of shenanigans?
-        #except ValueError:
-        #    key = tokens[0]
-        #    value = ''  # This should probably not be the case but isn't ugly
-            # enough to complain extremely loudly about by default
+        # This should probably not be the case but isn't ugly
+        # enough to complain extremely loudly about by default
         headers[key.strip()] = value.strip()
 
     if 'Content-Type' not in headers:
@@ -293,8 +290,8 @@ class Message(object):
         msgid_plural (string): msgid plural if any, otherwise None
         msgctxt (string): Context message of any, otherwise None
         comments (list): Newline-terminated strings (or None if none)
-                         Comments should include #.  They should not include lines
-                         that specify flags or previous msgid/msgctxt.
+                         Comments should include #.  They should not include
+                         lines that specify flags or previous msgid/msgctxt.
         meta (dict): Optional metadata (linenumber, raw text from po-file)
         flags (iterable): Strings specififying flags ('fuzzy', etc.)
         previous_msgid: None, or a string if there is a previous msgid.
@@ -479,7 +476,7 @@ class Message(object):
         return ''.join(self.meta['rawlines'])
 
     def flagstostring(self):
-        """Return a flag string on the form: ``"#, flag0, flag1, flag2\\n"``."""
+        """Return a flag string on the form: ``"#, flag0, flag1, ...\\n"``."""
         if self.flags:
             return '#, %s\n' % ', '.join(sorted(self.flags))
         else:
@@ -643,8 +640,6 @@ def wrap_declaration(declaration, string, continuation='"', end='"\n'):
     else:
         return ['%s "%s"\n' % (declaration, string)]
 
-#---------------------------------------------------
-
 obsolete_pattern = re.compile(r'\s*#~')
 obsolete_extraction_pattern = re.compile(r'\s*#~\s*(?P<line>.*)')
 
@@ -709,8 +704,8 @@ class MessageChunk:
         self.rawlines = []
 
     def build(self):
-        meta={'rawlines': self.rawlines,
-              'lineno': self.lineno}
+        meta = {'rawlines': self.rawlines,
+                'lineno': self.lineno}
 
         if len(self.msgid_lines) == 0:
             # There is no msgid.  This can only be a chunk of trailing comments
@@ -792,9 +787,11 @@ class FileWrapper:
 _line_pattern = r'"(?P<line>.*?)"'
 # Careful: Always add trailing $ to not match escaped \" within strings
 
+
 def build_pattern(name):
     # Note: It is actually optional whether a line follows a header
     return re.compile(r'\s*%s\s*(%s)?\s*$' % (name, _line_pattern))
+
 
 patterns = {'comment': re.compile(r'\s*(?P<line>#.*)'),
             'prev_msgctxt': build_pattern(r'#\|\s*msgctxt'),
