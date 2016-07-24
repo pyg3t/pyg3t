@@ -5,7 +5,7 @@ from optparse import OptionParser
 
 from pyg3t.gtparse import parse
 from pyg3t.gtxml import GTXMLChecker
-from pyg3t.util import pyg3tmain, get_bytes_input, get_encoded_stdout
+from pyg3t.util import pyg3tmain, get_bytes_input, get_encoded_output
 from pyg3t import __version__
 import xml.sax
 
@@ -246,7 +246,7 @@ def main(cmdparser):
     cat = parse(fd)
 
     # We will not respect the original coding of the file
-    out = get_encoded_stdout('utf-8')
+    out = get_encoded_output('utf-8')
 
     tests = []
     tests.append(PartiallyTranslatedPluralTest())

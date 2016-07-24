@@ -2,7 +2,7 @@ from __future__ import print_function, unicode_literals
 from optparse import OptionParser, OptionGroup
 
 from pyg3t import __version__
-from pyg3t.util import getfiles, pyg3tmain, get_encoded_stdout
+from pyg3t.util import pyg3tmain, get_encoded_output, get_bytes_input
 from pyg3t.gtparse import parse
 
 
@@ -161,8 +161,6 @@ def main(p):
 
     is_multifile = len(args) > 1
 
-    files = getfiles(args)
-
     selectors = []
     if opts.translated:
         selectors.append(TranslatedSelector())
@@ -185,7 +183,9 @@ def main(p):
     counter = Counter(superselector)
     poselect = PoSelect(counter)
 
-    for fname, fd in files:
+    for arg in args:
+        fd = get_bytes_input(arg)
+        fname = fd.name
         #printer = MsgPrinter(Encoder(sys.stdout, ))
 
         #if opts.line_number:
@@ -194,7 +194,7 @@ def main(p):
             cat = parse(fd)
         except IOError as m:
             p.error(m)
-        out = get_encoded_stdout(cat.encoding)
+        out = get_encoded_output(cat.encoding)
         selected = poselect.select(cat)
 
         def printcount(count):

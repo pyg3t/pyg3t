@@ -4,7 +4,7 @@ from optparse import OptionParser
 from difflib import SequenceMatcher
 
 from pyg3t.gtparse import parse
-from pyg3t.util import Colorizer, pyg3tmain, get_encoded_stdout
+from pyg3t.util import Colorizer, pyg3tmain, get_encoded_output
 from pyg3t.popatch import split_diff_as_bytes
 
 
@@ -163,7 +163,7 @@ def main(p):
     oldcat = parse(iter(oldbytes))
     newcat = parse(iter(newbytes))
 
-    out = get_encoded_stdout('utf8')
+    out = get_encoded_output('utf8')
     differ = MSGDiffer()
 
     if len(oldcat) != len(newcat): # XXX not very general

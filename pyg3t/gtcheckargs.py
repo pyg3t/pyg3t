@@ -4,7 +4,7 @@ import re
 from optparse import OptionParser
 
 from pyg3t.gtparse import parse
-from pyg3t.util import NullDevice, pyg3tmain, get_encoded_stdout
+from pyg3t.util import NullDevice, pyg3tmain, get_encoded_output
 
 
 description = """Check translations of command-line options in po-files."""
@@ -203,11 +203,11 @@ def main(parser):
     errcount = 0
 
     debug = None
+    out = get_encoded_output('utf8')
     if opts.diagnostics:
-        debug = get_encoded_stdout('utf8')
+        debug = out
 
     checker = OptionChecker(debugfile=debug)
-    out = get_encoded_stdout('utf8')
 
     for arg in args:
         fd = open(arg, 'rb')

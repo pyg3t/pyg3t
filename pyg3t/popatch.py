@@ -133,7 +133,7 @@ def main(option_parser):
         incat = gtparse.parse(incat_file)
 
         diff_file = get_bytes_input(args[1])
-        outcat_file = get_encoded_output(opts.output, incat.encoding)
+        outcat_file = get_encoded_output(incat.encoding, opts.output)
 
         popatch = PoPatch()
         popatch.writepatch(incat, diff_file, outcat_file)

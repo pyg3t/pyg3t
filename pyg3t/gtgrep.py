@@ -9,7 +9,7 @@ from optparse import OptionParser, OptionGroup
 
 from pyg3t import __version__
 from pyg3t.gtparse import parse
-from pyg3t.util import Colorizer, pyg3tmain, get_encoded_stdout
+from pyg3t.util import Colorizer, pyg3tmain, get_encoded_output
 
 
 class GTGrep:
@@ -204,7 +204,7 @@ def main(parser):
     opts, args = parser.parse_args()
 
     charset = 'UTF-8' # yuck
-    out = get_encoded_stdout(charset)
+    out = get_encoded_output(charset)
 
     patterns = {}
     keys = ['msgid', 'msgstr', 'msgctxt', 'comment']

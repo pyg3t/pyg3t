@@ -6,7 +6,7 @@ import xml.sax
 from optparse import OptionParser
 
 from pyg3t.gtparse import parse
-from pyg3t.util import Colorizer, pyg3tmain, get_encoded_stdout
+from pyg3t.util import Colorizer, pyg3tmain, get_encoded_output
 
 
 class SuspiciousTagsError(ValueError):
@@ -212,7 +212,7 @@ def main(parser):
 
     #check_tags = False #opts.tags or opts.tags_from
     gtxml = GTXMLChecker()#check_tags, known_tags)
-    out = get_encoded_stdout('utf8')
+    out = get_encoded_output('utf8')
     #out = Encoder(sys.stdout, 'utf8') # overwritten below as necessary
 
     # Special mode to dump all tags and do nothing else

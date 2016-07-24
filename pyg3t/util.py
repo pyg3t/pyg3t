@@ -1,5 +1,6 @@
 from __future__ import print_function, unicode_literals
 from codecs import lookup, StreamReaderWriter
+from io import open
 import sys
 
 
@@ -65,14 +66,14 @@ class NullDevice:
         pass
 
 
-def get_bytes_output(name):
+def get_bytes_output(name='-'):
     if name == '-':
         return sys.stdout.buffer if py3 else sys.stdout
     else:
         return open(name, 'wb')
 
 
-def get_bytes_input(name):
+def get_bytes_input(name='-'):
     if name == '-':
         return sys.stdin.buffer if py3 else sys.stdin
     else:
@@ -82,9 +83,9 @@ def get_bytes_input(name):
             raise PoError('file-not-found', str(err))
 
 
-def get_encoded_output(name, encoding):
+def get_encoded_output(encoding, name='-'):
     if name == '-':
-        return get_encoded_stdout(encoding)
+        return _get_encoded_stdout(encoding)
     else:
         return open(name, 'w', encoding=encoding)
 
@@ -96,24 +97,17 @@ def _stream_encoder(fd, encoding, errors='strict'):
     return srw
 
 
-_unencoded_stdin = sys.stdin.buffer if sys.version_info == 3 else sys.stdin
-_unencoded_stdout = sys.stdout.buffer if sys.version_info == 3 else sys.stdout
-#_unencoded_stderr = sys.stderr.buffer if sys.version_info == 3 else sys.stderr
+_bytes_stdin = sys.stdin.buffer if py3 else sys.stdin
+_bytes_stdout = sys.stdout.buffer if py3 else sys.stdout
+#_unencoded_stderr = sys.stderr.buffer if py3 else sys.stderr
 
 
-def get_encoded_stdout(encoding, errors='strict'):
+def _get_encoded_stdout(encoding, errors='strict'):
     if py3:
         return _stream_encoder(sys.stdout.buffer, encoding, errors=errors)
     else:
         from util import Py2Encoder
         return Py2Encoder(sys.stdout, encoding)
-
-
-def get_unencoded_stdin():
-    if sys.version_info[0] == 3:
-        return sys.stdin.buffer
-    else:
-        return sys.stdin
 
 
 class PoError(Exception):
@@ -132,15 +126,6 @@ class PoError(Exception):
             msg = msg.encode(sys.stderr.encoding)
         return msg
 
-
-def getfiles(args):
-    for arg in args:
-        if arg == '-':
-            name = '<stdin>'
-            yield name, sys.stdin
-        else:
-            fd = open(arg, 'rb')
-            yield arg, fd
 
 def pyg3tmain(build_parser):
     """Decorator for pyg3t main functions.

@@ -26,7 +26,7 @@ from pyg3t.gtparse import parse
 from pyg3t import __version__
 from pyg3t.gtdifflib import FancyWDiffFormat
 from pyg3t.gtdifflib import diff as wdiff
-from pyg3t.util import pyg3tmain, get_encoded_stdout, get_unencoded_stdin
+from pyg3t.util import pyg3tmain, get_encoded_output, get_bytes_input
 
 
 class PoDiff:
@@ -270,12 +270,12 @@ def main(option_parser):  # pylint: disable-msg=R0912
     # Load files into catalogs
     try:
         if args[0] == '-':
-            cat_old = parse(get_unencoded_stdin())
+            cat_old = parse(get_bytes_input())
         else:
             cat_old = parse(open(args[0], 'rb'))
 
         if args[1] == '-':
-            cat_new = parse(get_unencoded_stdin())
+            cat_new = parse(get_bytes_input())
         else:
             cat_new = parse(open(args[1], 'rb'))
     except IOError as err:
@@ -299,7 +299,7 @@ def main(option_parser):  # pylint: disable-msg=R0912
             print(err, file=sys.stderr)
             raise SystemExit(4)
     else:
-        out = get_encoded_stdout('utf-8')
+        out = get_encoded_output('utf-8')
 
     podiff = PoDiff(out, opts.line_numbers, opts.color)
 

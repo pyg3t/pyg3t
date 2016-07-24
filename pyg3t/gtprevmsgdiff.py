@@ -3,7 +3,7 @@ from __future__ import print_function, unicode_literals
 from optparse import OptionParser
 from pyg3t.gtparse import parse
 from pyg3t.gtdifflib import DefaultWDiffFormat, FancyWDiffFormat, diff
-from pyg3t.util import pyg3tmain, get_encoded_stdout
+from pyg3t.util import pyg3tmain, get_encoded_output
 
 
 def build_parser():
@@ -30,7 +30,7 @@ def main(p):
     if len(args) != 1:
         p.error('Only a single file expected; got %d' % len(args))
     cat = parse(open(args[0], 'rb'))
-    out = get_encoded_stdout(cat.encoding)
+    out = get_encoded_output(cat.encoding)
 
     for msg in cat:
         if not msg.has_previous_msgid:

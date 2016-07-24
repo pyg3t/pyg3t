@@ -1,7 +1,7 @@
 from __future__ import print_function, unicode_literals
 from optparse import OptionParser
 
-from pyg3t.util import pyg3tmain, get_encoded_stdout, get_bytes_input
+from pyg3t.util import pyg3tmain, get_encoded_output, get_bytes_input
 from pyg3t.gtparse import iparse
 from pyg3t.charsets import get_gettext_encoding_name, \
     get_normalized_encoding_name
@@ -45,7 +45,7 @@ def main(parser):
         else:
             dst_encoding = src_encoding
 
-        out = get_encoded_stdout(dst_encoding)
+        out = get_encoded_output(dst_encoding)
         print(header.tostring(), file=out)
         for msg in cat:
             print(msg.tostring(), file=out)
