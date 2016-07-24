@@ -7,6 +7,7 @@ class DuplicateMessageError(PoError):
         self.msg1 = msg1
         self.msg2 = msg2
         self.fname = fname
+        super(DuplicateMessageError, self).__init__('duplicate-msg')
 
     def get_errmsg(self):
         line1 = self.msg1.meta.get('lineno', '<unknown>')

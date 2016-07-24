@@ -114,6 +114,12 @@ def get_unencoded_stdin():
 
 
 class PoError(Exception):
+    def __init__(self, errtype, *args, **kwargs):
+        # errtype is a unique short string identifying the error.
+        # It is used to distinguish different errors by the test suite.
+        self.errtype = errtype
+        super(PoError, self).__init__(*args, **kwargs)
+
     def get_errmsg(self):
         return super(PoError, self).__str__()
 

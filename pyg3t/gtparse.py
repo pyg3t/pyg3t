@@ -138,10 +138,11 @@ def parse_header_data(msgstr):
         headers[key.strip()] = value.strip()
 
     if 'Content-Type' not in headers:
-        raise PoError('Content-Type not in headers: %s' % headers)
+        raise PoError('no-content-type'
+                      'Content-Type not in headers: %s' % headers)
     match = charset_extraction_pattern.match(headers['Content-Type'])
     if not match:
-        raise PoError('Cannot extract charset from header "%s"' %
+        raise PoError('no-charset', 'Cannot extract charset from header "%s"' %
                       headers['Content-Type'])
 
     # Normalize charset
@@ -149,7 +150,7 @@ def parse_header_data(msgstr):
     try:
         charset = get_normalized_encoding_name(charset_string)
     except LookupError as err:
-        raise PoError('Charset not recognized: %s' % str(err))
+        raise PoError('bad-charset', 'Charset not recognized: %s' % str(err))
 
     # Extract more info?
     return charset, headers
@@ -175,7 +176,7 @@ class ParseError(PoError):
         self.prev_lines = prev_lines
         self.lineno = '<unknown>'
         self.fname = '<unknown>'
-        super(ParseError, self).__init__()
+        super(ParseError, self).__init__('parse-error')
 
     def get_errmsg(self):
         lines = ['Bad syntax while parsing',
@@ -450,7 +451,8 @@ def parse_binary(fd):
                 #msg.meta['charset'] = charset
                 #msg.meta['headers'] = header
                 return charset, rbuf.bytelines
-        raise PoError('No header found in file %s' % getfilename(fd))
+        raise PoError('no-header',
+                      'No header found in file %s' % getfilename(fd))
 
     # Non-strict parsing to find header and extract charset:
     charset, lines = find_header()
