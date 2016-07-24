@@ -101,9 +101,9 @@ def chunkwrap(chunks):
                                expand_tabs=False,
                                drop_whitespace=False)
 
-    but since TextWrapper in Python 2.5 does not support the
-    ``drop_whitespace=False`` option, this implementation is used until
-    support for Python 2.5 is dropped.
+    but we would have to somehow hack the built-in textwrapper to take
+    declarations like msgid_plural into account, or add and remove paddings
+    in funny ways to pre/postprocess its output.
 
     Args:
         chunks (iterable): :term:`Chunk` s of text to wrap
