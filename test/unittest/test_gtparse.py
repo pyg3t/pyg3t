@@ -13,8 +13,9 @@ except ImportError:
     from mock import MagicMock
 
 from pyg3t.util import PoError
-from pyg3t.gtparse import (
-    isstringtype, wrap, parse_header_data,  # _get_header
+from pyg3t.gtparse import parse_header_data
+from pyg3t.message import (
+    isstringtype, wrap,  # _get_header
 )
 
 ISSTRINGTYPE = (('å', True), ('å'.encode('utf-8'), True), (1, False))
