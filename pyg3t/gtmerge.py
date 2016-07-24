@@ -78,9 +78,8 @@ def merge(msgstrcat, msgidcat, overwrite=True, fname='<unknown>'):
     return Catalog(fname, msgidcat.encoding, newmsgs)
 
 
-@pyg3tmain
-def main():
-    p = build_parser()
+@pyg3tmain(build_parser)
+def main(p):
     opts, args = p.parse_args()
     if opts.mode != 'translationproject':
         if len(args) != 2:

@@ -6,8 +6,7 @@ from pyg3t.gtdifflib import DefaultWDiffFormat, FancyWDiffFormat, diff
 from pyg3t.util import pyg3tmain, get_encoded_stdout
 
 
-@pyg3tmain
-def main():
+def build_parser():
     usage = '%prog [OPTION] POFILE'
     description = ('Print wordwise diff of msgid and previous msgid '
                    'entries in gettext message catalogs.')
@@ -16,7 +15,11 @@ def main():
                  help='use colors to highlight changes')
     p.add_option('--include-translated', action='store_true',
                  help='write differences for translated messages as well')
+    return p
 
+
+@pyg3tmain(build_parser)
+def main(p):
     opts, args = p.parse_args()
 
     if opts.fancy:

@@ -1,5 +1,6 @@
 from __future__ import print_function, unicode_literals
 from optparse import OptionParser
+
 from pyg3t.util import pyg3tmain, get_encoded_stdout, get_bytes_input
 from pyg3t.gtparse import iparse
 from pyg3t.charsets import get_gettext_encoding_name, \
@@ -18,10 +19,9 @@ def build_parser():
     return p
 
 
-@pyg3tmain
-def main():
-    p = build_parser()
-    opts, args = p.parse_args()
+@pyg3tmain(build_parser)
+def main(parser):
+    opts, args = parser.parse_args()
 
     for arg in args:
         cat = iparse(get_bytes_input(arg))
@@ -33,7 +33,7 @@ def main():
                 gettext_name = get_gettext_encoding_name(opts.encoding)
                 dst_encoding = get_normalized_encoding_name(opts.encoding)
             except LookupError as err:
-                p.error(str(err))
+                parser.error(str(err))
 
             lines = header.msgstr.split(r'\n')
             for i, line in enumerate(lines):

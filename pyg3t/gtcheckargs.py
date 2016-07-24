@@ -196,9 +196,8 @@ class OptionChecker:
               file=self.debug)
 
 
-@pyg3tmain
-def main():
-    parser = build_parser()
+@pyg3tmain(build_parser)
+def main(parser):
     opts, args = parser.parse_args()
 
     errcount = 0

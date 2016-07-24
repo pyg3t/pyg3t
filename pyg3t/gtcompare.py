@@ -282,9 +282,8 @@ def compare(cat1, cat2, fd):
         print('There are no conflicts among translated messages.', file=fd)
 
 
-@pyg3tmain
-def main():
-    parser = build_parser()
+@pyg3tmain(build_parser)
+def main(parser):
     opts, args = parser.parse_args()
 
     fd = get_encoded_stdout('utf-8')

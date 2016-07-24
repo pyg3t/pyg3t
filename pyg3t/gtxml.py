@@ -202,9 +202,8 @@ def colorize_errors(msg, err):
         msg.msgstrs[i] = msgstr
 
 
-@pyg3tmain
-def main():
-    parser = build_parser()
+@pyg3tmain(build_parser)
+def main(parser):
     opts, args = parser.parse_args()
 
     #known_tags = []

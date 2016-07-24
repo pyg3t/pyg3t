@@ -257,11 +257,10 @@ def __build_parser():
     return parser
 
 
-@pyg3tmain
-def main():  # pylint: disable-msg=R0912
+@pyg3tmain(__build_parser)
+def main(option_parser):  # pylint: disable-msg=R0912
     """The main function loads the files and outputs the diff"""
 
-    option_parser = __build_parser()
     opts, args = option_parser.parse_args()
 
     # We need exactly two files to proceed

@@ -152,9 +152,8 @@ def build_parser():
     return parser
 
 
-@pyg3tmain
-def main():
-    p = build_parser()
+@pyg3tmain(build_parser)
+def main(p):
     opts, args = p.parse_args()
 
     if len(args) == 0:

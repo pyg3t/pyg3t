@@ -132,8 +132,7 @@ class MSGDiffer:
         return self.colorize(newwords, newcolors)
 
 
-@pyg3tmain
-def main():
+def build_parser():
     usage = '%prog [OPTION] PODIFF'
     description = 'Generate word-wise podiff from ordinary podiff'
     p = OptionParser(usage=usage, description=description)
@@ -141,6 +140,11 @@ def main():
                  help='display changes inferred from previous msgid'
                  ' in comment (i.e. #| msgid)'
                  ' as if they were actual changes to msgid')
+    return p
+
+
+@pyg3tmain(build_parser)
+def main(p):
     opts, args = p.parse_args()
 
     if len(args) != 1:

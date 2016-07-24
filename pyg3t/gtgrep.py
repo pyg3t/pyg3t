@@ -199,9 +199,8 @@ def args_iter(args, parser): # open sequentially as needed
         yield arg, fd
 
 
-@pyg3tmain
-def main():
-    parser = build_parser()
+@pyg3tmain(build_parser)
+def main(parser):
     opts, args = parser.parse_args()
 
     charset = 'UTF-8' # yuck

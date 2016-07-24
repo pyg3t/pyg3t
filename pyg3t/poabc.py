@@ -228,9 +228,8 @@ def header(linenumber):
     return ('--- Line %d ' % linenumber).ljust(32, '-')
 
 
-@pyg3tmain
-def main():
-    cmdparser = build_parser()
+@pyg3tmain(build_parser)
+def main(cmdparser):
     opts, args = cmdparser.parse_args()
     nargs = len(args)
     if nargs == 0:

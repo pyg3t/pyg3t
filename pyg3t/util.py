@@ -76,7 +76,10 @@ def get_bytes_input(name):
     if name == '-':
         return sys.stdin.buffer if py3 else sys.stdin
     else:
-        return open(name, 'rb')
+        try:
+            return open(name, 'rb')
+        except IOError as err:
+            raise PoError('file-not-found', str(err))
 
 
 def get_encoded_output(name, encoding):
@@ -139,16 +142,32 @@ def getfiles(args):
             fd = open(arg, 'rb')
             yield arg, fd
 
+def pyg3tmain(build_parser):
+    """Decorator for pyg3t main functions.
 
-# Decorator for all main functions in pyg3t
-def pyg3tmain(main):
-    def main_decorator():
-        try:
-            main()
-        except KeyboardInterrupt:
-            print('Interrupted by keyboard', file=sys.stderr)
-            raise SystemExit(1)
-        except PoError as err:
-            print(str(err), file=sys.stderr)
-            raise SystemExit(2)
+    Use like this:
+
+        def build_parser():
+            return OptionParser(...)
+
+        @pyg3tmain(build_parser)
+        def main(parser):
+            ...
+
+        main()
+
+    Errors of known types will be caught by the decorator and printed
+    nicely.
+
+    gtcat is the reference example of how to use it."""
+    def main_decorator(main):
+        def pyg3tmain():
+            try:
+                parser = build_parser()
+                main(parser)
+            except KeyboardInterrupt:
+                parser.error('Interrupted by keyboard')
+            except PoError as err:
+                parser.error(str(err))
+        return pyg3tmain
     return main_decorator

@@ -106,11 +106,10 @@ def __build_parser():
     return parser
 
 
-@pyg3tmain
-def main():
+@pyg3tmain(__build_parser)
+def main(option_parser):
     """ PoPatch main function in script mode """
 
-    option_parser = __build_parser()
     opts, args = option_parser.parse_args()
 
     # Display version of podiff mode
