@@ -1,6 +1,6 @@
 import re
 
-from pyg3t.util import py2, PoError
+from pyg3t.util import py2, PoError, noansi
 
 class DuplicateMessageError(PoError):
     def __init__(self, msg1, msg2, fname):
@@ -282,14 +282,14 @@ class Message(object):
             raise KeyError('No raw lines for this Message')
         return ''.join(self.meta['rawlines'])
 
-    def flagstostring(self):
-        """Return a flag string on the form: ``"#, flag0, flag1, ...\\n"``."""
-        if self.flags:
-            return '#, %s\n' % ', '.join(sorted(self.flags))
-        else:
+    def flagstostring(self, colorize=lambda string: string):
+        """Return a flag string on the form ``"#, flag0, flag1, ...\\n"``."""
+        if not self.flags:
             return ''
+        return '%s %s\n' % (colorize('#,'),
+                            ', '.join(f for f in sorted(self.flags)))
 
-    def tostring(self): # maybe add line length argument for wrapping?
+    def tostring(self, colorize=lambda string: string):
         """Return :term:`gettext catalog` string form of this message.
 
         The string will be on the form. First all comments that are not
@@ -312,26 +312,29 @@ class Message(object):
         Example from the `gettext reference documentation
         <http://www.gnu.org/software/gettext/manual/html_node/PO-Files.html>`_
         """
+        c = colorize
+        prev_continuation = c('#|')
+
         lines = list(self.comments)
-        if self.flags:
-            lines.append(self.flagstostring())
+        lines.append(self.flagstostring(c))
         if self.has_previous_msgctxt:
-            lines += wrap_declaration('#| msgctxt', self.previous_msgctxt,
-                                      continuation='#| "')
+            lines += wrap_declaration('%s %s' % (c('#|'), c('msgctxt')),
+                                      self.previous_msgctxt,
+                                      continuation=c('#|') + ' "')
         if self.has_previous_msgid:
-            lines += wrap_declaration('#| msgid', self.previous_msgid,
-                                      continuation='#| "')
+            lines += wrap_declaration('%s %s' % (c('#|'), c('msgid')),
+                                      self.previous_msgid,
+                                      continuation=c('#|') + ' "')
         if self.has_context:
-            lines += wrap_declaration('msgctxt', self.msgctxt)
-        lines += wrap_declaration('msgid', self.msgid)
+            lines += wrap_declaration(c('msgctxt'), self.msgctxt)
+        lines += wrap_declaration(c('msgid'), self.msgid)
         if self.isplural:
-            lines += wrap_declaration('msgid_plural', self.msgid_plural)
+            lines += wrap_declaration(c('msgid_plural'), self.msgid_plural)
             for i, msgstr in enumerate(self.msgstrs):
-                lines += wrap_declaration('msgstr[%d]' % i, msgstr)
+                lines += wrap_declaration(c('msgstr[%d]') % i, msgstr)
         else:
-            lines += wrap_declaration('msgstr', self.msgstr)
-        string = ''.join(lines)
-        return string
+            lines += wrap_declaration(c('msgstr'), self.msgstr)
+        return ''.join(lines)
 
     def __str__(self):
         string = self.tostring()
@@ -352,26 +355,20 @@ class Message(object):
 
 class ObsoleteMessage(Message):
     """Represents an obsolete :term:`message` in a :term:`gettext catalog`."""
-
     is_obsolete = True
 
-    def tostring(self):
+    def tostring(self, colorize=lambda string: string):
         """Return :term:`gettext catalog` string form of this obsolete message.
 
         This string is on the form described in :py:meth:`.Message.tostring`
         where all lines that does not already start with an '#~' gets it
         prepended."""
 
-        string = Message.tostring(self)
+        string = super(ObsoleteMessage, self).tostring(colorize=colorize)
         lines = []
 
-        # And now the ugliest hack in the history of computing
-        #
-        # Anything that doesn't already have a '#~ ' in front of it gets
-        # one now.
         for line in string.splitlines():
-            if not line.startswith('#~'):
-                line = '#~ %s' % line
+            line = '%s %s' % (colorize('#~'), line)
             lines.append(line)
         lines.append('') # to get an extra newline
         # XXX does not re-wrap if line is too long
@@ -382,8 +379,12 @@ class ObsoleteMessage(Message):
 # XXXXX We need a special case for the chunk of comments that sometimes
 # loafs unwelcomely at EOF.
 # This will likely cause lots of trouble.
-class TrailingComments(ObsoleteMessage):
-    def tostring(self):
+class Comments:
+    def __init__(self, comments):
+        self.comments = comments
+        self.msgid = None
+
+    def tostring(self, colorize=None):
         return ''.join(comment for comment in self.comments)
 
 
@@ -409,22 +410,26 @@ def chunkwrap(chunks):
     """
     tokens = []
     chars = 0
+    # XXXXXXXXX here we can discard ANSI escapes (colors) when calculating
+    # length
     for chunk in chunks:
-        if chars + len(chunk) > 77:
+        chunklen = len(noansi(chunk))
+        if chars + chunklen > 77:
             yield ''.join(tokens)
             #lines.append(''.join(tokens))
             tokens = []
             chars = 0
-        if len(chunk) > 0:
+        if chunklen > 0:
             tokens.append(chunk)
-            chars += len(chunk)
+            chars += chunklen
     if tokens:
         yield ''.join(tokens)
 
 
 def wrap(text, wordsep=re.compile(r'(\s+)')):
     """Wrap text to 77 characters and return as list of lines."""
-    chunks = iter(wordsep.split(text))
+    tokens = wordsep.split(text)
+    chunks = iter(tokens)
     return list(chunkwrap(chunks))
 
 
@@ -432,6 +437,9 @@ def is_wrappable(declaration, string):
     """Return whether a declaration should be wrapped into multiple lines.
 
     See :py:func:`.wrap_declaration` for details on the arguments."""
+    declaration = noansi(declaration)
+    string = noansi(string)
+
     if len(string) + len(declaration) > 75:
         return True
     newlineindex = string.find(r'\n')
@@ -472,18 +480,17 @@ def wrap_declaration(declaration, string, continuation='"', end='"\n'):
         str: The declaration followed by a wraped for of the string
     """
     if is_wrappable(declaration, string):
+        # XXX this does not work unless wrappable.  I think it should work.
         tokens = []
         tokens.append('%s ""\n' % declaration)
-        # XXX this will make a newline in the case \\n also
-        linetokens = string.split(r'\n')
-        for i, token in enumerate(linetokens[:-1]):
-            linetokens[i] += r'\n' # grrr
+        pattern = re.compile(r'(.*?\\n(?:\x1b\[[;\d]*[A-Za-z])?)') #ansi.pattern
+        linetokens = pattern.split(string)
         for linetoken in linetokens:
             lines = wrap(linetoken)
             for line in lines:
                 tokens.append(continuation)
                 tokens.append(line)
                 tokens.append(end)
-        return tokens #''.join(tokens)
+        return tokens
     else:
         return ['%s "%s"\n' % (declaration, string)]

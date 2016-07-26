@@ -1,6 +1,8 @@
 from __future__ import print_function, unicode_literals
 from codecs import lookup, StreamReaderWriter
 from io import open
+import locale
+import re
 import sys
 
 
@@ -21,28 +23,27 @@ class Py2Encoder:
         self.fd.write(txt.encode(self.encoding))
 
 
-colors = {'blue': '0;34',
-          'light red': '1;31',
-          'light purple': '1;35',
-          'brown': '0;33',
-          'purple': '0;35',
-          'yellow': '1;33',
-          'dark gray': '1;30',
-          'light cyan': '1;36',
-          'black': '0;30',
-          'light green': '1;32',
-          'cyan': '0;36',
-          'green': '0;32',
-          'light blue': '1;34',
-          'light gray': '0;37',
-          'white': '1;37',
-          'red': '0;31',
-          'old': '1;31;41', # To do: proper names, reorganize
-          'new': '1;33;42', # These are used by gtprevmsgdiff
-          None: None}
+_colors = {'blue': '0;34',
+           'light red': '1;31',
+           'light purple': '1;35',
+           'brown': '0;33',
+           'purple': '0;35',
+           'yellow': '1;33',
+           'dark gray': '1;30',
+           'light cyan': '1;36',
+           'black': '0;30',
+           'light green': '1;32',
+           'cyan': '0;36',
+           'green': '0;32',
+           'light blue': '1;34',
+           'light gray': '0;37',
+           'white': '1;37',
+           'red': '0;31',
+           'old': '1;31;41', # To do: proper names, reorganize
+           'new': '1;33;42', # These are used by gtprevmsgdiff
+           None: None}
 
-
-def colorize(string, id):
+def _colorize(string, id):
     if id is None:
         return string
     tokens = []
@@ -50,16 +51,30 @@ def colorize(string, id):
         if len(line) > 0:
             line = '\x1b[%sm%s\x1b[0m' % (id, line)
         tokens.append(line)
+    #return '\x1b[%sm%s\x1b[0m' % (id, string)
     return '\n'.join(tokens)
 
 
+ansi = re.compile('\x1b\\[[;\\d]*[A-Za-z]')
+
+def noansi(string):
+    return ansi.sub('', string)
+
+def colorize(color, string):
+    return _colorize(string, _colors[color])
+
 class Colorizer:
     def __init__(self, colorname):
-        self.color = colors[colorname]
+        self.color = _colors[colorname]
 
     def colorize(self, string):
-        return colorize(string, self.color)
+        return _colorize(string, self.color)
 
+
+class Colors:
+    def __getattr__(self, name):
+        return Colorizer(name).colorize
+colors = Colors()
 
 class NullDevice:
     def write(self, txt):
@@ -141,12 +156,19 @@ def pyg3tmain(build_parser):
 
         main()
 
-    Errors of known types will be caught by the decorator and printed
-    nicely.
+    The decorated main function does the following:
+     * Decode sys.argv to unicode from locale's preferred encoding in Python2
+     * Create parser from build_parser()
+     * Run main(parser) where main is the undecorated function
+     * Handle known errors gracefully (quit and write intelligible message)
 
     gtcat is the reference example of how to use it."""
     def main_decorator(main):
         def pyg3tmain():
+            if py2:
+                encoding = locale.getpreferredencoding()
+                for i, arg in enumerate(sys.argv):
+                    sys.argv[i] = arg.decode(encoding)
             try:
                 parser = build_parser()
                 main(parser)

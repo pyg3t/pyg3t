@@ -29,6 +29,9 @@ def split_diff_as_bytes(fd):
     new = []
     for line in fd:
         if line.startswith(b'--- Line'):
+            newline = b'\n'
+            new.append(newline)
+            old.append(newline)
             continue
         if line.startswith(b' ======='):
             break  # Reached summary

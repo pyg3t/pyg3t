@@ -9,7 +9,8 @@ from optparse import OptionParser, OptionGroup
 
 from pyg3t import __version__
 from pyg3t.gtparse import parse
-from pyg3t.util import Colorizer, pyg3tmain, get_encoded_output
+from pyg3t.util import Colorizer, pyg3tmain, get_encoded_output,\
+    get_bytes_input
 
 
 class GTGrep:
@@ -190,13 +191,13 @@ def build_parser():
     return parser
 
 
-def args_iter(args, parser): # open sequentially as needed
-    for arg in args:
-        try:
-            fd = open(arg, 'rb')
-        except IOError as err:
-            parser.error(err)
-        yield arg, fd
+#def args_iter(args, parser): # open sequentially as needed
+#    for arg in args:
+#        try:
+#            fd = open(arg, 'rb')
+#        except IOError as err:
+#            parser.error(err)
+#        yield arg, fd
 
 
 @pyg3tmain(build_parser)
@@ -212,8 +213,6 @@ def main(parser):
     for key in keys + negative_keys:
         pattern = getattr(opts, key)
         if pattern is not None:
-            if sys.version_info[0] == 2:
-                pattern = pattern.decode(charset)
             patterns[key] = pattern
 
     match_all = True
@@ -221,11 +220,8 @@ def main(parser):
     if not patterns:
         try:
             pattern = args.pop(0)
-            if sys.version_info[0] == 2:
-                pattern = pattern.decode(charset)
         except IndexError:
             parser.error('No PATTERNs given')
-            raise SystemExit(17)
         else:
             patterns['msgid'] = pattern
             patterns['msgstr'] = pattern
@@ -250,9 +246,11 @@ def main(parser):
             return '# pyg3t: %s' % orig_fmt_lineno(filename, msg)
 
     if argc == 0:
-        inputs = iter([('<stdin>', sys.stdin)])
-    else:
-        inputs = args_iter(args, parser)
+        args = ['-']
+    #if argc == 0:
+    #    inputs = iter([('<stdin>', sys.stdin)])
+    #else:
+    #    inputs = args_iter(args, parser)
 
     filterpattern = None
     if opts.filter:
@@ -278,8 +276,10 @@ def main(parser):
         parser.error(err)
 
     global_matchcount = 0
-    for filename, input in inputs:
-        cat = parse(input)
+    for arg in args:
+        fd = get_bytes_input(arg)
+        fname = fd.name
+        cat = parse(fd)
         matches = grep.search_iter(cat)
 
         if opts.count:

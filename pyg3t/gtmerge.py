@@ -103,7 +103,7 @@ def main(p):
             # more complicated modes?
 
         cat = merge(cat1, cat2, overwrite)
-        out = get_encoded_output('-', cat.encoding)
+        out = get_encoded_output(cat.encoding, '-')
         for msg in cat:
             print(msg.tostring(), file=out)
         #for line in cat1.obsoletes:

@@ -9,8 +9,8 @@ from pyg3t.popatch import split_diff_as_bytes
 
 
 def print_msg_diff(differ, oldmsg, newmsg, fd):
-    oldcomments = ''.join(oldmsg.comments)
-    newcomments = ''.join(newmsg.comments)
+    oldcomments = ''.join(oldmsg.comments).rstrip('\n')
+    newcomments = ''.join(newmsg.comments).rstrip('\n')
     print(differ.diff(oldcomments, newcomments), file=fd)
     if oldmsg.flags or newmsg.flags:
         print(differ.diff(oldmsg.flagstostring()[:-1], # ignore last newline
@@ -36,16 +36,15 @@ def print_msg_diff(differ, oldmsg, newmsg, fd):
 
 class MSGDiffer:
     def __init__(self):
-        self.tokenizer = re.compile(r'\\.|\s+|[^ \\\t\n\r\f\v]+',
-                                    flags=re.UNICODE)
+        self.tokenizer = re.compile(r'(\s+|[^\s\w])')
         self.equalcolor = Colorizer(None)
         self.oldcolor = Colorizer('old')
         self.newcolor = Colorizer('new')
         self.maxlinelength = 100
 
     def difftokens(self, old, new):
-        oldwords = self.tokenizer.findall(old)
-        newwords = self.tokenizer.findall(new)
+        oldwords = self.tokenizer.split(old)
+        newwords = self.tokenizer.split(new)
 
         def isgarbage(string):
             return string.isspace() #False
@@ -79,7 +78,7 @@ class MSGDiffer:
         # a trailing newline.  This we will justs strip away here.
         # Which is a bit illogical and confusing, admittedly
         return ''.join(color.colorize(w)
-                       for color, w in zip(colors, words)).strip()
+                       for color, w in zip(colors, words)).rstrip('\n')
 
     def diff(self, old, new):
         words, colors = self.difftokens(old, new)

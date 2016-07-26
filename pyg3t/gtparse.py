@@ -21,7 +21,7 @@ from __future__ import print_function, unicode_literals
 from codecs import iterdecode
 from pyg3t.util import PoError
 from pyg3t.charsets import get_normalized_encoding_name
-from pyg3t.message import Catalog, Message, ObsoleteMessage, TrailingComments
+from pyg3t.message import Catalog, Message, ObsoleteMessage, Comments
 import itertools
 import re
 import sys
@@ -38,34 +38,6 @@ The gtparse module contains the basic functionality to parse
    a file. **This function is the main entry point for the module**.
  * The :py:func:`.iparse` function similarly parses a file but returns an
    iterator over the messages.  First message is guaranteed to be the header.
- * The basic types for a single :py:class:`.Message` and for a single
-   :py:class:`.ObsoleteMessage` .
- * The basic type for a :py:class:`.Catalog` that represents an entire gettext
-   catalog worth of messages
-
-.. data:: patterns
-
-    Dictionary of compiled regular expression objects used to parse active
-    messages in the .po files.  Each regex parses one line.
-
-.. data:: obsolete_patterns
-
-    Dictionary of compiled regular expression objects, corresponding to
-    :py:data:`.patterns` with ``'#~'`` prefixed.  Used to parse
-    obsolete messages in the .po files
-""".lstrip()
-
-
-# It is recommended that the license should be the first comment in each source
-# code file, but it doesn't make a good module level doc string, so supply one
-# manually
-
-__doc__ = """
-The gtparse module contains the basic functionality to parse
-:term:`gettext catalog` s (.po files). The most important items are:
-
- * The :py:func:`.parse` function, which parses an entire gettext catalog from
-   a file. **This function is the main entry point for the module**.
  * The basic types for a single :py:class:`.Message` and for a single
    :py:class:`.ObsoleteMessage` .
  * The basic type for a :py:class:`.Catalog` that represents an entire gettext
@@ -234,10 +206,10 @@ class MessageChunk:
         if len(self.msgid_lines) == 0:
             # There is no msgid.  This can only be a chunk of trailing comments
             # Any other chunk would pertain to an actual message.
-            trailing_comments = TrailingComments(msgid=None,
-                                                 msgstr='',
-                                                 comments=self.comment_lines,
-                                                 meta=meta)
+            trailing_comments = Comments(self.comment_lines)#msgid=None,
+                                         #msgstr='',
+                                         #comments=self.comment_lines,
+                                         #meta=meta)
             return trailing_comments
 
         def join(tokens):
@@ -257,6 +229,9 @@ class MessageChunk:
 
         if self.is_obsolete:
             msgclass = ObsoleteMessage
+            for i, comment in enumerate(comments):
+                if comment.startswith('#~'):
+                    comments[i] = comment[2:].lstrip()
         else:
             msgclass = Message
 
@@ -318,7 +293,7 @@ def build_pattern(name):
     return re.compile(r'\s*%s\s*(%s)?\s*$' % (name, _line_pattern))
 
 
-patterns = {'comment': re.compile(r'\s*(?P<line>#.*)'),
+patterns = {'comment': re.compile(r'\s*(?P<line>#.*\n)'),
             'prev_msgctxt': build_pattern(r'#\|\s*msgctxt'),
             'prev_msgid': build_pattern(r'#\|\s*msgid'),
             'prev_continuation': build_pattern(r'#\|'),
@@ -365,7 +340,9 @@ def parse_encoded(fd):
         pat = patterns
 
         try:
-            while pat['comment'].match(line):
+            match = pat['comment'].match(line)
+            while match:
+                line = match.group('line')
                 if obsolete_pattern.match(line) and not msg.is_obsolete:
                     msg.is_obsolete = True
                     pat = obsolete_patterns
@@ -383,6 +360,7 @@ def parse_encoded(fd):
                     msg.comment_lines.append(line)
                     msg.rawlines.append(line)
                     line = next(fd)
+                match = pat['comment'].match(line)
 
             if pat['msgctxt'].match(line):
                 msg.msgctxt_lines = []
