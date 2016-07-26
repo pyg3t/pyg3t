@@ -1,6 +1,6 @@
 import re
 from difflib import SequenceMatcher
-from pyg3t.util import Colorizer
+from pyg3t.util import ansi
 
 #tokenizer = re.compile(r'\s+|\S+')
 #tokenizer = re.compile(r'\\n|\w+|\W+')
@@ -29,25 +29,26 @@ class DefaultWDiffFormat:
 
 class FancyWDiffFormat:
     def __init__(self):
-        self.oldcolor = Colorizer('old')
-        self.newcolor = Colorizer('new')
-        self.boringcolor = Colorizer('light blue')
+        self.oldcolor = ansi.old
+        self.newcolor = ansi.new
+        self.boringcolor = ansi.light_blue
 
     def insert(self, string):
-        return self.newcolor.colorize(string)
+        return self.newcolor(string)
 
     def delete(self, string):
-        return self.oldcolor.colorize(string)
+        return self.oldcolor(string)
 
     def replace(self, old, new):
-        return '%s%s' % (self.oldcolor.colorize(old),
-                         self.newcolor.colorize(new))
+        return '%s%s' % (self.oldcolor(old),
+                         self.newcolor(new))
 
     def equal(self, string):
         return string
 
 
 def diff(old, new, formatter):
+    # XXXXXXXXXXXXXXXXX replace with appropriate split
     oldwords = tokenizer.findall(old)
     newwords = tokenizer.findall(new)
 

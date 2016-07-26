@@ -1,6 +1,6 @@
 from __future__ import print_function, unicode_literals
 from codecs import lookup, StreamReaderWriter
-from io import open
+import io
 import locale
 import re
 import sys
@@ -8,19 +8,8 @@ import sys
 
 py3 = sys.version_info[0] == 3
 py2 = sys.version_info[0] == 2
-
-
-class Py2Encoder:
-    def __init__(self, fd, encoding):
-        self.fd = fd
-        self.encoding = encoding
-
-    def write(self, txt):
-        if not isinstance(txt, unicode):
-            if txt == b'\n' or txt == b'':
-                pass
-            txt = unicode(txt)
-        self.fd.write(txt.encode(self.encoding))
+_bytes_stdin = sys.stdin.buffer if py3 else sys.stdin
+_bytes_stdout = sys.stdout.buffer if py3 else sys.stdout
 
 
 _colors = {'blue': '0;34',
@@ -43,7 +32,8 @@ _colors = {'blue': '0;34',
            'new': '1;33;42', # These are used by gtprevmsgdiff
            None: None}
 
-def _colorize(string, id):
+
+def _ansiwrap(string, id):
     if id is None:
         return string
     tokens = []
@@ -51,30 +41,28 @@ def _colorize(string, id):
         if len(line) > 0:
             line = '\x1b[%sm%s\x1b[0m' % (id, line)
         tokens.append(line)
-    #return '\x1b[%sm%s\x1b[0m' % (id, string)
     return '\n'.join(tokens)
 
 
-ansi = re.compile('\x1b\\[[;\\d]*[A-Za-z]')
+ansipattern = re.compile('\x1b\\[[;\\d]*[A-Za-z]')
+
 
 def noansi(string):
-    return ansi.sub('', string)
-
-def colorize(color, string):
-    return _colorize(string, _colors[color])
-
-class Colorizer:
-    def __init__(self, colorname):
-        self.color = _colors[colorname]
-
-    def colorize(self, string):
-        return _colorize(string, self.color)
+    return ansipattern.sub('', string)
 
 
-class Colors:
-    def __getattr__(self, name):
-        return Colorizer(name).colorize
-colors = Colors()
+class ANSIColors:
+    def get(self, name):
+        color = _colors[name.replace('_', ' ')]
+        def colorize(string):
+            return _ansiwrap(string, color)
+        return colorize
+
+    __getitem__ = get
+    __getattr__ = get
+
+ansi = ANSIColors()
+
 
 class NullDevice:
     def write(self, txt):
@@ -83,46 +71,37 @@ class NullDevice:
 
 def get_bytes_output(name='-'):
     if name == '-':
-        return sys.stdout.buffer if py3 else sys.stdout
+        return _bytes_stdout
     else:
-        return open(name, 'wb')
+        # XXX tryexcept
+        return io.open(name, 'wb')
 
 
 def get_bytes_input(name='-'):
     if name == '-':
-        return sys.stdin.buffer if py3 else sys.stdin
+        return _bytes_stdin
     else:
         try:
-            return open(name, 'rb')
+            return io.open(name, 'rb')
         except IOError as err:
-            raise PoError('file-not-found', str(err))
+            raise PoError('read-error', str(err))
 
 
-def get_encoded_output(encoding, name='-'):
+def get_encoded_output(encoding, name='-', errors='strict'):
     if name == '-':
-        return _get_encoded_stdout(encoding)
+        return _srw(_bytes_stdout, encoding, errors=errors)
     else:
-        return open(name, 'w', encoding=encoding)
+        try:
+            return io.open(name, 'w', encoding=encoding, errors=errors)
+        except IOError as err:
+            raise PoError('write-error', str(err))
 
 
-def _stream_encoder(fd, encoding, errors='strict'):
+def _srw(fd, encoding, errors='strict'):
     info = lookup(encoding)
     srw = StreamReaderWriter(fd, info.streamreader, info.streamwriter,
                              errors=errors)
     return srw
-
-
-_bytes_stdin = sys.stdin.buffer if py3 else sys.stdin
-_bytes_stdout = sys.stdout.buffer if py3 else sys.stdout
-#_unencoded_stderr = sys.stderr.buffer if py3 else sys.stderr
-
-
-def _get_encoded_stdout(encoding, errors='strict'):
-    if py3:
-        return _stream_encoder(sys.stdout.buffer, encoding, errors=errors)
-    else:
-        from util import Py2Encoder
-        return Py2Encoder(sys.stdout, encoding)
 
 
 class PoError(Exception):

@@ -2,7 +2,7 @@ from __future__ import print_function, unicode_literals
 from optparse import OptionParser
 import re
 
-from pyg3t.util import pyg3tmain, get_encoded_output, get_bytes_input, colorize
+from pyg3t.util import pyg3tmain, get_encoded_output, get_bytes_input, ansi
 from pyg3t.gtparse import iparse
 from pyg3t.charsets import get_gettext_encoding_name, \
     get_normalized_encoding_name
@@ -12,18 +12,19 @@ wordsep = re.compile(r'(\s+|\\n)')
 
 colors = {}
 for key in ['msgid', 'msgstr', 'msgctxt', 'msgid_plural', 'msgstr[%d]']:
-    colors[key] = colorize('light red', key)
+    colors[key] = ansi.light_red(key)
 for key in ['#|', '#~']:
-    colors[key] = colorize('purple', key)
+    colors[key] = ansi.purple(key)
 for key in ['#,']:
-    colors[key] = colorize('light cyan', key)
+    colors[key] = ansi.light_cyan(key)
 
-def color(color, string):
+def color(colorname, string):
+    color = ansi[colorname]
     if string is None:
         return None
     if string == '':
         return string
-    return ''.join(colorize(color, token) for token in wordsep.split(string))
+    return ''.join(color(token) for token in wordsep.split(string))
 
 
 def build_parser():

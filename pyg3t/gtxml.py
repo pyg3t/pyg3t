@@ -6,7 +6,7 @@ import xml.sax
 from optparse import OptionParser
 
 from pyg3t.gtparse import parse
-from pyg3t.util import Colorizer, pyg3tmain, get_encoded_output
+from pyg3t.util import ansi, pyg3tmain, get_encoded_output
 
 
 class SuspiciousTagsError(ValueError):
@@ -182,8 +182,8 @@ class SilentFileSummarizer(FileSummarizer):
         pass
 
 
-colorizer = Colorizer('light red')
-
+#colorizer = Colorizer('light red')
+hilight = ansi.light_red
 
 def colorize_errors(msg, err):
     #errmsg = str(err) # XXX use for something?
@@ -198,7 +198,7 @@ def colorize_errors(msg, err):
         part1 = msgstr[:color_start_index]
         part2 = msgstr[color_start_index:color_end_index]
         part3 = msgstr[color_end_index:]
-        msgstr = ''.join([part1, colorizer.colorize(part2), part3])
+        msgstr = ''.join([part1, hilight(part2), part3])
         msg.msgstrs[i] = msgstr
 
 

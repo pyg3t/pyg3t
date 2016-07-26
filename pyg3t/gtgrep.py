@@ -9,7 +9,7 @@ from optparse import OptionParser, OptionGroup
 
 from pyg3t import __version__
 from pyg3t.gtparse import parse
-from pyg3t.util import Colorizer, pyg3tmain, get_encoded_output,\
+from pyg3t.util import ansi, pyg3tmain, get_encoded_output,\
     get_bytes_input
 
 
@@ -286,10 +286,9 @@ def main(parser):
             nmatches = len(list(matches))
             if opts.fancy:
                 # (This is sort of an easter egg)
-                colorizer = Colorizer('purple')
-                nmatches_str = colorizer.colorize(unicode(nmatches))
+                nmatches_str = ansi.purple('%d' % nmatches)
             else:
-                nmatches_str = unicode(nmatches)
+                nmatches_str = '%d' % nmatches
             print(('%s:' % filename).rjust(40), nmatches_str, file=out)
             global_matchcount += nmatches
             continue
@@ -307,10 +306,12 @@ def main(parser):
             # where every instance of the matching strings (not just those in
             # the matched msgid or msgstr) are colored
 
-            class MatchColorizer(Colorizer):
+            class MatchColorizer:
+                def __init__(self, color):
+                    self.color = color
                 def colorize_match(self, match_object):
                     matchstring = match_object.group()
-                    return self.colorize(matchstring)
+                    return self.color(matchstring)
 
             highlighter = MatchColorizer('light blue')
 

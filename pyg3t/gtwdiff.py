@@ -4,7 +4,7 @@ from optparse import OptionParser
 from difflib import SequenceMatcher
 
 from pyg3t.gtparse import parse
-from pyg3t.util import Colorizer, pyg3tmain, get_encoded_output
+from pyg3t.util import ansi, pyg3tmain, get_encoded_output
 from pyg3t.popatch import split_diff_as_bytes
 
 
@@ -37,9 +37,9 @@ def print_msg_diff(differ, oldmsg, newmsg, fd):
 class MSGDiffer:
     def __init__(self):
         self.tokenizer = re.compile(r'(\s+|[^\s\w])')
-        self.equalcolor = Colorizer(None)
-        self.oldcolor = Colorizer('old')
-        self.newcolor = Colorizer('new')
+        self.equalcolor = lambda string: string
+        self.oldcolor = ansi.old
+        self.newcolor = ansi.new
         self.maxlinelength = 100
 
     def difftokens(self, old, new):
@@ -77,7 +77,7 @@ class MSGDiffer:
         # XXX the actual way we do things, it sometimes adds
         # a trailing newline.  This we will justs strip away here.
         # Which is a bit illogical and confusing, admittedly
-        return ''.join(color.colorize(w)
+        return ''.join(color(w)
                        for color, w in zip(colors, words)).rstrip('\n')
 
     def diff(self, old, new):

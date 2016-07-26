@@ -238,7 +238,7 @@ def __build_parser():
     parser.add_option('-m', '--no-line-numbers', action='store_false',
                       dest='line_numbers',
                       help='do not prefix line number (opposite of -l)')
-    parser.add_option('-o', '--output', metavar='FILE',
+    parser.add_option('-o', '--output', metavar='FILE', default='-',
                       help='send output to FILE instead of '
                       'standard out')
     parser.add_option('-r', '--relax', action='store_true', default=False,
@@ -268,38 +268,15 @@ def main(option_parser):  # pylint: disable-msg=R0912
         option_parser.error('podiff takes exactly two arguments')
 
     # Load files into catalogs
-    try:
-        if args[0] == '-':
-            cat_old = parse(get_bytes_input())
-        else:
-            cat_old = parse(open(args[0], 'rb'))
+    cat_old = parse(get_bytes_input(args[0]))
+    cat_new = parse(get_bytes_input(args[1]))
 
-        if args[1] == '-':
-            cat_new = parse(get_bytes_input())
-        else:
-            cat_new = parse(open(args[1], 'rb'))
-    except IOError as err:
-        print('Could not open one of the input files for '
-              'reading. open() gave the following error:', file=sys.stderr)
-        print(err, file=sys.stderr)
-        raise SystemExit(5)
+    if opts.output != '-' and opts.output in (args[0], args[1]):
+        option_parser.error('The output file you have specified is the '
+                            'same as one of the input files. This is not '
+                            'allowed, as it may cause a loss of work.')
 
-    # Open file for writing, if it is not one of the input files
-    if opts.output:
-        if opts.output in (args[0], args[1]):
-            option_parser.error('The output file you have specified is the '
-                                'same as one of the input files. This is not '
-                                'allowed, as it may cause a loss of work.')
-
-        try:
-            out = open(opts.output, 'w', encoding=cat_new.encoding)
-        except IOError as err:
-            print('Could not open output file for writing. '
-                  'open() gave the following error:', file=sys.stderr)
-            print(err, file=sys.stderr)
-            raise SystemExit(4)
-    else:
-        out = get_encoded_output('utf-8')
+    out = get_encoded_output(cat_new.encoding, opts.output)
 
     podiff = PoDiff(out, opts.line_numbers, opts.color)
 
