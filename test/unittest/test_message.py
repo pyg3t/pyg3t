@@ -1,6 +1,7 @@
-
+# -*- encoding: utf-8 -*-
 """Unit tests for the message module"""
 
+from __future__ import unicode_literals
 from os import path
 import pytest
 
