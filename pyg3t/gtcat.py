@@ -93,7 +93,7 @@ def main(parser):
                                     for flag in msg.flags)
                     for i, msgstr in enumerate(msg.msgstrs):
                         msg.msgstrs[i] = color('yellow', msgstr)
-                string = msg.tostring(colors=colors)
+                string = msg.tostring(colorize=colors.get)
             else:
                 string = msg.tostring()
             print(string, file=out)
