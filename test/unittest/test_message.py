@@ -10,10 +10,13 @@ try:
 except ImportError:
     from mock import Mock
 
-from pyg3t.message import (
-    isstringtype, wrap,  Catalog
-)
-from test_gtparse import PARSE_HEADER_OUT
+from common import stdin_fix
+# Make sure there is a stdin with a buffer attribute during import
+with stdin_fix():
+    from pyg3t.message import (
+        isstringtype, wrap,  Catalog
+    )
+    from test_gtparse import PARSE_HEADER_OUT
 
 
 ### Fixtures

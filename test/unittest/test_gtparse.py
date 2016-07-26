@@ -6,9 +6,11 @@ from __future__ import unicode_literals, print_function
 
 import pytest
 
-from pyg3t.util import PoError
-from pyg3t.gtparse import parse_header_data
-
+from common import stdin_fix
+# Make sure there is a stdin with a buffer attribute during import
+with stdin_fix():
+    from pyg3t.util import PoError
+    from pyg3t.gtparse import parse_header_data
 
 ### Test data
 PARSE_HEADER_IN_ERROR = (
