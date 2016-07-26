@@ -64,6 +64,7 @@ run('%(gtwdiff)s testpodiff.podiff >> %(out)s')
 
 print('gtxml')
 run('%(gtxml)s %(file)s >> %(out)s')
+run('%(gtxml)s --color %(file)s >> %(out)s')
 
 print('poabc')
 run('%(poabc)s %(file)s >> %(out)s')
