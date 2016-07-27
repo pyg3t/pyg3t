@@ -3,14 +3,13 @@
 """Perform grep-like operations on message catalogs."""
 
 from __future__ import print_function, unicode_literals
-import sys
 import re
 from optparse import OptionParser, OptionGroup
 
 from pyg3t import __version__
 from pyg3t.gtparse import parse
 from pyg3t.util import ansi, pyg3tmain, get_encoded_output,\
-    get_bytes_input
+    get_bytes_input, PoError
 
 
 class GTGrep:
@@ -34,8 +33,8 @@ class GTGrep:
             try:
                 return re.compile(pattern, re.UNICODE|flags)
             except re.error as err:
-                raise re.error('bad %s pattern "%s": %s' % (name, pattern,
-                                                            err))
+                msg = 'bad pattern %s for %s: %s' % (pattern, name, str(err))
+                raise PoError('bad-gtgrep-pattern', msg)
 
         if filterpattern is None:
             def filter(string):
@@ -191,15 +190,6 @@ def build_parser():
     return parser
 
 
-#def args_iter(args, parser): # open sequentially as needed
-#    for arg in args:
-#        try:
-#            fd = open(arg, 'rb')
-#        except IOError as err:
-#            parser.error(err)
-#        yield arg, fd
-
-
 @pyg3tmain(build_parser)
 def main(parser):
     opts, args = parser.parse_args()
@@ -247,10 +237,6 @@ def main(parser):
 
     if argc == 0:
         args = ['-']
-    #if argc == 0:
-    #    inputs = iter([('<stdin>', sys.stdin)])
-    #else:
-    #    inputs = args_iter(args, parser)
 
     filterpattern = None
     if opts.filter:
@@ -278,7 +264,7 @@ def main(parser):
     global_matchcount = 0
     for arg in args:
         fd = get_bytes_input(arg)
-        fname = fd.name
+        filename = fd.name
         cat = parse(fd)
         matches = grep.search_iter(cat)
 

@@ -313,7 +313,6 @@ class Message(object):
         <http://www.gnu.org/software/gettext/manual/html_node/PO-Files.html>`_
         """
         c = colorize
-        prev_continuation = c('#|')
 
         lines = list(self.comments)
         lines.append(self.flagstostring(c))

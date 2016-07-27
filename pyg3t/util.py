@@ -111,9 +111,11 @@ class PoError(Exception):
         self.errtype = errtype
         super(PoError, self).__init__(*args, **kwargs)
 
+    # Subclasses should override this
     def get_errmsg(self):
         return super(PoError, self).__str__()
 
+    # Subclasses should leave this alone
     def __str__(self):
         msg = self.get_errmsg()
         if py2:

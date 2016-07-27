@@ -18,8 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from __future__ import print_function, unicode_literals
-import sys
-from io import open
 from optparse import OptionParser
 from difflib import unified_diff
 from pyg3t.gtparse import parse

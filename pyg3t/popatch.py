@@ -21,13 +21,13 @@ from __future__ import print_function, unicode_literals
 from optparse import OptionParser
 from pyg3t import gtparse, __version__
 from pyg3t.util import pyg3tmain, get_bytes_input, get_bytes_output, \
-    get_encoded_output
+    get_encoded_output, PoError
 
 
 def split_diff_as_bytes(fd):
     old = []
     new = []
-    for line in fd:
+    for lineno, line in enumerate(fd):
         if line.startswith(b'--- Line'):
             newline = b'\n'
             new.append(newline)
@@ -46,7 +46,10 @@ def split_diff_as_bytes(fd):
         elif token == b'+':
             new.append(remainder)
         else:
-            raise ValueError('Unrecognized diff content %s' % line)
+            raise PoError('bad-diff-syntax',
+                          'Unrecognized diff content\n'
+                          'in file "%s", line %d:\n%s'
+                          % (gtparse.getfilename(fd), lineno, line))
     return old, new
 
 
