@@ -112,17 +112,27 @@ class PoError(Exception):
         # errtype is a unique short string identifying the error.
         # It is used to distinguish different errors by the test suite.
         self.errtype = errtype
+        self.lineno = None
+        self.fname = None
+        self.exitcode = 2  # Default to 2 because OptionParser.error() does.
         super(PoError, self).__init__(*args, **kwargs)
 
     # Subclasses should override this
     def get_errmsg(self):
-        return super(PoError, self).__str__()
+        tokens = []
+        tokens.append(super(PoError, self).__str__())
+        if self.fname is not None:
+            tokens.append('\n')
+            tokens.append('File: %s\n' % self.fname)
+        if self.lineno is not None:
+            tokens.append('Line: %d\n' % self.lineno)
+        return ''.join(tokens)
 
     # Subclasses should leave this alone
     def __str__(self):
         msg = self.get_errmsg()
         if py2:
-            msg = msg.encode(sys.stderr.encoding)
+            msg = msg.encode('utf-8')
         return msg
 
 
@@ -157,8 +167,13 @@ def pyg3tmain(build_parser):
                 parser = build_parser()
                 main(parser)
             except KeyboardInterrupt:
-                parser.error('Interrupted by keyboard')
+                progname = parser.get_prog_name()
+                print('%s: %s' % (progname, 'Interrupted by keyboard'),
+                      file=sys.stderr)
             except PoError as err:
-                parser.error(str(err))
+                progname = str(parser.get_prog_name())  # py2: no unicode here
+                print(str('%s: error: %s\n') % (progname, str(err)),
+                      file=sys.stderr)
+                sys.exit(err.exitcode)
         return pyg3tmain
     return main_decorator

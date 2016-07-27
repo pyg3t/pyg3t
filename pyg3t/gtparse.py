@@ -111,7 +111,8 @@ def parse_header_data(msgstr):
 
     if 'Content-Type' not in headers:
         raise PoError('no-content-type',
-                      'Content-Type not in headers: %s' % headers)
+                      'No Content-Type in headers, or malformed headers:\n\n%s'
+                      % msgstr.replace('\\n', '\\n\n'))
     match = charset_extraction_pattern.match(headers['Content-Type'])
     if not match:
         raise PoError('no-charset', 'Cannot extract charset from header "%s"' %
@@ -146,8 +147,6 @@ class ParseError(PoError):
         self.regex = regex
         self.line = line
         self.prev_lines = prev_lines
-        self.lineno = '<unknown>'
-        self.fname = '<unknown>'
         super(ParseError, self).__init__('parse-error')
 
     def get_errmsg(self):
@@ -318,7 +317,8 @@ def parse_encoded(fd):
 
     The strategy is to go one line at a time, always adding that line
     to a list.  When a new message starts, or there are no more lines,
-    yield whatever is there."""
+    yield whatever is there.  Since the function returns at any point
+    when there is no line left, don't do any processing here."""
 
     #fd = EchoWrapper(fd)  # Enable to print all lines
     fd = FileWrapper(fd)
@@ -426,8 +426,6 @@ def parse_binary(fd):
         for msg in parser:
             if msg.msgid == '':
                 charset, headers = parse_header_data(msg.msgstrs[0])
-                #msg.meta['charset'] = charset
-                #msg.meta['headers'] = header
                 return charset, rbuf.bytelines
         raise PoError('no-header',
                       'No header found in file %s' % getfilename(fd))
@@ -458,12 +456,19 @@ def iparse(fd):
     """Parse .po file and yield all Messages.
 
     The only requirement of fd is that it iterates over lines."""
-    # Can we add more info to exceptions?
+
+    msg = None
     try:
         for msg in parse_binary(fd):
             yield msg
-    except ParseError as err:
+    except PoError as err:
         err.fname = getfilename(fd)
+        if err.lineno is None and msg is not None:
+            # We could get a better lineno if parse_binary returned
+            # something more elaborate
+            #
+            # Also one could acces its msg and prev_msg
+            err.lineno = msg.meta['lineno']
         raise
 
 encoding_pattern = re.compile(r'[^;]*;\s*charset=(?P<charset>[^\s]+)')

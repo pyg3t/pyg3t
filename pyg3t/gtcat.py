@@ -65,7 +65,8 @@ def main(parser):
     opts, args = parser.parse_args()
 
     for arg in args:
-        cat = iparse(get_bytes_input(arg))
+        fd = get_bytes_input(arg)
+        cat = iparse(fd)
         header = next(cat)
         src_encoding = header.meta['encoding']
 
