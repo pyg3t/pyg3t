@@ -1,18 +1,7 @@
-At line 99: mismatched tag
---------------------------
+testpofile.da.po line 99: mismatched tag
+----------------------------------------
 # Invalid xml in msgstr, bad leading case, bad trailing char
 #: xml.c:2
 msgid "See <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen</a>"
 msgstr "se <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen<a/>!"
-
-At line 126: not well-formed (invalid token)
---------------------------------------------
-# Translator credits
-#: credits.c:42
-msgid "translator-credits"
-msgstr ""
-"Ask Hjorth Larsen <asklarsen@gmail.com>\n"
-"\n"
-"Dansk-gruppen <dansk@dansk-gruppen.dk>\n"
-"Mere info: http://www.dansk-gruppen.dk>"
 

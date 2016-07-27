@@ -6,7 +6,8 @@ import xml.sax
 from optparse import OptionParser
 
 from pyg3t.gtparse import parse
-from pyg3t.util import ansi, pyg3tmain, get_encoded_output
+from pyg3t.util import (ansi, noansi, pyg3tmain, get_encoded_output,
+                        get_bytes_input)
 
 
 class SuspiciousTagsError(ValueError):
@@ -53,12 +54,11 @@ class GTXMLChecker:
 
     def check_msg(self, msg):
         """Raise SAXParseException if msg is considered ill-formed."""
-        #encoding = msg.meta['encoding']
         msgid = msg.msgid
         if len(msgid) == 0:
             return True
-        #if not '<' in msgid:
-        #    return True
+        if not '<' in msgid:
+            return True
         try:
             self.parse_xml_elements(msgid)
         except xml.sax.SAXParseException:
@@ -115,71 +115,30 @@ def build_parser():
     return parser
 
 
-def get_inputfiles(args, parser):
-    """Yield file-like objects corresponding to the given list of filenames."""
-    if len(args) == 0:
-        yield sys.stdin
+def write_msg(filename, msg, err, fd, color):
+    errmsg = err.args[0]
+    location = '%s line %d:' % (filename, msg.meta['lineno'])
+    if color:
+        location = ansi.red(location)
+        errmsg = ansi.yellow(errmsg)
 
-    for arg in args:
-        if arg == '-':
-            yield arg, sys.stdin
-        else:
-            try:
-                input = open(arg, 'rb')
-            except IOError as err:
-                parser.error(err)
-            yield arg, input
-
-
-class MsgPrinter:
-    def __init__(self, out):
-        self.out = out
-
-    def get_header(self, filename, msg, err):
-        return 'At line %d: %s' % (msg.meta['lineno'], err.args[0])
-
-    def write_msg(self, msgstring, err):
-        print(msgstring, file=self.out)
-
-    def write(self, filename, msg, err):
-        header = self.get_header(filename, msg, err)
-        print(header, file=self.out)
-        #print header.encode(msg.meta['encoding'])
-        print('-' * min(78, len(header)), file=self.out)
-        #print '-' * min(78, len(header))
-        self.write_msg(msg.tostring(), err)
+    header = '%s %s' % (location, errmsg)
+    print(header, file=fd)
+    bar = '-' * min(78, len(noansi(header)))
+    if color:
+        bar = ansi.red(bar)
+    print(bar, file=fd)
+    print(msg.tostring(), file=fd)
 
 
-class MultiFileMsgPrinter(MsgPrinter):
-    def get_header(self, filename, msg, err):
-        if filename == '-':
-            filename = '<stdin>'
-        return '%s, line %d: %s' % (filename, msg.meta['lineno'],
-                                    err.args[0])
-
-
-class SilentMsgPrinter(MsgPrinter):
-    def write(self, filename, msg, err):
-        pass
-
-
-class FileSummarizer:
-    def __init__(self, out):
-        self.out = out
-
-    def write(self, filename, totalcount, badcount):
-        if badcount:
-            status = 'FAIL'
-        else:
-            status = 'OK'
-        print(filename.rjust(40), file=self.out)
-        print('%4d OK %2d bad: %s' % (totalcount, badcount, status),
-              file=self.out)
-
-
-class SilentFileSummarizer(FileSummarizer):
-    def write(self, filename, totalcount, badcount):
-        pass
+def write_summary(filename, totalcount, badcount, fd):
+    if badcount:
+        status = 'FAIL'
+    else:
+        status = 'OK'
+    print(filename.rjust(40), end='', file=fd)
+    print(' %4d OK %2d bad: %s' % (totalcount, badcount, status),
+          file=fd)
 
 
 hilight = ansi.light_red
@@ -190,7 +149,6 @@ def colorize_errors(msg, err):
     #assert errmsg.startswith(startpattern)
     #charno = int(errmsg[len(startpattern):].split(':', 1)[0])
     charno = err.getColumnNumber() - len('<xml>')
-    # XXX what about plurals
     for i, msgstr in enumerate(msg.msgstrs):
         color_start_index = max(charno - 3, 0)
         color_end_index = min(charno + 3, len(msgstr))
@@ -212,7 +170,6 @@ def main(parser):
     #check_tags = False #opts.tags or opts.tags_from
     gtxml = GTXMLChecker()#check_tags, known_tags)
     out = get_encoded_output('utf8')
-    #out = Encoder(sys.stdout, 'utf8') # overwritten below as necessary
 
     # Special mode to dump all tags and do nothing else
     #if opts.dump_tags:
@@ -237,19 +194,14 @@ def main(parser):
 
     color = opts.color
 
-    if opts.summary:
-        msgprinter = SilentMsgPrinter(out)
-        fileprinter = FileSummarizer(out)
-    else:
-        if len(args) > 1:
-            msgprinter = MultiFileMsgPrinter(out)
-        else:
-            msgprinter = MsgPrinter(out)
-        fileprinter = SilentFileSummarizer(out)
-
     total_badcount = 0
-    for filename, input in get_inputfiles(args, parser):
-        cat = parse(input)
+
+    if len(args) == 0:
+        args = ['-']
+
+    for arg in args:
+        fd = get_bytes_input(arg)
+        cat = parse(fd)
         if opts.fuzzy:
             cat = [msg for msg in cat # XXX not a catalog
                    if msg.istranslated or msg.isfuzzy]
@@ -259,9 +211,11 @@ def main(parser):
         for bad_msg, err in gtxml.check_msgs(cat):
             if color:
                 colorize_errors(bad_msg, err)
-            msgprinter.write(filename, bad_msg, err)
+            if not opts.summary:
+                write_msg(fd.name, bad_msg, err, out, color=opts.color)
             badcount += 1
-        fileprinter.write(filename, len(cat), badcount)
+        if opts.summary:
+            write_summary(fd.name, len(cat), badcount, out)
         total_badcount += badcount
 
     if opts.summary:
