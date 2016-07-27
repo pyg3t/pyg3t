@@ -33,7 +33,7 @@ def get_gettext_encoding_name(name):
     pyname = codec_info.name
     gettextname = _encoding_map.get(pyname)
     if gettextname is None:
-        raise LookupError('Unsupported encoding %s' % name)
+        raise LookupError('unsupported encoding: %s' % name)
     return gettextname
 
 
