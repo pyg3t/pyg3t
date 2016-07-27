@@ -182,7 +182,6 @@ class SilentFileSummarizer(FileSummarizer):
         pass
 
 
-#colorizer = Colorizer('light red')
 hilight = ansi.light_red
 
 def colorize_errors(msg, err):

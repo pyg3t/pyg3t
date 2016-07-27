@@ -166,7 +166,7 @@ def build_parser():
                      help='pattern for matching comments')
     match.add_option('--icomment', metavar='PATTERN',
                      help='pattern for inverse matching of comments')
-    match.add_option('-c', '--case', action='store_true',
+    match.add_option('--case', action='store_true',
                      help='use case sensitive matching')
     match.add_option('-f', '--filter', action='store_true',
                      help='ignore filtered characters when matching')
@@ -176,7 +176,7 @@ def build_parser():
 
     output.add_option('-C', '--count', action='store_true',
                       help='print only a count of matching messages')
-    output.add_option('-F', '--fancy', action='store_true',
+    output.add_option('-c', '--color', action='store_true',
                       help='use markers to highlight the matching strings')
     output.add_option('-n', '--line-numbers', action='store_true',
                       help='print line numbers for each message')
@@ -270,7 +270,7 @@ def main(parser):
 
         if opts.count:
             nmatches = len(list(matches))
-            if opts.fancy:
+            if opts.color:
                 # (This is sort of an easter egg)
                 nmatches_str = ansi.purple('%d' % nmatches)
             else:
@@ -279,7 +279,7 @@ def main(parser):
             global_matchcount += nmatches
             continue
 
-        if not opts.fancy:
+        if not opts.color:
             for msg in matches:
                 if opts.line_numbers:
                     print(format_linenumber(filename, msg), file=out)
@@ -287,7 +287,7 @@ def main(parser):
                     print('File:', filename, file=out)
                 print(msg.tostring(), file=out)
 
-        if opts.fancy:
+        if opts.color:
             # It's a bit hairy to do this properly, so we'll just make a hack
             # where every instance of the matching strings (not just those in
             # the matched msgid or msgstr) are colored

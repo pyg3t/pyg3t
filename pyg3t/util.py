@@ -28,8 +28,8 @@ _colors = {'blue': '0;34',
            'light gray': '0;37',
            'white': '1;37',
            'red': '0;31',
-           'old': '1;31;41', # To do: proper names, reorganize
-           'new': '1;33;42', # These are used by gtprevmsgdiff
+           'old': '1;31;41',  # To do: proper names, reorganize
+           'new': '1;33;42',  # These are used by gtprevmsgdiff
            None: None}
 
 
@@ -54,6 +54,7 @@ def noansi(string):
 class ANSIColors:
     def get(self, name):
         color = _colors[name.replace('_', ' ')]
+
         def colorize(string):
             return _ansiwrap(string, color)
         return colorize
@@ -73,8 +74,10 @@ def get_bytes_output(name='-'):
     if name == '-':
         return _bytes_stdout
     else:
-        # XXX tryexcept
-        return io.open(name, 'wb')
+        try:
+            return io.open(name, 'wb')
+        except IOError as err:
+            raise PoError('open-bytes-output', str(err))
 
 
 def get_bytes_input(name='-'):
@@ -84,7 +87,7 @@ def get_bytes_input(name='-'):
         try:
             return io.open(name, 'rb')
         except IOError as err:
-            raise PoError('read-error', str(err))
+            raise PoError('open-bytes-input', str(err))
 
 
 def get_encoded_output(encoding, name='-', errors='strict'):
@@ -94,7 +97,7 @@ def get_encoded_output(encoding, name='-', errors='strict'):
         try:
             return io.open(name, 'w', encoding=encoding, errors=errors)
         except IOError as err:
-            raise PoError('write-error', str(err))
+            raise PoError('open-encoded-output', str(err))
 
 
 def _srw(fd, encoding, errors='strict'):

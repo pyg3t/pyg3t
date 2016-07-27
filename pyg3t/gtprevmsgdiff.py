@@ -11,7 +11,7 @@ def build_parser():
     description = ('Print wordwise diff of msgid and previous msgid '
                    'entries in gettext message catalogs.')
     p = OptionParser(usage=usage, description=description)
-    p.add_option('--fancy', action='store_true',
+    p.add_option('-c', '--color', action='store_true',
                  help='use colors to highlight changes')
     p.add_option('--include-translated', action='store_true',
                  help='write differences for translated messages as well')
@@ -22,7 +22,7 @@ def build_parser():
 def main(p):
     opts, args = p.parse_args()
 
-    if opts.fancy:
+    if opts.color:
         formatter = FancyWDiffFormat()
     else:
         formatter = DefaultWDiffFormat()

@@ -122,10 +122,10 @@ class PoDiff:
 
         # Check if the there is a reason to diff.
         # NOTE: Last line says we always show header
-        if old_msg.isfuzzy != new_msg.isfuzzy or \
-                re_enc_old_msgstrs != new_msg.msgstrs or \
-                re_enc_old_comments != new_msg.get_comments('# ') or \
-                new_msg.msgid == '':
+        if (old_msg.isfuzzy != new_msg.isfuzzy or
+            re_enc_old_msgstrs != new_msg.msgstrs or
+            re_enc_old_comments != new_msg.get_comments('# ') or
+            new_msg.msgid == ''):
 
             if self.show_line_numbers:
                 print(self.__print_lineno(new_msg, fname), file=self.out)

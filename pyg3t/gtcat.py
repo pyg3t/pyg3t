@@ -8,8 +8,6 @@ from pyg3t.charsets import get_gettext_encoding_name, \
     get_normalized_encoding_name
 
 
-wordsep = re.compile(r'(\s+|\\n)')
-
 colors = {}
 for key in ['msgid', 'msgstr', 'msgctxt', 'msgid_plural', 'msgstr[%d]']:
     colors[key] = ansi.light_red(key)
@@ -18,6 +16,10 @@ for key in ['#|', '#~']:
 for key in ['#,']:
     colors[key] = ansi.light_cyan(key)
 
+
+wordsep = re.compile(r'(\s+|\\n)')
+
+
 def color(colorname, string):
     color = ansi[colorname]
     if string is None:
@@ -25,6 +27,23 @@ def color(colorname, string):
     if string == '':
         return string
     return ''.join(color(token) for token in wordsep.split(string))
+
+
+def add_colors(msg):
+    msg.comments = [color('light blue', comment)
+                    for comment in msg.comments]
+    if msg.msgid is None:
+        return
+    msg.previous_msgctxt = color('purple', msg.previous_msgctxt)
+    msg.previous_msgid = color('green', msg.previous_msgid)
+    msg.msgctxt = color('light purple', msg.msgctxt)
+    msg.msgid = color('light green', msg.msgid)
+    msg.msgid_plural = color('light green', msg.msgid_plural)
+    if msg.flags:
+        msg.flags = set(color('light cyan', flag)
+                        for flag in msg.flags)
+    for i, msgstr in enumerate(msg.msgstrs):
+        msg.msgstrs[i] = color('yellow', msgstr)
 
 
 def build_parser():
@@ -76,24 +95,7 @@ def main(parser):
 
         for msg in messages():
             if opts.color:
-                msg.comments = [color('light blue', comment)
-                                for comment in msg.comments]
-                if msg.msgid is not None:
-                    if msg.previous_msgctxt is not None:
-                        msg.previous_msgctxt = color('purple',
-                                                     msg.previous_msgctxt)
-                    if msg.previous_msgid is not None:
-                        msg.previous_msgid = color('green', msg.previous_msgid)
-                    if msg.msgctxt is not None:
-                        msg.msgctxt = color('light purple', msg.msgctxt)
-                    msg.msgid = color('light green', msg.msgid)
-                    if msg.msgid_plural is not None:
-                        msg.msgid_plural = color('light green',
-                                                 msg.msgid_plural)
-                    msg.flags = set(color('light cyan', flag)
-                                    for flag in msg.flags)
-                    for i, msgstr in enumerate(msg.msgstrs):
-                        msg.msgstrs[i] = color('yellow', msgstr)
+                add_colors(msg)
                 string = msg.tostring(colorize=colors.get)
             else:
                 string = msg.tostring()
