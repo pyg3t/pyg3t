@@ -21,3 +21,9 @@ PyG3T consists of the following tools:
 * gtparse: python module for parsing gettext catalogs
 
 Please see the --help pages for each script for further information.
+
+Current build status
+--------------------
+
+.. image:: https://travis-ci.org/pyg3t/pyg3t.svg?branch=master
+    :target: https://travis-ci.org/pyg3t/pyg3t
