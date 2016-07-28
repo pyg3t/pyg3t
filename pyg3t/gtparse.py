@@ -500,8 +500,8 @@ def parse(fd):
 
 
 def main():
-    from pyg3t.util import get_encoded_stdout
-    out = get_encoded_stdout('utf-8')
+    from pyg3t.util import get_encoded_output
+    out = get_encoded_output('utf-8')
     fname = sys.argv[1]
 
     with open(fname, 'rb') as fd:

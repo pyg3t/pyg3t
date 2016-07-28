@@ -288,6 +288,3 @@ def main(cmdparser):
           file=out)
     print('Number of warnings: %d' % msgwarncount, file=out)
     print('=' * width, file=out)
-
-if __name__ == '__main__':
-    main()

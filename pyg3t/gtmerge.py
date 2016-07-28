@@ -124,8 +124,8 @@ def main(p):
             dstfname = 'merge/%s' % basefname
             dstcat = merge(strcat, idcat, overwrite=True, fname=dstfname)
 
-            idheader = idcat.header
-            dstheader = dstcat.header
+            idheader = idcat.msgs[0]
+            dstheader = dstcat.msgs[0]
 
             def header2dict(header):
                 ordered_keys = []
