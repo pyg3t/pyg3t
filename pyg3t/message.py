@@ -450,6 +450,36 @@ def is_wrappable(declaration, string):
     return False
 
 
+def newwrap(tokens, maxwidth=77):
+    nchars = 0
+    lines = []
+    line = []
+
+    current_color = ansi_nocolor
+    for token in tokens:
+        colors = ansipattern.findall(token)
+        if colors:
+            current_color = colors[-1]
+        tokenlen = len(noansi(token))
+        if nchars + tokenlen > maxwidth:
+            if current_color != ansi_nocolor:
+                # Switch off color before ending line.
+                # We must remember color at beginning of next line
+                line.append(ansi_nocolor)
+            lines.append(line)
+            nchars = 0
+            line = []
+            if current_color != ansi_nocolor:
+                # Remember color at beginning of next line
+                line.append(current_color)
+        nchars += tokenlen
+        line.append(token)
+        if token == r'\n':
+            nchars = maxwidth  # Cause next iteration, if any, to break
+    lines.append(line)
+    return lines
+
+
 def wrap_declaration(declaration, string, continuation='"', end='"\n'):
     """Return the declaration followed by a wrapped form of the string
 
@@ -481,34 +511,8 @@ def wrap_declaration(declaration, string, continuation='"', end='"\n'):
     """
     if is_wrappable(declaration, string):
         pattern = re.compile(r'(\s+|\\n)')
-        itertokens = iter(pattern.split(string))
-        nchars = 0
-        lines = []
-        line = []
-        maxwidth = 77
 
-        current_color = ansi_nocolor
-        for token in itertokens:
-            colors = ansipattern.findall(token)
-            if colors:
-                current_color = colors[-1]
-            tokenlen = len(noansi(token))
-            if nchars + tokenlen > maxwidth:
-                if current_color != ansi_nocolor:
-                    # Switch off color before ending line.
-                    # We must remember color at beginning of next line
-                    line.append(ansi_nocolor)
-                lines.append(line)
-                nchars = 0
-                line = []
-                if current_color != ansi_nocolor:
-                    # Remember color at beginning of next line
-                    line.append(current_color)
-            nchars += tokenlen
-            line.append(token)
-            if token == r'\n':
-                nchars = maxwidth  # Cause next iteration, if any, to break
-        lines.append(line)
+        lines = newwrap(pattern.split(string))
 
         tokens = ['%s ""\n' % declaration]
         for line in lines:
