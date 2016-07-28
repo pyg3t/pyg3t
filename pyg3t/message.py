@@ -485,6 +485,9 @@ def newwrap(tokens, maxwidth=77, endline=r'\n'):
     return lines
 
 
+linetoken_pattern = re.compile(r'(\s+|\\n)')
+
+
 def wrap_declaration(declaration, string, continuation='"', end='"\n'):
     """Return the declaration followed by a wrapped form of the string
 
@@ -515,9 +518,7 @@ def wrap_declaration(declaration, string, continuation='"', end='"\n'):
         str: The declaration followed by a wraped for of the string
     """
     if is_wrappable(declaration, string):
-        pattern = re.compile(r'(\s+|\\n)')
-
-        lines = newwrap(pattern.split(string))
+        lines = newwrap(linetoken_pattern.split(string))
 
         tokens = ['%s ""\n' % declaration]
         for line in lines:
