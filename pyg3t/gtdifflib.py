@@ -1,3 +1,4 @@
+from __future__ import print_function, unicode_literals
 import re
 from difflib import SequenceMatcher
 from pyg3t.util import ansi
