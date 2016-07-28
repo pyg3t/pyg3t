@@ -53,8 +53,8 @@ option_pattern = r'(%s)|(%s)' % (full_long, full_short)
 
 METAVAR = re.compile(metavar, flags=re.UNICODE)
 OPTION = re.compile(option_pattern, flags=re.UNICODE)
-leading_whitespace = re.compile(r'^\s*')
-separators = re.compile(r'^\s*|, |\b \b|=|\s*$')
+leading_whitespace = re.compile(r'^\s+')
+separators = re.compile(r'^\s+|, |\b \b|=|\s+$')
 
 
 class Option:
@@ -69,7 +69,10 @@ class Option:
 
         if len(lines) > 1:
             wmatch = leading_whitespace.match(lines[1])
-            wspace = len(wmatch.group())
+            if wmatch:
+                wspace = len(wmatch.group())
+            else:
+                wspace = 0
             self.nextindent = wspace
         else:
             self.nextindent = None
@@ -115,7 +118,11 @@ class OptionChecker:
                 continue
             match = OPTION.match(line)
             #print line
-            leadingspace = len(leading_whitespace.match(line).group())
+            leadingspace_match = leading_whitespace.match(line)
+            if leadingspace_match:
+                leadingspace = len(leadingspace_match.group())
+            else:
+                leadingspace = 0
 
             # use heuristic to avoid "false" options when a line in the
             # description starts with dash
