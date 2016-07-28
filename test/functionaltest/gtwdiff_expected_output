@@ -2,26 +2,31 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: GTParse test suite\nPOT-Creation-Date: 2009-04-18 18:06+0200\nPO-Revision-Date:"
-" 2009-04-18 18:06+0200\nLast-Translator: Ask Hjorth Larsen <asklarsen@gmail.com>\nLanguage-Team: "
-"Dansk <dansk@dansk-gruppen.dk>\nMIME-Version: 1.0\nContent-Type: text/plain; charset=utf-8\nContent"
-"-Transfer-Encoding: 8bit\nPlural-Forms: nplurals=2; plural=(n != 1);\n"
+"Project-Id-Version: GTParse test suite\n"
+"POT-Creation-Date: 2009-04-18 18:06+0200\n"
+"PO-Revision-Date: 2009-04-18 18:06+0200\n"
+"Last-Translator: Ask Hjorth Larsen <asklarsen@gmail.com>\n"
+"Language-Team: Dansk <dansk@dansk-gruppen.dk>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 # Command line options with faulty translation
-[1;33;42m#[0m[1;33;42m [0m[1;33;42mChanged[0m[1;33;42m [0m[1;33;42min[0m[1;33;42m [0m[1;33;42m"[0m[1;33;42mother[0m[1;33;42m"[0m[1;33;42m [0m[1;33;42mpo[0m[1;33;42m-[0m[1;33;42mfile[0m
+[1;33;42m# Changed in "other" po-file[0m
 msgid "  -c, --coffee=AMOUNT    Make AMOUNT of coffee"
-msgstr "[1;31;41m      [0m[1;33;42m  [0m[1;33;42m-[0m[1;33;42mc[0m[1;33;42m,[0m[1;33;42m [0m--coffee=MÆNGDE    Lav MÆNGDE kaffe"
+msgstr "[1;31;41m      [0m[1;33;42m  -c, [0m--coffee=MÆNGDE    Lav MÆNGDE kaffe"
 
-# Correct XML using unknown tags in msgstr[1;33;42m.[0m[1;33;42m  [0m[1;33;42mFuzzy[0m[1;33;42m [0m[1;33;42min[0m[1;33;42m [0m[1;33;42m"[0m[1;33;42mother[0m[1;33;42m"[0m[1;33;42m [0m[1;33;42mpo[0m[1;33;42m-[0m[1;33;42mfile[0m
-[1;33;42m#[0m[1;33;42m,[0m[1;33;42m [0m[1;33;42mfuzzy[0m
+# Correct XML using unknown tags in msgstr[1;33;42m.  Fuzzy in "other" po-file[0m
+#, [1;33;42mfuzzy[0m
 msgid "<blink>Button</blink>"
 msgstr "<blinke>Knap</blinke>"
 
-# [1;31;41mDansk[0m[1;31;41m [0m[1;31;41mvokal[0m[1;31;41m [0m[1;31;41msom[0m[1;31;41m [0m[1;31;41mf[0m[1;31;41mø[0m[1;31;41mrste[0m[1;31;41m [0m[1;31;41mbogstav[0m[1;33;42mNew[0m[1;33;42m [0m[1;33;42min[0m[1;33;42m [0m[1;33;42m"[0m[1;33;42mother[0m[1;33;42m"[0m[1;33;42m [0m[1;33;42mpo[0m[1;33;42m-[0m[1;33;42mfile[0m
+# [1;31;41mDansk vokal som første bogstav[0m[1;33;42mNew in "other" po-file[0m
 msgid ""
-"[1;31;41mOpen[0m[1;31;41m [0m[1;31;41mfile[0m[1;33;42mSome[0m[1;33;42m [0m[1;33;42mpeople[0m[1;33;42m,[0m[1;33;42m [0m[1;33;42mwhen[0m[1;33;42m [0m[1;33;42mfaced[0m[1;33;42m [0m[1;33;42mwith[0m[1;33;42m [0m[1;33;42ma[0m[1;33;42m [0m[1;33;42mproblem[0m[1;33;42m,[0m[1;33;42m [0m[1;33;42msay[0m[1;33;42m:[0m[1;33;42m [0m[1;33;42m\[0m[1;33;42m"[0m[1;33;42mI[0m[1;33;42m [0m[1;33;42mknow[0m[1;33;42m![0m[1;33;42m  [0m[1;33;42mI[0m[1;33;42m [0m[1;33;42mwill[0m[1;33;42m [0m[1;33;42museXML[0m[1;33;42m![0m[1;33;42m\[0m[1;33;42m"[0m[1;33;42m  [0m[1;33;42mNow[0m[1;33;42m [0m[1;33;42mthey[0m[1;33;42m [0m[1;33;42mhave[0m[1;33;42m [0m"
-"[1;33;42mtwo[0m[1;33;42m [0m[1;33;42mproblems[0m[1;33;42m.[0m[1;33;42m\[0m[1;33;42mn[0m"
+"[1;31;41mOpen file[0m[1;33;42mSome people, when faced with a problem, say: \"I know!  I will [0m"
+"[1;33;42museXML!\"  Now they have two problems.\n[0m"
 msgstr ""
-"[1;33;42mNogle[0m[1;33;42m [0m[1;33;42mmennesker[0m[1;33;42m,[0m[1;31;41mÅ[0m[1;31;41mbn[0m[1;31;41m [0m[1;31;41mfil[0m[1;33;42m [0m[1;33;42mn[0m[1;33;42må[0m[1;33;42mr[0m[1;33;42m [0m[1;33;42mde[0m[1;33;42m [0m[1;33;42mst[0m[1;33;42mø[0m[1;33;42mder[0m[1;33;42m [0m[1;33;42mp[0m[1;33;42må[0m[1;33;42m [0m[1;33;42met[0m[1;33;42m [0m[1;33;42mproblem[0m[1;33;42m,[0m[1;33;42m [0m[1;33;42msiger[0m[1;33;42m:[0m[1;33;42m [0m[1;33;42m\[0m[1;33;42m"[0m[1;33;42mJeg[0m[1;33;42m [0m[1;33;42mved[0m[1;33;42m [0m[1;33;42mdet[0m[1;33;42m![0m[1;33;42m  [0m[1;33;42mJeg[0m[1;33;42m [0m[1;33;42mbruger[0m[1;33;42m [0m[1;33;42mXML[0m[1;33;42m![0m[1;33;42m\[0m[1;33;42m"[0m[1;33;42m  [0m[1;33;42mNu[0m[1;33;42m [0m"
-"[1;33;42mhar[0m[1;33;42m [0m[1;33;42mde[0m[1;33;42m [0m[1;33;42mto[0m[1;33;42m [0m[1;33;42mproblemer[0m[1;33;42m.[0m[1;33;42m\[0m[1;33;42mn[0m"
+"[1;33;42mNogle mennesker,[0m[1;31;41mÅbn fil[0m[1;33;42m når de støder på et problem, siger: \"Jeg ved det!  [0m"
+"[1;33;42mJeg bruger XML!\"  Nu har de to problemer.\n[0m"
 

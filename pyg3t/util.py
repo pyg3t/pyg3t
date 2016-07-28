@@ -33,6 +33,9 @@ _colors = {'blue': '0;34',
            None: None}
 
 
+ansi_nocolor = '\x1b[0m'
+
+
 def _ansiwrap(string, id):
     if id is None:
         return string

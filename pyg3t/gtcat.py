@@ -21,12 +21,11 @@ wordsep = re.compile(r'(\s+|\\n)')
 
 
 def color(colorname, string):
-    color = ansi[colorname]
     if string is None:
         return None
     if string == '':
         return string
-    return ''.join(color(token) for token in wordsep.split(string))
+    return ansi[colorname](string)
 
 
 def add_colors(msg):

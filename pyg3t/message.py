@@ -1,6 +1,7 @@
+from __future__ import print_function, unicode_literals
 import re
 
-from pyg3t.util import py2, PoError, noansi
+from pyg3t.util import py2, PoError, noansi, ansipattern, ansi_nocolor
 
 class DuplicateMessageError(PoError):
     def __init__(self, msg1, msg2, fname):
@@ -479,17 +480,41 @@ def wrap_declaration(declaration, string, continuation='"', end='"\n'):
         str: The declaration followed by a wraped for of the string
     """
     if is_wrappable(declaration, string):
-        # XXX this does not work unless wrappable.  I think it should work.
-        tokens = []
-        tokens.append('%s ""\n' % declaration)
-        pattern = re.compile(r'(.*?\\n(?:\x1b\[[;\d]*[A-Za-z])?)') #ansi.pattern
-        linetokens = pattern.split(string)
-        for linetoken in linetokens:
-            lines = wrap(linetoken)
-            for line in lines:
-                tokens.append(continuation)
-                tokens.append(line)
-                tokens.append(end)
+        pattern = re.compile(r'(\s+|\\n)')
+        itertokens = iter(pattern.split(string))
+        nchars = 0
+        lines = []
+        line = []
+        maxwidth = 77
+
+        current_color = ansi_nocolor
+        for token in itertokens:
+            colors = ansipattern.findall(token)
+            if colors:
+                current_color = colors[-1]
+            tokenlen = len(noansi(token))
+            if nchars + tokenlen > maxwidth:
+                if current_color != ansi_nocolor:
+                    # Switch off color before ending line.
+                    # We must remember color at beginning of next line
+                    line.append(ansi_nocolor)
+                lines.append(line)
+                nchars = 0
+                line = []
+                if current_color != ansi_nocolor:
+                    # Remember color at beginning of next line
+                    line.append(current_color)
+            nchars += tokenlen
+            line.append(token)
+            if token == r'\n':
+                nchars = maxwidth  # Cause next iteration, if any, to break
+        lines.append(line)
+
+        tokens = ['%s ""\n' % declaration]
+        for line in lines:
+            tokens.append(continuation)
+            tokens.extend(line)
+            tokens.append(end)
         return tokens
     else:
         return ['%s "%s"\n' % (declaration, string)]
