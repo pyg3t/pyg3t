@@ -5,7 +5,6 @@ import locale
 import re
 import sys
 
-
 py3 = sys.version_info[0] == 3
 py2 = sys.version_info[0] == 2
 _bytes_stdin = sys.stdin.buffer if py3 else sys.stdin
@@ -33,9 +32,6 @@ _colors = {'blue': '0;34',
            None: None}
 
 
-ansi_nocolor = '\x1b[0m'
-
-
 def _ansiwrap(string, id):
     if id is None:
         return string
@@ -45,9 +41,6 @@ def _ansiwrap(string, id):
             line = '\x1b[%sm%s\x1b[0m' % (id, line)
         tokens.append(line)
     return '\n'.join(tokens)
-
-
-ansipattern = re.compile('\x1b\\[[;\\d]*[A-Za-z]')
 
 
 def noansi(string):
@@ -65,6 +58,9 @@ class ANSIColors:
     __getitem__ = get
     __getattr__ = get
 
+
+ansi_nocolor = '\x1b[0m'
+ansipattern = re.compile('\x1b\\[[;\\d]*[A-Za-z]')
 ansi = ANSIColors()
 
 

@@ -93,17 +93,17 @@ class Message(object):
     """This class represents a :term:`message` in a :term:`gettext catalog`
 
     Parameters:
+        comments (list): Newline-terminated strings starting with '#'.
+                         Do not include flags (#,) or previous
+                         msgid/msgctxt (#|)
+        previous_msgctxt (string or None): Old msgctxt (#| msgctxt) if present.
+        previous_msgid (string or None): Old msgid (#| msgid) if present.
+        flags (set of strings): Flags ('fuzzy', 'c-format', etc.)
+        msgctxt (string or None): Context if present
         msgid (string): The :term:`msgid`
-        msgstr (string or list): The translated :term:`msgstr` s
-        msgid_plural (string): msgid plural if any, otherwise None
-        msgctxt (string): Context message of any, otherwise None
-        comments (list): Newline-terminated strings (or None if none)
-                         Comments should include #.  They should not include
-                         lines that specify flags or previous msgid/msgctxt.
+        msgstrs (list of strings): The translated :term:`msgstr` s
+        msgid_plural (string or None): msgid plural if present
         meta (dict): Optional metadata (linenumber, raw text from po-file)
-        flags (iterable): Strings specififying flags ('fuzzy', etc.)
-        previous_msgid: None, or a string if there is a previous msgid.
-        previous_msgctxt: None, or a string if there is a previous msgctxt.
 
     If this message was loaded from a file using the parse() function,
     the meta dictionary will contain the following keys:
@@ -130,6 +130,7 @@ class Message(object):
     """
 
     is_obsolete = False
+    is_proper_message = True
 
     def __init__(self, msgid, msgstr, msgid_plural=None,
                  msgctxt=None, comments=None, meta=None,
@@ -380,9 +381,17 @@ class ObsoleteMessage(Message):
 # loafs unwelcomely at EOF.
 # This will likely cause lots of trouble.
 class Comments:
-    def __init__(self, comments):
+    is_proper_message = False
+
+    def __init__(self, comments, meta=None):
         self.comments = comments
+        self.previous_msgctxt = None
+        self.previous_msgid = None
+        self.msgctxt = None
         self.msgid = None
+        self.msgid_plural = None
+        self.msgstrs = []
+        self.meta = meta if meta is not None else {}
 
     def tostring(self, colorize=None):
         return ''.join(comment for comment in self.comments)

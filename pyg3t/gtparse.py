@@ -205,10 +205,8 @@ class MessageChunk:
         if len(self.msgid_lines) == 0:
             # There is no msgid.  This can only be a chunk of trailing comments
             # Any other chunk would pertain to an actual message.
-            trailing_comments = Comments(self.comment_lines)#msgid=None,
-                                         #msgstr='',
-                                         #comments=self.comment_lines,
-                                         #meta=meta)
+            trailing_comments = Comments(self.comment_lines,
+                                         meta=meta)
             return trailing_comments
 
         def join(tokens):
@@ -383,6 +381,8 @@ def parse_encoded(fd):
                 line = _devour(pat['msgstr'], line, lines)
 
         except StopIteration:
+            if msg.lineno is None:
+                msg.lineno = fd.lineno
             yield msg.build()
             return
         except ParseError as err:
