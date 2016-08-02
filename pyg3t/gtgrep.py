@@ -37,15 +37,15 @@ def build_parser():
 
     components.add_option('--comment', metavar='PATTERN',
                           help='match in comments')
-    components.add_option('--msgid', metavar='PATTERN',
+    components.add_option('-i', '--msgid', metavar='PATTERN',
                           help='match in msgid and msgid_plural')
-    components.add_option('--msgstr', metavar='PATTERN',
+    components.add_option('-s', '--msgstr', metavar='PATTERN',
                           help='match in msgstrs')
     components.add_option('--icomment', metavar='PATTERN',
                           help='inverse-match in comments')
-    components.add_option('--imsgid', metavar='PATTERN',
+    components.add_option('-I', '--imsgid', metavar='PATTERN',
                           help='inverse-match in msgid and msgid_plural')
-    components.add_option('--imsgstr', metavar='PATTERN',
+    components.add_option('-S', '--imsgstr', metavar='PATTERN',
                           help='inverse-match in msgstrs')
 
     match.add_option('--case', action='store_true',
