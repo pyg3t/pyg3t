@@ -382,6 +382,7 @@ class ObsoleteMessage(Message):
 # This will likely cause lots of trouble.
 class Comments:
     is_proper_message = False
+    is_obsolete = False
 
     def __init__(self, comments, meta=None):
         self.comments = comments
