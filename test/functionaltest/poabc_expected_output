@@ -1,6 +1,6 @@
 --- Line 79 ------------------------------------------------------------
 Repeated word: "i i"
-> "...jeg så %d advokat med hænderne i i sine egne lommer."
+>> ...jeg så %d advokat med hænderne i i sine egne lommer.
                                       ^
 # Plurals translated, non-ASCII, repeated word in translation
 #: lawyers.c:1
@@ -19,9 +19,8 @@ msgstr[1] ""
 "deres egne lommer."
 
 --- Line 99 ------------------------------------------------------------
-Inconsistent punctuation: "...ansk-gruppen</a>" vs "...nsk-gruppen<a/>!"
 Invalid xml: <unknown>:1:66: mismatched tag
-> "se <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen<a/>!"
+>> se <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen<a/>!
                                                               ^
 # Invalid xml in msgstr, bad leading case, bad trailing char
 #: xml.c:2
@@ -29,16 +28,26 @@ msgid "See <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen</a>"
 msgstr "se <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen<a/>!"
 
 --- Line 104 -----------------------------------------------------------
-Inconsistent punctuation: "_tarball." vs "t_jærebolle"
+Translation removes period
+>> "_tarball." vs "t_jærebolle"
 # Hotkey assignment, context char, trailing characters
 #: hotkeys.c:2
 msgid "action|Roll _tarball."
 msgstr "Rul t_jærebolle"
+
+--- Line 115 -----------------------------------------------------------
+Trailing whitespace
+>> "_emoticon" vs "følikon "
+# Bad hotkey assignment, bad context char, tests multiple faults for poabc
+# Also whitespace inconsistency
+#: hotkeys.c:4
+msgid "action|Write _emoticon"
+msgstr "handling|Skriv følikon "
 
 =============================== Summary ================================
 Number of messages: 21
 Translated messages: 13 [62%]
 Fuzzy messages: 2 [10%]
 Untranslated messages: 6 [29%]
-Number of warnings: 3
+Number of warnings: 4
 ========================================================================

@@ -56,6 +56,11 @@ class XMLTest:
 
 class WordRepeatTest:
     def __init__(self):
+        # This is mostly a problem in the middle of sentences, and if
+        # something is in the beginning or end, it is usually a false positive.
+        # Thus, we really want to match ' word word '.
+        # One can argue that \w is too general (numbers), but it is simple
+        # and works transparently for all languages (unicode)
         pat = (r'(?<=\s)'  # Match only when preceded by space
                r'(?P<repetition>'
                r'(?P<word>\w+)'  # Any word
@@ -70,8 +75,6 @@ class WordRepeatTest:
             assert hasattr(match, 'group')  # Match objects
             group = match.group('repetition')
             warn = 'Repeated word: "%s"' % group
-            s1 = match.start()
-            s2 = match.end()
             warns.append(Trouble(warn, msgstr, match.start(), match.end()))
         return msgid, msgstr, warns
 
@@ -105,30 +108,57 @@ class LeadingCharTest:
 
 
 class TrailingCharTest:
+    def __init__(self):
+        self.ending = re.compile(r'(?P<ending>(?P<word>\S+)(?P<space>\s*))?$',
+                                 re.UNICODE)
+
+    def extract_ending(self, string):
+        """Return (last_word, trailing_space)."""
+        match = self.ending.search(string)
+        if match is None:
+            assert string.isspace()
+            return None, None, None
+        return match.group('ending'), match.group('word'), match.group('space')
+
     def check(self, msg, msgid, msgstr):
-        if msgid == '' or msgstr == '':
+        msgid_end, msgid_word, msgid_space = self.extract_ending(msgid)
+        msgstr_end, msgstr_word, msgstr_space = self.extract_ending(msgstr)
+        if msgid_end is None or msgstr_end is None:
             return msgid, msgstr, []  # Not our job
+
         warn = []
 
-        err = False
-        tmpmsgid = msgid.rstrip()
-        tmpmsgstr = msgstr.rstrip()
+        # Ellipsize endings for errmsgs if they are very long:
+        w1 = msgid_end
+        if len(w1) > 20:
+            w1 = '...%s' % w1[-16:]
+        w2 = msgstr_end
+        if len(w2) > 20:
+            w2 = '...%s' % w2[-16:]
+        endings = '"%s" vs "%s"' % (w1, w2)
 
-        if tmpmsgid.endswith('…') or tmpmsgid.endswith('...'):
-            err |= not (tmpmsgid.endswith('…') or tmpmsgid.endswith('...'))
-        else:
-            for char in '.?!:':
-                err |= (tmpmsgid.endswith(char) != tmpmsgstr.endswith(char))
+        if msgstr_space and not msgid_space:
+            # Translator added whitespace.  This  is probably an error.
+            # (Sometimes the translator removes whitespace on purpose.)
+            warn.append(Trouble('Trailing whitespace', endings))
 
-        if err:
-            s1 = msgid.split()[-1]
-            s2 = msgstr.split()[-1]
-            if len(s1) > 20:
-                s1 = '...%s' % s1[-16:]
-            if len(s2) > 20:
-                s2 = '...%s' % s2[-16:]
-            warn.append(Trouble('Inconsistent punctuation: "%s" vs "%s"'
-                                % (s1, s2)))
+        # Typical string like "File: ", where something is meant to come after.
+        # In this case the translation should likely not remove the space.
+        if msgid_word.endswith(':') and msgid_space and not msgstr_space:
+            warn.append(Trouble('Translation removes whitespace after colon',
+                                endings))
+
+        ellipsis = ('…', '...')
+        if msgid_word.endswith(ellipsis) != msgstr_word.endswith(ellipsis):
+            warn.append(Trouble('Inconsistent use of ellipsis', endings))
+
+        if re.search(r'\w\.$', msgid_word) and not msgstr_word.endswith('.'):
+            warn.append(Trouble('Translation removes period', endings))
+
+        if re.search(r'\w\?$', msgid_word) and not msgstr_word.endswith('?'):
+            warn.append(Trouble('Translation removes question mark', endings))
+
+        # It is considered okay to remove a '!' without adding anything
         return msgid, msgstr, warn
 
 
@@ -266,23 +296,36 @@ def format_context(trouble, use_color):
     txt = trouble.string
     s1 = trouble.start
     s2 = trouble.end
+
+    draw_arrow = True
+
+    if s1 is None:
+        assert s2 is None
+        draw_arrow = False
+        s1 = 0
+        s2 = 0
+    assert s2 is not None
+
     left_ellipsis = ''
     part1 = txt[:s1]
     part2 = txt[s1:s2]
     part3 = txt[s2:]
     right_ellipsis = ''
 
+
     ellipsis = '...'
 
     def left_ellipsize(string, maxlen):
         assert maxlen > 0
-        return re.split(r'\s', string[-maxlen:], 1)[-1]
+        out = re.split(r'\s', string[-maxlen:], 1)[-1]
+        assert len(out) <= maxlen
+        return out
 
     def right_ellipsize(string, maxlen):
-        x = left_ellipsize(string[::-1], maxlen)[::-1]
-        return x
+        return left_ellipsize(string[::-1], maxlen)[::-1]
 
-    maxlen = 78 - len('> ""')
+    startmarker = '>> '
+    maxlen = 78 - len(startmarker)
 
     # First and last elements may be replaced by ellipsis
 
@@ -292,28 +335,32 @@ def format_context(trouble, use_color):
             pass
         else:
             partmaxlen = (maxlen - len(part2)) // 2 - len(ellipsis)
+            assert partmaxlen > 0
             if len(part1) > partmaxlen:
                 part1 = left_ellipsize(part1, partmaxlen)
-                assert len(part1) < partmaxlen
+                assert len(part1) <= partmaxlen
                 left_ellipsis = ellipsis
             if len(part3) > partmaxlen:
                 part3 = right_ellipsize(part3, partmaxlen)
-                assert len(part3) < partmaxlen
+                assert len(part3) <= partmaxlen
                 right_ellipsis = ellipsis
 
     if use_color:
-        part1 = ansi.purple(part1)
-        part2 = ansi.light_red(part2)
-        part3 = ansi.purple(part3)
+        part1 = ansi.purple(part1) if part1 else ''
+        part2 = ansi.light_red(part2) if part2 else ''
+        part3 = ansi.purple(part3) if part3 else ''
 
-    tokens = ['> "', left_ellipsis, part1]
+    tokens = [startmarker, left_ellipsis, part1]
     left_len = sum(len(noansi(x)) for x in tokens)
-    tokens.extend([part2, part3, right_ellipsis, '"\n'])
-    tokens.append(' ' * (left_len + len(noansi(part2)) // 2))
-    arrow = '^'
-    if use_color:
-        arrow = ansi.light_green(arrow)
-    tokens.append(arrow)
+    tokens.extend([part2, part3, right_ellipsis])
+
+    if draw_arrow:
+        tokens.append('\n')
+        tokens.append(' ' * (left_len + len(noansi(part2)) // 2))
+        arrow = '^'
+        if use_color:
+            arrow = ansi.light_green(arrow)
+        tokens.append(arrow)
     return ''.join(tokens)
 
 
@@ -334,7 +381,7 @@ def main(cmdparser):
         if pad:
             string = ('--- %s ' % string).ljust(headerwidth, '-')
         if opts.color:
-            string = ansi.yellow(string)
+            string = ansi.cyan(string)
         return string
 
     # We will not respect the original coding of the file
@@ -374,14 +421,33 @@ def main(cmdparser):
         fd = get_bytes_input(arg)
         fname = fd.name
 
+        fileheader_unfinished = False
+
+        if nargs > 1:
+            fileheader = fname
+            if opts.color:
+                fileheader = ansi.light_blue(fname)
+            print(fileheader, end='', file=out)
+            fileheader_unfinished = True
+
         cat = iparse(fd, obsolete=False, trailing=False)
 
+        thisfilewarnings = 0
+
         for msg, warnings in poabc.check_msgs(cat):
+            if fileheader_unfinished:
+                warn = ' [Warning]'
+                if opts.color:
+                    warn = ansi.light_red(warn)
+                print(warn, file=out, end='\n\n')
+                fileheader_unfinished = False
+
             header = get_header(lineno=msg.meta['lineno'], fname=fname,
                                 pad=not bool(opts.quiet))
             print(header, file=out)
             warningcount += len(warnings)
             msgwarncount += 1
+            thisfilewarnings += 1
             for warning in warnings:
                 wstring = warning.tostring()
                 if opts.color:
@@ -395,6 +461,11 @@ def main(cmdparser):
             else:
                 print(''.join(msg.meta['rawlines']), file=out)
 
+        if thisfilewarnings == 0:
+            ok = ' [OK!]'
+            if opts.color:
+                ok = ansi.light_green(ok)
+            print(ok, file=out)
 
     def fancyfmt(n):
         return '%d [%d%%]' % (n, round(100 * float(n) / poabc.msgcount))
