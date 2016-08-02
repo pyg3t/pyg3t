@@ -452,7 +452,7 @@ def parse_binary(fd):
         yield msg
 
 
-def iparse(fd):
+def iparse(fd, obsolete=True, trailing=True):
     """Parse .po file and yield all Messages.
 
     The only requirement of fd is that it iterates over lines."""
@@ -460,6 +460,10 @@ def iparse(fd):
     msg = None
     try:
         for msg in parse_binary(fd):
+            if not msg.is_proper_message and not trailing:
+                continue
+            if msg.is_obsolete and not obsolete:
+                continue
             yield msg
     except PoError as err:
         err.fname = getfilename(fd)

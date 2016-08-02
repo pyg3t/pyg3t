@@ -1,13 +1,30 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 from __future__ import print_function, unicode_literals
-from optparse import OptionParser
+from optparse import OptionParser, OptionGroup
+import re
 
-from pyg3t.gtparse import parse
+from pyg3t.gtparse import iparse
 from pyg3t.gtxml import GTXMLChecker
-from pyg3t.util import pyg3tmain, get_bytes_input, get_encoded_output
+from pyg3t.util import (pyg3tmain, get_bytes_input, get_encoded_output, ansi,
+                        noansi)
 from pyg3t import __version__
 import xml.sax
+
+
+headerwidth = 72
+
+
+class Trouble:
+    def __init__(self, errmsg, string=None, start=None, end=None):
+        self.errmsg = errmsg
+        self.string = string
+        self.start = start
+        self.end = end
+
+    def tostring(self):
+        return self.errmsg
 
 
 def is_translatorcredits(msgid):
@@ -16,9 +33,9 @@ def is_translatorcredits(msgid):
 
 class PartiallyTranslatedPluralTest:
     def check(self, msg, msgid, msgstr):
-        warn = None
-        if msgstr == '':
-            warn = 'Some plurals not translated'
+        warn = []
+        if msg.istranslated and msgstr == '':
+            warn = [Trouble('Some plurals not translated')]
         return msgid, msgstr, warn
 
 
@@ -27,41 +44,36 @@ class XMLTest:
         self.checker = GTXMLChecker()
 
     def check(self, msg, msgid, msgstr):
-        warn = None
+        warn = []
         try:
             self.checker.check_msg(msg)
         except xml.sax.SAXParseException as err:
-            warn = 'Invalid xml: ' + str(err)
+            col = err.getColumnNumber() - len('<xml>')  # XXXXXX hack
+            warn = [Trouble('Invalid xml: ' + str(err),
+                            msgstr, col - 3, col + 3)]
         return msgid, msgstr, warn
 
 
 class WordRepeatTest:
-    def check(self, msg, msgid, msgstr):
-        words = msgstr.split()
-        for word1, word2 in zip(words[:-1], words[1:]):
-            if word1.isalpha() and word1 == word2:
-                warn = 'Repeated word: "%s"' % word1
-                return msgid, msgstr, warn
-        return msgid, msgstr, None
-
-
-class ContextCharTest:
-    def __init__(self, context_char):
-        self.context_char = context_char
+    def __init__(self):
+        pat = (r'(?<=\s)'  # Match only when preceded by space
+               r'(?P<repetition>'
+               r'(?P<word>\w+)'  # Any word
+               r' '  # Whitespace.  Only one, else tables make lots of noise
+               r'\b(?P=word)\b'  # The same word
+               r')(?=\s+)')
+        self.pattern = re.compile(pat, re.UNICODE)
 
     def check(self, msg, msgid, msgstr):
-        index1 = msgid.find(self.context_char)
-        warn = None
-        if index1 == -1:
-            return msgid, msgstr, warn
-
-        msgid = msgid[index1 + len(self.context_char):]
-        index2 = msgstr.find(self.context_char)
-        if index2 != -1:
-            warn = 'Context character "%s" found in msgstr' % \
-                self.context_char
-            msgstr = msgstr[index2 + len(self.context_char):]
-        return msgid, msgstr, warn
+        warns = []
+        for match in self.pattern.finditer(msgstr):
+            assert hasattr(match, 'group')  # Match objects
+            group = match.group('repetition')
+            warn = 'Repeated word: "%s"' % group
+            s1 = match.start()
+            s2 = match.end()
+            warns.append(Trouble(warn, msgstr, match.start(), match.end()))
+        return msgid, msgstr, warns
 
 
 def sametype(msgid, msgstr):
@@ -94,18 +106,30 @@ class LeadingCharTest:
 
 class TrailingCharTest:
     def check(self, msg, msgid, msgstr):
-        if not msgid or not msgstr:
-            return msgid, msgstr, None
-        issametype, index = sametype(reversed(msgid),
-                                     reversed(msgstr))
-        if issametype:
-            return msgid, msgstr, None
+        if msgid == '' or msgstr == '':
+            return msgid, msgstr, []  # Not our job
+        warn = []
+
+        err = False
+        tmpmsgid = msgid.rstrip()
+        tmpmsgstr = msgstr.rstrip()
+
+        if tmpmsgid.endswith('…') or tmpmsgid.endswith('...'):
+            err |= not (tmpmsgid.endswith('…') or tmpmsgid.endswith('...'))
         else:
-            if msgid[-1 - index:].isspace() or msgstr[-1 - index:].isspace():
-                warn = 'Trailing whitespace inconsistency'
-            else:
-                warn = 'Inconsistent punctuation'
-            return msgid, msgstr, warn
+            for char in '.?!:':
+                err |= (tmpmsgid.endswith(char) != tmpmsgstr.endswith(char))
+
+        if err:
+            s1 = msgid.split()[-1]
+            s2 = msgstr.split()[-1]
+            if len(s1) > 20:
+                s1 = '...%s' % s1[-16:]
+            if len(s2) > 20:
+                s2 = '...%s' % s2[-16:]
+            warn.append(Trouble('Inconsistent punctuation: "%s" vs "%s"'
+                                % (s1, s2)))
+        return msgid, msgstr, warn
 
 
 class AcceleratorTest:
@@ -155,47 +179,42 @@ class POABC:
             self.untranslatedcount += 1
 
     def check_stringpair(self, msg, msgid, msgstr):
-        if not msgid: # The header should have been filtered out already
-            return msgid, msgstr, ['No msgid']
-        if not msgstr:
-            # These have already been checked for if called
-            # from check_msg
-            return msgid, msgstr, ['Untranslated message']
-        if msg.isfuzzy:
-            return msgid, msgstr, ['Fuzzy message']
+        assert msg.msgid is not None
 
         warnings = []
         for test in self.tests:
-            msgid, msgstr, warning = test.check(msg, msgid, msgstr)
-            if warning:
-                warnings.append(warning)
+            msgid, msgstr, warn = test.check(msg, msgid, msgstr)
+            warnings.extend(warn)
         return msgid, msgstr, warnings
 
     def check_msg(self, msg):
-        warnings = []
         if len(msg.msgid) == 0:
-            return warnings
-        if not msg.istranslated:
-            return ['Untranslated message']
-        if msg.isfuzzy:
-            return ['Fuzzy message']
-        #msg = msg.decode()
+            return []
+
+        warnings = []
+
         msgid, msgstr, warnings1 = self.check_stringpair(msg, msg.msgid,
                                                          msg.msgstr)
+        msg.msgid = msgid
+        msg.msgstrs[0] = msgstr
         warnings.extend(warnings1)
 
         if msg.isplural:
             msgid_plural = msg.msgid_plural
-            for msgstr in msg.msgstrs[1:]:
+            for i, msgstr in enumerate(msg.msgstrs[1:]):
                 msgid, msgstr, morewarns = self.check_stringpair(msg,
                                                                  msgid_plural,
                                                                  msgstr)
-            warnings.extend(morewarns)
+                warnings.extend(morewarns)
+                msg.msgstrs[1 + i] = msgstr
+            msg.msgid_plural = msgid_plural
         return warnings
 
     def check_msgs(self, msgs):
         for msg in msgs:
             self.add_to_stats(msg)
+            if not msg.istranslated:
+                continue
             if is_translatorcredits(msg.msgid):
                 continue
             warnings = self.check_msg(msg)
@@ -204,28 +223,98 @@ class POABC:
 
 
 def build_parser():
-    usage = '%prog [OPTIONS] FILE'
-    description = ('Parse a gettext translation file, writing suspected '
-                   'errors to standard output.  Checks for a range of common '
-                   'errors such as inconsistent case, punctuation and xml.')
+    usage = '%prog [OPTION...] FILE...'
+    description = ('Find suspected errors in gettext catalog.  '
+                   '%prog checks for a range of common errors such as '
+                   'inconsistent punctuation, repeated words, or invalid '
+                   'xml.  See checks below.  All checks enabled by default; '
+                   'if any checks are explicitly given, only the given checks '
+                   'will be enabled.')
 
     parser = OptionParser(usage=usage, description=description,
                           version=__version__)
-    parser.add_option('-a', '--accel-char', default='_', metavar='CHAR',
-                      help='hot key character.  Default: "%default"')
-    parser.add_option('-c', '--context-char', default='|', metavar='CHAR',
-                      help='context character.  Default: "%default"')
-    parser.add_option('-q', '--filter-quote-characters', action='store_true',
-                      help='warn about quote characters not following'
-                      ' convention.')
-    parser.add_option('-Q', '--quote-character', default='\\"', metavar='CHAR',
-                      help='set the quote character.  Only relevant with -q.'
-                      '  Default: %default')
+    #parser.add_option('-a', '--accel-char', default='_', metavar='CHAR',
+    #                  help='hot key character.  Default: "%default"')
+    #parser.add_option('-q', '--filter-quote-characters', action='store_true',
+    #                  help='warn about quote characters not following'
+    #                  ' convention.')
+    #parser.add_option('-Q', '--quote-character', default='\\"', metavar='CHAR',
+    #                  help='set the quote character.  Only relevant with -q.'
+    #                  '  Default: %default')
+    parser.add_option('-c', '--color', action='store_true',
+                      help='use colors to highlight output')
+    parser.add_option('--quiet', action='store_true',
+                      help='do not print full message')
+
+
+    checkopts = OptionGroup(parser, 'Checks')
+    for key in sorted(poabc_checks.keys()):
+        checkopts.add_option('--%s' % key, action='store_true',
+                             help=poabc_checks[key])
+    parser.add_option_group(checkopts)
     return parser
 
 
-def header(linenumber):
-    return ('--- Line %d ' % linenumber).ljust(32, '-')
+poabc_checks = {'xml': 'check xml',
+                'trailing': 'check trailing characters',
+                'plurals': ('find untranslated plurals of otherwise '
+                            'translated messages'),
+                'repeat': 'find repeated words'}
+
+
+def format_context(trouble, use_color):
+    txt = trouble.string
+    s1 = trouble.start
+    s2 = trouble.end
+    left_ellipsis = ''
+    part1 = txt[:s1]
+    part2 = txt[s1:s2]
+    part3 = txt[s2:]
+    right_ellipsis = ''
+
+    ellipsis = '...'
+
+    def left_ellipsize(string, maxlen):
+        assert maxlen > 0
+        return re.split(r'\s', string[-maxlen:], 1)[-1]
+
+    def right_ellipsize(string, maxlen):
+        x = left_ellipsize(string[::-1], maxlen)[::-1]
+        return x
+
+    maxlen = 78 - len('> ""')
+
+    # First and last elements may be replaced by ellipsis
+
+    if len(part1) + len(part2) + len(part3) > maxlen:
+        if len(part2) > 60:
+            # Forget it, just return the damn thing
+            pass
+        else:
+            partmaxlen = (maxlen - len(part2)) // 2 - len(ellipsis)
+            if len(part1) > partmaxlen:
+                part1 = left_ellipsize(part1, partmaxlen)
+                assert len(part1) < partmaxlen
+                left_ellipsis = ellipsis
+            if len(part3) > partmaxlen:
+                part3 = right_ellipsize(part3, partmaxlen)
+                assert len(part3) < partmaxlen
+                right_ellipsis = ellipsis
+
+    if use_color:
+        part1 = ansi.purple(part1)
+        part2 = ansi.light_red(part2)
+        part3 = ansi.purple(part3)
+
+    tokens = ['> "', left_ellipsis, part1]
+    left_len = sum(len(noansi(x)) for x in tokens)
+    tokens.extend([part2, part3, right_ellipsis, '"\n'])
+    tokens.append(' ' * (left_len + len(noansi(part2)) // 2))
+    arrow = '^'
+    if use_color:
+        arrow = ansi.light_green(arrow)
+    tokens.append(arrow)
+    return ''.join(tokens)
 
 
 @pyg3tmain(build_parser)
@@ -235,51 +324,84 @@ def main(cmdparser):
     if nargs == 0:
         cmdparser.print_help()
         cmdparser.exit()
-    elif nargs > 1:
-        cmdparser.error('One file at a time, please.')
 
-    fname = args[0]
+    headerfmt = 'Line %(lineno)d'
+    if nargs > 1:
+        headerfmt = '%(fname)s line %(lineno)d'
 
-    fd = get_bytes_input(fname)
-
-    # XXX does this work with multiple files actually?
-    cat = parse(fd)
+    def get_header(pad=True, **kwargs):
+        string = headerfmt % kwargs
+        if pad:
+            string = ('--- %s ' % string).ljust(headerwidth, '-')
+        if opts.color:
+            string = ansi.yellow(string)
+        return string
 
     # We will not respect the original coding of the file
     out = get_encoded_output('utf-8')
 
     tests = []
-    tests.append(PartiallyTranslatedPluralTest())
-    if opts.filter_quote_characters:
-        quotechar = opts.quote_character
-        tests.append(QuoteSubstitutionFilter(quotechar))
-    if opts.context_char:
-        tests.append(ContextCharTest(opts.context_char))
-    if opts.accel_char:
-        tests.append(AcceleratorTest(opts.accel_char))
-    tests.append(LeadingCharTest())
-    tests.append(TrailingCharTest())
-    tests.append(XMLTest())
-    tests.append(WordRepeatTest())
+
+    optiondict = vars(opts)
+    for test in sorted(poabc_checks):
+        if optiondict[test]:
+            tests.append(test)
+
+    if not tests:  # No tests given.  Enable all of them
+        tests = list(sorted(poabc_checks))
+
+    testclasses = dict(plurals=PartiallyTranslatedPluralTest,
+                       xml=XMLTest,
+                       trailing=TrailingCharTest,
+                       repeat=WordRepeatTest)
+
+    # Convert test names to objects
+    tests = [testclasses[name]() for name in tests]
+
+    #if opts.filter_quote_characters:
+    #    quotechar = opts.quote_character
+    #    tests.append(QuoteSubstitutionFilter(quotechar))
+    #if opts.accel_char:
+    #    tests.append(AcceleratorTest(opts.accel_char))
+    #tests.append(LeadingCharTest())
 
     poabc = POABC(tests)
 
     warningcount = 0 # total number of warnings
     msgwarncount = 0 # number of msgs with at least one warning
 
-    for msg, warnings in poabc.check_msgs(cat):
-        print(header(msg.meta['lineno']), file=out)
-        warningcount += len(warnings)
-        msgwarncount += 1
-        for warning in warnings:
-            print(warning, file=out)
-        print(msg.rawstring(), file=out)
+    for arg in args:
+        fd = get_bytes_input(arg)
+        fname = fd.name
+
+        cat = iparse(fd, obsolete=False, trailing=False)
+
+        for msg, warnings in poabc.check_msgs(cat):
+            header = get_header(lineno=msg.meta['lineno'], fname=fname,
+                                pad=not bool(opts.quiet))
+            print(header, file=out)
+            warningcount += len(warnings)
+            msgwarncount += 1
+            for warning in warnings:
+                wstring = warning.tostring()
+                if opts.color:
+                    wstring = ansi.red(wstring)
+                print(wstring, file=out)
+                if warning.string:
+                    print(format_context(warning, use_color=opts.color),
+                          file=out)
+            if opts.quiet:
+                print(file=out)
+            else:
+                print(''.join(msg.meta['rawlines']), file=out)
+
 
     def fancyfmt(n):
         return '%d [%d%%]' % (n, round(100 * float(n) / poabc.msgcount))
 
-    width = 50
-    print(' Summary '.center(width, '='), file=out)
+    print(' Summary '.center(headerwidth, '='), file=out)
+    if nargs > 1:
+        print('Number of files: %d' % nargs, file=out)
     print('Number of messages: %d' % poabc.msgcount, file=out)
     print('Translated messages: %s' % fancyfmt(poabc.translatedcount),
           file=out)
@@ -287,4 +409,4 @@ def main(cmdparser):
     print('Untranslated messages: %s' % fancyfmt(poabc.untranslatedcount),
           file=out)
     print('Number of warnings: %d' % msgwarncount, file=out)
-    print('=' * width, file=out)
+    print('=' * headerwidth, file=out)
