@@ -462,7 +462,7 @@ def main(cmdparser):
                 print(''.join(msg.meta['rawlines']), file=out)
 
         if thisfilewarnings == 0:
-            ok = ' [OK!]'
+            ok = ' [OK]'
             if opts.color:
                 ok = ansi.light_green(ok)
             print(ok, file=out)
