@@ -1,7 +1,7 @@
---- Line 79 ------------------------------------------------------------
+--- Line 79 ----------------------------------------------------
 Repeated word: "i i"
->> ...jeg så %d advokat med hænderne i i sine egne lommer.
-                                      ^
+>> ...så %d advokat med hænderne i i sine egne lommer.
+                                  ^
 # Plurals translated, non-ASCII, repeated word in translation
 #: lawyers.c:1
 #, c-format
@@ -18,7 +18,7 @@ msgstr[1] ""
 "Det var så koldt sidste vinter, at jeg så %d advokater med hænderne i "
 "deres egne lommer."
 
---- Line 99 ------------------------------------------------------------
+--- Line 99 ----------------------------------------------------
 Invalid xml: <unknown>:1:66: mismatched tag
 >> se <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen<a/>!
                                                               ^
@@ -27,7 +27,7 @@ Invalid xml: <unknown>:1:66: mismatched tag
 msgid "See <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen</a>"
 msgstr "se <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen<a/>!"
 
---- Line 104 -----------------------------------------------------------
+--- Line 104 ---------------------------------------------------
 Translation removes period
 >> "_tarball." vs "t_jærebolle"
 # Hotkey assignment, context char, trailing characters
@@ -35,7 +35,7 @@ Translation removes period
 msgid "action|Roll _tarball."
 msgstr "Rul t_jærebolle"
 
---- Line 115 -----------------------------------------------------------
+--- Line 115 ---------------------------------------------------
 Trailing whitespace
 >> "_emoticon" vs "følikon "
 # Bad hotkey assignment, bad context char, tests multiple faults for poabc
@@ -44,10 +44,10 @@ Trailing whitespace
 msgid "action|Write _emoticon"
 msgstr "handling|Skriv følikon "
 
-=============================== Summary ================================
+=========================== Summary ============================
 Number of messages: 21
 Translated messages: 13 [62%]
 Fuzzy messages: 2 [10%]
 Untranslated messages: 6 [29%]
 Number of warnings: 4
-========================================================================
+================================================================
