@@ -420,13 +420,12 @@ def chunkwrap(chunks):
     """
     tokens = []
     chars = 0
-    # XXXXXXXXX here we can discard ANSI escapes (colors) when calculating
-    # length
+
     for chunk in chunks:
         chunklen = len(noansi(chunk))
         if chars + chunklen > 77:
             yield ''.join(tokens)
-            #lines.append(''.join(tokens))
+
             tokens = []
             chars = 0
         if chunklen > 0:
@@ -443,14 +442,14 @@ def wrap(text, wordsep=re.compile(r'(\s+)')):
     return list(chunkwrap(chunks))
 
 
-def is_wrappable(declaration, string):
+def is_wrappable(declaration, string, maxwidth=77):
     """Return whether a declaration should be wrapped into multiple lines.
 
     See :py:func:`.wrap_declaration` for details on the arguments."""
     declaration = noansi(declaration)
     string = noansi(string)
 
-    if len(string) + len(declaration) > 75:
+    if len(string) + len(declaration) > maxwidth - 2:
         return True
     newlineindex = string.find(r'\n')
 
@@ -498,7 +497,8 @@ def newwrap(tokens, maxwidth=77, endline=r'\n'):
 linetoken_pattern = re.compile(r'(\s+|\\n)')
 
 
-def wrap_declaration(declaration, string, continuation='"', end='"\n'):
+def wrap_declaration(declaration, string, continuation='"', end='"\n',
+                     maxwidth=77):
     """Return the declaration followed by a wrapped form of the string
 
     .. note:: The wrapping takes place linewise and the splitting of lines
@@ -527,8 +527,8 @@ def wrap_declaration(declaration, string, continuation='"', end='"\n'):
     Returns:
         str: The declaration followed by a wraped for of the string
     """
-    if is_wrappable(declaration, string):
-        lines = newwrap(linetoken_pattern.split(string))
+    if is_wrappable(declaration, string, maxwidth=maxwidth):
+        lines = newwrap(linetoken_pattern.split(string), maxwidth=maxwidth)
 
         tokens = ['%s ""\n' % declaration]
         for line in lines:
