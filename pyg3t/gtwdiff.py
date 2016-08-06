@@ -9,7 +9,7 @@ except ImportError:
 
 from pyg3t.gtparse import parse
 from pyg3t.message import Message
-from pyg3t.util import ansi, pyg3tmain, get_encoded_output
+from pyg3t.util import ansi, pyg3tmain, get_encoded_output, get_bytes_input
 from pyg3t.popatch import split_diff_as_bytes
 
 
@@ -131,7 +131,7 @@ def main(p):
     # PoPatch.
     #
     # After this we re-parse them and diff them word-wise.
-    fd = open(fname, 'rb')
+    fd = get_bytes_input(fname)
 
     oldbytes, newbytes = split_diff_as_bytes(fd)
     oldcat = parse(iter(oldbytes))
