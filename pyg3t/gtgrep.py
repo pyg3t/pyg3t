@@ -3,6 +3,7 @@
 """Perform grep-like operations on message catalogs."""
 
 from __future__ import print_function, unicode_literals
+import os
 import re
 from optparse import OptionParser, OptionGroup
 
@@ -10,15 +11,16 @@ from pyg3t import __version__
 from pyg3t.gtparse import iparse
 from pyg3t.util import ansi, pyg3tmain, get_encoded_output,\
     get_bytes_input, PoError
+from pyg3t.annotate import annotate, annotate_ref
 
 
 illegal_accel_chars = '*+?{}()|[]'
 
 
 def build_parser():
-    lines = ['%prog [OPTION...] PATTERN [FILE...]',
+    ulines = ['%prog [OPTION...] PATTERN [FILE...]',
              '%prog --COMPONENT PATTERN [OPTION...] [FILE...]']
-    usage = ('\n' + ' ' * len('Usage: ')).join(lines)
+    usage = ('\n' + ' ' * len('Usage: ')).join(ulines)
 
     desc = ('Search FILEs and print messages that match PATTERN, '
             'ignoring syntactical artifacts of catalogs.  '
@@ -62,7 +64,9 @@ def build_parser():
                       help='print line numbers for each message')
     output.add_option('-G', '--gettext', action='store_true',
                       help='write output as valid gettext catalog.  '
-                      'Include header and print annotations as comments.')
+                      'include header and print annotations as comments.')
+    output.add_option('--annotate', action='store_true',
+                      help='write annotations for back-merging')
 
     parser.add_option_group(components)
     parser.add_option_group(match)
@@ -219,27 +223,35 @@ def main(parser):
     if not fnames:
         fnames = ['-']
 
-    if len(fnames) > 1:
-        annotation = '%(fname)s:%(lineno)d'
+    if opts.annotate:
+        from pyg3t.annotate import ref_template
+        annotation = ref_template  # XXX
+    elif len(fnames) > 1:
+        annotation = '%(fname)s:%(lineno)d\n'
     else:
-        annotation = 'Line %(lineno)d'
+        annotation = 'Line %(lineno)d\n'
+
     if opts.gettext:
         annotation = '# pyg3t: %s' % annotation
     if opts.color:
         annotation = ansi.red(annotation)
 
     def print_message(msg):
-        if opts.line_numbers:
-            print(annotation % dict(fname=fname, lineno=msg.meta['lineno']),
+        if opts.line_numbers or opts.annotate:
+            tmpfname = os.path.abspath(fname) if opts.annotate else fname
+            print(annotation % dict(fname=tmpfname, lineno=msg.meta['lineno']),
                   file=out)
         print(msg.tostring(), file=out)
+
+    if opts.gettext and opts.annotate:
+        parser.error('Conflicting options: --gettext and --annotate')
 
     for fname in fnames:
         fd = get_bytes_input(fname)
         cat = iparse(fd)
 
         hits = 0
-        if opts.gettext:
+        if opts.gettext or opts.annotate:
             # Make sure to print header whether it matches or not
             header = next(cat)
             if op(header):  # May add coloring
