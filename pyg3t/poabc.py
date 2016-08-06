@@ -3,17 +3,20 @@
 
 from __future__ import print_function, unicode_literals
 from optparse import OptionParser, OptionGroup
+import os
 import re
 
 from pyg3t.gtparse import iparse
 from pyg3t.gtxml import GTXMLChecker
+from pyg3t.annotate import annotate, annotate_ref
 from pyg3t.util import (pyg3tmain, get_bytes_input, get_encoded_output, ansi,
                         noansi)
+from pyg3t.charsets import set_header_charset
 from pyg3t import __version__
 import xml.sax
 
 
-headerwidth = 72
+headerwidth = 64
 
 
 class Trouble:
@@ -275,7 +278,8 @@ def build_parser():
                       help='use colors to highlight output')
     parser.add_option('--quiet', action='store_true',
                       help='do not print full message')
-
+    parser.add_option('--annotate', action='store_true',
+                      help='write annotations for back-merging')
 
     checkopts = OptionGroup(parser, 'Checks')
     for key in sorted(poabc_checks.keys()):
@@ -325,7 +329,7 @@ def format_context(trouble, use_color):
         return left_ellipsize(string[::-1], maxlen)[::-1]
 
     startmarker = '>> '
-    maxlen = 78 - len(startmarker)
+    maxlen = 72 - len(startmarker)
 
     # First and last elements may be replaced by ellipsis
 
@@ -378,8 +382,12 @@ def main(cmdparser):
 
     def get_header(pad=True, **kwargs):
         string = headerfmt % kwargs
-        if pad:
+        if pad and not opts.annotate:
             string = ('--- %s ' % string).ljust(headerwidth, '-')
+        if opts.annotate:
+            fname = os.path.abspath(kwargs['fname'])
+            lineno = kwargs['lineno']
+            string = annotate_ref(fname, lineno)  # This will soon cause trouble
         if opts.color:
             string = ansi.cyan(string)
         return string
@@ -426,13 +434,19 @@ def main(cmdparser):
         if nargs > 1:
             fileheader = fname
             if opts.color:
-                fileheader = ansi.light_blue(fname)
+                fileheader = ansi.light_blue(fileheader)
+            if opts.annotate:
+                fileheader = annotate(fileheader)
             print(fileheader, end='', file=out)
             fileheader_unfinished = True
 
         cat = iparse(fd, obsolete=False, trailing=False)
 
         thisfilewarnings = 0
+
+        header_msg = next(cat)  # header will not be passed to tests
+        if opts.annotate:
+            set_header_charset(header_msg, 'utf-8')
 
         for msg, warnings in poabc.check_msgs(cat):
             if fileheader_unfinished:
@@ -442,24 +456,44 @@ def main(cmdparser):
                 print(warn, file=out, end='\n\n')
                 fileheader_unfinished = False
 
+                if opts.annotate:
+                    header = get_header(lineno=header_msg.meta['lineno'],
+                                        fname=fname, pad=False)
+                    print(header, file=out)
+                    print(header_msg.tostring(), file=out)
+
             header = get_header(lineno=msg.meta['lineno'], fname=fname,
                                 pad=not bool(opts.quiet))
             print(header, file=out)
             warningcount += len(warnings)
             msgwarncount += 1
             thisfilewarnings += 1
+            annotation_prefix = ''
+            if opts.annotate:
+                annotation_prefix = annotate('')
+
             for warning in warnings:
                 wstring = warning.tostring()
+                if opts.annotate:
+                    wstring = annotate(wstring)
                 if opts.color:
                     wstring = ansi.red(wstring)
                 print(wstring, file=out)
                 if warning.string:
-                    print(format_context(warning, use_color=opts.color),
-                          file=out)
+                    context = format_context(warning, use_color=opts.color)
+                    if opts.annotate:
+                        tokens = context.split('\n')
+                        context = (annotation_prefix
+                                   + ('\n' + annotation_prefix).join(tokens))
+                    print(context, file=out)
             if opts.quiet:
                 print(file=out)
             else:
-                print(''.join(msg.meta['rawlines']), file=out)
+                if opts.annotate:
+                    msg.flags.add('fuzzy')
+                    print(msg.tostring(), file=out)
+                else:
+                    print(''.join(msg.meta['rawlines']), file=out)
 
         if thisfilewarnings == 0:
             ok = ' [OK]'
@@ -470,14 +504,20 @@ def main(cmdparser):
     def fancyfmt(n):
         return '%d [%d%%]' % (n, round(100 * float(n) / poabc.msgcount))
 
-    print(' Summary '.center(headerwidth, '='), file=out)
+    if opts.annotate:
+        def aprint(string, file=out):
+            print(annotate(string), file=file)
+    else:
+        aprint = print
+
+    aprint(' Summary '.center(headerwidth, '='), file=out)
     if nargs > 1:
-        print('Number of files: %d' % nargs, file=out)
-    print('Number of messages: %d' % poabc.msgcount, file=out)
-    print('Translated messages: %s' % fancyfmt(poabc.translatedcount),
-          file=out)
-    print('Fuzzy messages: %s' % fancyfmt(poabc.fuzzycount), file=out)
-    print('Untranslated messages: %s' % fancyfmt(poabc.untranslatedcount),
-          file=out)
-    print('Number of warnings: %d' % msgwarncount, file=out)
-    print('=' * headerwidth, file=out)
+        aprint('Number of files: %d' % nargs, file=out)
+    aprint('Number of messages: %d' % poabc.msgcount, file=out)
+    aprint('Translated messages: %s' % fancyfmt(poabc.translatedcount),
+           file=out)
+    aprint('Fuzzy messages: %s' % fancyfmt(poabc.fuzzycount), file=out)
+    aprint('Untranslated messages: %s' % fancyfmt(poabc.untranslatedcount),
+           file=out)
+    aprint('Number of warnings: %d' % msgwarncount, file=out)
+    aprint('=' * headerwidth, file=out)

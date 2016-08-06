@@ -7,7 +7,6 @@ _refpattern = r'-ref: (?P<fname>.+?):(?P<lineno>\d+)$'
 _pattern = re.compile(r'%s(%s|%s)' % (_basepattern, _annpattern, _refpattern))
 
 ref_template = '# pyg3t-ref: %(fname)s:%(lineno)s'
-annotation_template = '# pyg3t: %s'
 
 
 def annotate_ref(fname, lineno):
