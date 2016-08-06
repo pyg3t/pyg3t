@@ -7,7 +7,10 @@ from pyg3t.util import pyg3tmain, get_encoded_output
 
 
 def standard_strptime(date):
-    return datetime.strptime(date, '%Y-%m-%d %H:%M%z')
+    try:
+        return datetime.strptime(date, '%Y-%m-%d %H:%M%z')
+    except ValueError:  # XXX ignore timezone!  This is a bit buggy
+        return datetime.strptime(date[:-5], '%Y-%m-%d %H:%M')
 
 
 def build_parser():
