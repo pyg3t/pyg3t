@@ -38,6 +38,18 @@ def get_gettext_encoding_name(name):
     return gettextname
 
 
+def set_header_charset(msg, charset):
+    if not charset in _gettext_encodings:
+        charset = get_gettext_encoding_name(name)
+    lines = msg.msgstr.split(r'\n')
+    for i, line in enumerate(lines):
+        if line.startswith('Content-Type:'):
+            break
+    line = r'Content-Type: text/plain; charset=%s' % charset
+    lines[i] = line
+    msg.msgstrs[0] = r'\n'.join(lines)
+
+
 # This function fails when run from the same directory for some reason
 # Some namespace clash I guess.
 def main():

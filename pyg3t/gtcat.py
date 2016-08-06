@@ -4,8 +4,8 @@ import re
 
 from pyg3t.util import pyg3tmain, get_encoded_output, get_bytes_input, ansi
 from pyg3t.gtparse import iparse
-from pyg3t.charsets import get_gettext_encoding_name, \
-    get_normalized_encoding_name
+from pyg3t.charsets import (get_gettext_encoding_name, set_header_charset,
+                            get_normalized_encoding_name)
 
 
 colors = {}
@@ -76,13 +76,7 @@ def main(parser):
             except LookupError as err:
                 parser.error(str(err))
 
-            lines = header.msgstr.split(r'\n')
-            for i, line in enumerate(lines):
-                if line.startswith('Content-Type:'):
-                    break
-            line = r'Content-Type: text/plain; charset=%s' % gettext_name
-            lines[i] = line
-            header.msgstrs[0] = r'\n'.join(lines)
+            set_header_charset(header, gettext_name)
         else:
             dst_encoding = src_encoding
 
