@@ -13,6 +13,6 @@ python:
 install:
   - pip install -e .
 # command to run tests
-script: py.test -v .
+script: py.test -vv .
 
 sudo: false
