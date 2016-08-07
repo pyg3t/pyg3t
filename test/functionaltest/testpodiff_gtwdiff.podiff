@@ -1,0 +1,38 @@
+--- Line 4 (othertestpofile.da.po) 
+ # Dummy po-file for testing purposes.
+ #
+ msgid ""
+ msgstr ""
+ "Project-Id-Version: GTParse test suite\n"
+ "POT-Creation-Date: 2009-04-18 18:06+0200\n"
+ "PO-Revision-Date: 2009-04-18 18:06+0200\n"
+ "Last-Translator: Ask Hjorth Larsen <asklarsen@gmail.com>\n"
+ "Language-Team: Dansk <dansk@dansk-gruppen.dk>\n"
+ "MIME-Version: 1.0\n"
+ "Content-Type: text/plain; charset=utf-8\n"
+ "Content-Transfer-Encoding: 8bit\n"
+ "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+--- Line 146 (othertestpofile.da.po) 
+ # Command line options with faulty translation
++# Changed in "other" po-file
+ msgid "  -c, --coffee=AMOUNT    Make AMOUNT of coffee"
+-msgstr "      --coffee=MÆNGDE    Lav MÆNGDE kaffe"
++msgstr "  -c, --coffee=MÆNGDE    Lav MÆNGDE kaffe"
+
+--- Line 151 (othertestpofile.da.po) 
+-# Correct XML using unknown tags in msgstr
++# Correct XML using unknown tags in msgstr.  Fuzzy in "other" po-file
++#, fuzzy
+ msgid "<blink>Button</blink>"
+ msgstr "<blinke>Knap</blinke>"
+
+--- Line 47 (fictional_pofile.da.po) 
+ # Unchanged comment
+ msgid "Message in which a typo has been corrected"
+-msgstr "Besked hvor en sålfejl er blevet rettet"
++msgstr "Besked hvor en slåfejl er blevet rettet"
+
+ =============================================================================
+ Number of messages: 3
+ =============================================================================

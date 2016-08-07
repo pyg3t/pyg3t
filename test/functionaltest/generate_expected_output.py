@@ -32,7 +32,7 @@ call('gtmerge testpofile.da.po testpofile.da.po > '
 call('gtprevmsgdiff testpofile.da.po > gtprevmsgdiff_expected_output', shell=True)
 
 # Generate gtwdiff expected output
-call('gtwdiff testpodiff.podiff > gtwdiff_expected_output', shell=True)
+call('gtwdiff testpodiff_gtwdiff.podiff > gtwdiff_expected_output', shell=True)
 
 # Generate gtxml expected output
 call('gtxml testpofile.da.po > gtxml_expected_output', shell=True)

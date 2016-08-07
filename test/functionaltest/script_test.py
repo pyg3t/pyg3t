@@ -119,7 +119,7 @@ def test_gtwdiff():
     """Functional test for gtwdiff"""
     with open(prepend_path('gtwdiff_expected_output'), 'rb') as file_:
         expected = file_.read()
-    standardtest(['gtwdiff', 'testpodiff.podiff'], expected)
+    standardtest(['gtwdiff', 'testpodiff_gtwdiff.podiff'], expected)
 
 
 def test_gtxml():

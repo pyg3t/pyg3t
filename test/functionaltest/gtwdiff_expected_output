@@ -22,11 +22,7 @@ msgstr "[1;31;41m      [0m[1;33;42m  -c, [0m--coffee=MÆNGDE    Lav MÆNGDE 
 msgid "<blink>Button</blink>"
 msgstr "<blinke>Knap</blinke>"
 
-# [1;31;41mDansk vokal som første bogstav[0m[1;33;42mNew in "other" po-file[0m
-msgid ""
-"[1;31;41mOpen file[0m[1;33;42mSome people, when faced with a problem, say: \"I know!  I will [0m"
-"[1;33;42museXML!\"  Now they have two problems.\n[0m"
-msgstr ""
-"[1;33;42mNogle mennesker,[0m[1;31;41mÅbn fil[0m[1;33;42m når de støder på et problem, siger: \"Jeg ved det!  [0m"
-"[1;33;42mJeg bruger XML!\"  Nu har de to problemer.\n[0m"
+# Unchanged comment
+msgid "Message in which a typo has been corrected"
+msgstr "Besked hvor en [1;31;41ms[0m[1;33;42msl[0må[1;31;41mlfejl[0m[1;33;42mfejl[0m er blevet rettet"
 
