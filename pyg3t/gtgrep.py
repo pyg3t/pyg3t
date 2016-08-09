@@ -134,7 +134,7 @@ def main(parser):
             parser.error('Illegal accelerator key: %s.  Cannot be any of '
                          '%s' % (opts.accel, illegal_accel_chars))
 
-    flags = 0
+    flags = re.UNICODE
     if not opts.case:
         flags |= re.IGNORECASE
 
