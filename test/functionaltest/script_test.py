@@ -134,7 +134,6 @@ def test_gtwdiff():
         out = {'new': b'', 'old': b'', 'unchanged': b''}
         state = 'unchanged'
         while text:
-            print(len(text))
             if text.startswith(new_pattern):
                 state = 'new'
                 text = text.replace(new_pattern, b'', 1)

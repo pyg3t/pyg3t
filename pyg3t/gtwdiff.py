@@ -54,7 +54,7 @@ class MSGDiffer:
         # Tokenizer splits strings over escaped newlines, whitespace,
         # and punctuation.  The tokens, after splitting, will include
         # the separators.
-        self.tokenizer = re.compile(r'(\\n|\s+|[^\s\w])')
+        self.tokenizer = re.compile(r'(\\n|\s+|[^\s\w])', flags=re.UNICODE)
         self.equalcolor = lambda string: string
         self.oldcolor = ansi.old
         self.newcolor = ansi.new

@@ -24,5 +24,5 @@ msgstr "<blinke>Knap</blinke>"
 
 # Unchanged comment
 msgid "Message in which a typo has been corrected"
-msgstr "Besked hvor en [1;31;41ms[0m[1;33;42msl[0må[1;31;41mlfejl[0m[1;33;42mfejl[0m er blevet rettet"
+msgstr "Besked hvor en [1;31;41msålfejl[0m[1;33;42mslåfejl[0m er blevet rettet"
 
