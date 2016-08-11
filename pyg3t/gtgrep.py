@@ -194,7 +194,7 @@ def main(parser):
             op2 = SearchOp('previous_msgctxt', regex_obj, replace)
             op3 = SearchOp('previous_msgid', accel_regex_obj, replace)
             op = logical_or([op1, op2, op3])
-            if key == 'icomments':
+            if key == 'icomment':
                 op = logical_not(op)
             ops.append(op)
 
