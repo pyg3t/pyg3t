@@ -1,7 +1,6 @@
 from __future__ import print_function, unicode_literals
-import re
 
-from pyg3t.util import py2, PoError, noansi, ansipattern, ansi_nocolor
+from pyg3t.util import py2, PoError, noansi, ansipattern, ansi_nocolor, regex
 
 class DuplicateMessageError(PoError):
     def __init__(self, msg1, msg2, fname):
@@ -435,7 +434,7 @@ def chunkwrap(chunks):
         yield ''.join(tokens)
 
 
-def wrap(text, wordsep=re.compile(r'(\s+)')):
+def wrap(text, wordsep=regex(r'(\s+)')):
     """Wrap text to 77 characters and return as list of lines."""
     tokens = wordsep.split(text)
     chunks = iter(tokens)
@@ -494,7 +493,7 @@ def newwrap(tokens, maxwidth=77, endline=r'\n'):
     return lines
 
 
-linetoken_pattern = re.compile(r'(\s+|\\n)')
+linetoken_pattern = regex(r'(\s+|\\n)')
 
 
 def wrap_declaration(declaration, string, continuation='"', end='"\n',

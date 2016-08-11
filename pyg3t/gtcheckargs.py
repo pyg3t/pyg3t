@@ -1,10 +1,9 @@
 from __future__ import print_function, unicode_literals
 import sys
-import re
 from optparse import OptionParser
 
 from pyg3t.gtparse import parse
-from pyg3t.util import NullDevice, pyg3tmain, get_encoded_output
+from pyg3t.util import NullDevice, pyg3tmain, get_encoded_output, regex
 
 
 description = """Check translations of command-line options in po-files."""
@@ -51,10 +50,10 @@ full_long = r'^\s*%s(\s+|$)' % any_short_some_long
 # matches all of the above
 option_pattern = r'(%s)|(%s)' % (full_long, full_short)
 
-METAVAR = re.compile(metavar, flags=re.UNICODE)
-OPTION = re.compile(option_pattern, flags=re.UNICODE)
-leading_whitespace = re.compile(r'^\s+')
-separators = re.compile(r'^\s+|, |\b \b|=|\s+$')
+METAVAR = regex(metavar)
+OPTION = regex(option_pattern)
+leading_whitespace = regex(r'^\s+')
+separators = regex(r'^\s+|, |\b \b|=|\s+$')
 
 
 class Option:

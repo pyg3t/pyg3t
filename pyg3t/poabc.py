@@ -10,7 +10,7 @@ from pyg3t.gtparse import iparse
 from pyg3t.gtxml import GTXMLChecker
 from pyg3t.annotate import annotate, annotate_ref
 from pyg3t.util import (pyg3tmain, get_bytes_input, get_encoded_output, ansi,
-                        noansi)
+                        noansi, regex)
 from pyg3t.charsets import set_header_charset
 from pyg3t import __version__
 import xml.sax
@@ -70,7 +70,7 @@ class WordRepeatTest:
                r' '  # Whitespace.  Only one, else tables make lots of noise
                r'\b(?P=word)\b'  # The same word
                r')(?=\s+)')
-        self.pattern = re.compile(pat, re.UNICODE)
+        self.pattern = regex(pat)
 
     def check(self, msg, msgid, msgstr):
         warns = []
@@ -112,8 +112,7 @@ class LeadingCharTest:
 
 class TrailingCharTest:
     def __init__(self):
-        self.ending = re.compile(r'(?P<ending>(?P<word>\S+)(?P<space>\s*))?$',
-                                 re.UNICODE)
+        self.ending = regex(r'(?P<ending>(?P<word>\S+)(?P<space>\s*))?$')
 
     def extract_ending(self, string):
         """Return (last_word, trailing_space)."""

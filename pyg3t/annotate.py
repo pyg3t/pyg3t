@@ -1,11 +1,11 @@
 from __future__ import print_function, unicode_literals
-import re
+from pyg3t.util import regex
+
 
 _basepattern = r'\s*#\s*pyg3t'
 _annpattern = r': (?P<annotation>.*)'
 _refpattern = r'-ref: (?P<fname>.+?):(?P<lineno>\d+)$'
-_pattern = re.compile(r'%s(%s|%s)' % (_basepattern, _annpattern, _refpattern))
-
+_pattern = regex(r'%s(%s|%s)' % (_basepattern, _annpattern, _refpattern))
 ref_template = '# pyg3t-ref: %(fname)s:%(lineno)s'
 
 

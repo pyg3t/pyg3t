@@ -1,11 +1,10 @@
 from __future__ import print_function, unicode_literals
-import re
 from difflib import SequenceMatcher
-from pyg3t.util import ansi
+from pyg3t.util import ansi, regex
 
-#tokenizer = re.compile(r'\s+|\S+')
-#tokenizer = re.compile(r'\\n|\w+|\W+')
-tokenizer = re.compile(r'\w+|\W+', flags=re.UNICODE)
+#tokenizer = regex(r'\s+|\S+')
+#tokenizer = regex(r'\\n|\w+|\W+')
+tokenizer = regex(r'\w+|\W+')
 
 
 class DefaultWDiffFormat:

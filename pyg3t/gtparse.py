@@ -19,11 +19,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import print_function, unicode_literals
 from codecs import iterdecode
-from pyg3t.util import PoError
+from pyg3t.util import PoError, regex
 from pyg3t.charsets import get_normalized_encoding_name
 from pyg3t.message import Catalog, Message, ObsoleteMessage, Comments
 import itertools
-import re
 import sys
 
 # It is recommended that the license should be the first comment in each source
@@ -58,10 +57,9 @@ The gtparse module contains the basic functionality to parse
 
 # Content-Type should generally be text/plain
 # TODO Issue warning otherwise.
-#charset_extraction_pattern = re.compile(r'^Content-Type:\s*[^;]*;'
-#                                        r'\s*charset=(?P<charset>[^\\]*)')
-charset_extraction_pattern = re.compile(r'[^;]*;'
-                                        r'\s*charset=(?P<charset>[^\\]*)')
+#charset_extraction_pattern = regex(r'^Content-Type:\s*[^;]*;'
+#                                   r'\s*charset=(?P<charset>[^\\]*)')
+charset_extraction_pattern = regex(r'[^;]*;\s*charset=(?P<charset>[^\\]*)')
 
 
 def parse_header_data(msgstr):
@@ -129,8 +127,8 @@ def parse_header_data(msgstr):
     return charset, headers
 
 
-obsolete_pattern = re.compile(r'\s*#~')
-obsolete_extraction_pattern = re.compile(r'\s*#~\s*(?P<line>.*)')
+obsolete_pattern = regex(r'\s*#~')
+obsolete_extraction_pattern = regex(r'\s*#~\s*(?P<line>.*)')
 
 
 def getfilename(fd):
@@ -287,10 +285,10 @@ _line_pattern = r'"(?P<line>.*?)"'
 
 def build_pattern(name):
     # Note: It is actually optional whether a line follows a header
-    return re.compile(r'\s*%s\s*(%s)?\s*$' % (name, _line_pattern))
+    return regex(r'\s*%s\s*(%s)?\s*$' % (name, _line_pattern))
 
 
-patterns = {'comment': re.compile(r'\s*(?P<line>#.*\n)'),
+patterns = {'comment': regex(r'\s*(?P<line>#.*\n)'),
             'prev_msgctxt': build_pattern(r'#\|\s*msgctxt'),
             'prev_msgid': build_pattern(r'#\|\s*msgid'),
             'prev_continuation': build_pattern(r'#\|'),
@@ -299,15 +297,15 @@ patterns = {'comment': re.compile(r'\s*(?P<line>#.*\n)'),
             'msgid_plural': build_pattern(r'msgid_plural'),
             'msgstr': build_pattern(r'msgstr'),
             'msgstrs': build_pattern(r'msgstr\[[0-9]+\]'),
-            'continuation': re.compile(r'\s*%s\s*$' % _line_pattern)}
+            'continuation': regex(r'\s*%s\s*$' % _line_pattern)}
 
 
 obsolete_patterns = {}
 for key in patterns:
-    obsolete_patterns[key] = re.compile(r'\s*#~' + patterns[key].pattern)
+    obsolete_patterns[key] = regex(r'\s*#~' + patterns[key].pattern)
 # We won't bother with prevmsgid in obsoletes!
 # This we use a pattern that matches nothing:
-obsolete_patterns['prev_msgid'] = re.compile('.^')
+obsolete_patterns['prev_msgid'] = regex('.^')
 
 
 def parse_encoded(fd):
@@ -477,7 +475,7 @@ def iparse(fd, obsolete=True, trailing=True):
             err.lineno = msg.meta['lineno']
         raise
 
-encoding_pattern = re.compile(r'[^;]*;\s*charset=(?P<charset>[^\s]+)')
+encoding_pattern = regex(r'[^;]*;\s*charset=(?P<charset>[^\s]+)')
 
 
 def parse(fd):

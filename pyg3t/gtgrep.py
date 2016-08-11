@@ -10,8 +10,8 @@ from optparse import OptionParser, OptionGroup
 from pyg3t import __version__
 from pyg3t.gtparse import iparse
 from pyg3t.util import ansi, pyg3tmain, get_encoded_output,\
-    get_bytes_input, PoError
-from pyg3t.annotate import annotate, annotate_ref
+    get_bytes_input, PoError, regex
+#from pyg3t.annotate import annotate, annotate_ref
 
 
 illegal_accel_chars = '*+?{}()|[]'
@@ -134,13 +134,13 @@ def main(parser):
             parser.error('Illegal accelerator key: %s.  Cannot be any of '
                          '%s' % (opts.accel, illegal_accel_chars))
 
-    flags = re.UNICODE
+    flags = 0
     if not opts.case:
         flags |= re.IGNORECASE
 
     def re_compile(pattern):
         try:
-            return re.compile(pattern, flags=flags)
+            return regex(pattern, flags=flags)
         except re.error as err:
             msg = 'bad pattern %s: %s' % (pattern, str(err))
             raise PoError('bad-gtgrep-pattern', msg)
@@ -188,11 +188,11 @@ def main(parser):
 
     for key, pattern in patterns.items():
         if key in ['comment', 'icomment']:
-            regex = re_compile(pattern)
-            accel_regex = re_compile(get_accel_pattern(pattern))
-            op1 = SearchOp('comments', regex, replace, multiple=True)
-            op2 = SearchOp('previous_msgctxt', regex, replace)
-            op3 = SearchOp('previous_msgid', accel_regex, replace)
+            regex_obj = re_compile(pattern)
+            accel_regex_obj = re_compile(get_accel_pattern(pattern))
+            op1 = SearchOp('comments', regex_obj, replace, multiple=True)
+            op2 = SearchOp('previous_msgctxt', regex_obj, replace)
+            op3 = SearchOp('previous_msgid', accel_regex_obj, replace)
             op = logical_or([op1, op2, op3])
             if key == 'icomments':
                 op = logical_not(op)
@@ -202,17 +202,17 @@ def main(parser):
             ops.append(SearchOp('msgctxt', re_compile(pattern), replace))
 
         elif key in ['msgid', 'imsgid']:
-            regex = re_compile(get_accel_pattern(pattern))
-            op1 = SearchOp('msgid', regex, replace)
-            op2 = SearchOp('msgid_plural', regex, replace)
+            regex_obj = re_compile(get_accel_pattern(pattern))
+            op1 = SearchOp('msgid', regex_obj, replace)
+            op2 = SearchOp('msgid_plural', regex_obj, replace)
             op = logical_or([op1, op2])
             if key == 'imsgid':
                 op = logical_not(op)
             ops.append(op)
 
         elif key in ['msgstr', 'imsgstr']:
-            regex = re_compile(get_accel_pattern(pattern))
-            op = SearchOp('msgstrs', regex, replace, multiple=True)
+            regex_obj = re_compile(get_accel_pattern(pattern))
+            op = SearchOp('msgstrs', regex_obj, replace, multiple=True)
             if key == 'imsgstr':
                 op = logical_not(op)
             ops.append(op)

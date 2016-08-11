@@ -1,5 +1,4 @@
 from __future__ import print_function, unicode_literals
-import re
 from optparse import OptionParser
 from difflib import SequenceMatcher
 try:
@@ -9,7 +8,8 @@ except ImportError:
 
 from pyg3t.gtparse import parse
 from pyg3t.message import Message
-from pyg3t.util import ansi, pyg3tmain, get_encoded_output, get_bytes_input
+from pyg3t.util import (ansi, pyg3tmain, get_encoded_output, get_bytes_input,
+                        regex)
 from pyg3t.popatch import split_diff_as_bytes
 
 
@@ -54,7 +54,7 @@ class MSGDiffer:
         # Tokenizer splits strings over escaped newlines, whitespace,
         # and punctuation.  The tokens, after splitting, will include
         # the separators.
-        self.tokenizer = re.compile(r'(\\n|\s+|[^\s\w])', flags=re.UNICODE)
+        self.tokenizer = regex(r'(\\n|\s+|[^\s\w])')
         self.equalcolor = lambda string: string
         self.oldcolor = ansi.old
         self.newcolor = ansi.new

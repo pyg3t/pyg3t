@@ -1,8 +1,8 @@
 from __future__ import print_function, unicode_literals
 from optparse import OptionParser
-import re
 
-from pyg3t.util import pyg3tmain, get_encoded_output, get_bytes_input, ansi
+from pyg3t.util import (pyg3tmain, get_encoded_output, get_bytes_input, ansi,
+                        regex)
 from pyg3t.gtparse import iparse
 from pyg3t.charsets import (get_gettext_encoding_name, set_header_charset,
                             get_normalized_encoding_name)
@@ -17,7 +17,7 @@ for key in ['#,']:
     colors[key] = ansi.light_cyan(key)
 
 
-wordsep = re.compile(r'(\s+|\\n)')
+wordsep = regex(r'(\s+|\\n)')
 
 
 def color(colorname, string):

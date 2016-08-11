@@ -11,6 +11,12 @@ _bytes_stdin = sys.stdin.buffer if py3 else sys.stdin
 _bytes_stdout = sys.stdout.buffer if py3 else sys.stdout
 
 
+def regex(pattern, flags=0):
+    assert flags & re.UNICODE == 0
+    flags |= re.UNICODE
+    return re.compile(pattern, flags)
+
+
 _colors = {'blue': '0;34',
            'light red': '1;31',
            'light purple': '1;35',
@@ -60,7 +66,7 @@ class ANSIColors:
 
 
 ansi_nocolor = '\x1b[0m'
-ansipattern = re.compile('\x1b\\[[;\\d]*[A-Za-z]')
+ansipattern = regex('\x1b\\[[;\\d]*[A-Za-z]')
 ansi = ANSIColors()
 
 
