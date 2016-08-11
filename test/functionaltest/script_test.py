@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import subprocess
 import os
 
-
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 FILE='testpofile.da.po'
 
@@ -119,7 +118,43 @@ def test_gtwdiff():
     """Functional test for gtwdiff"""
     with open(prepend_path('gtwdiff_expected_output'), 'rb') as file_:
         expected = file_.read()
-    standardtest(['gtwdiff', 'testpodiff_gtwdiff.podiff'], expected)
+    return_code, stdout, stderr = run_command(
+        ['gtwdiff', 'testpodiff_gtwdiff.podiff']
+    )
+    assert return_code == 0
+    assert stderr == b''
+
+    # We have problems with the diff comming out in different order on
+    # different Python versions, so test for correct in and out but
+    # not for the same order
+    new_pattern = b'\x1b[1;33;42m'
+    old_pattern = b'\x1b[1;31;41m'
+    stop_pattern = b'\x1b[0m'
+    def parse_wdiff(text):
+        out = {'new': b'', 'old': b'', 'unchanged': b''}
+        state = 'unchanged'
+        while text:
+            print(len(text))
+            if text.startswith(new_pattern):
+                state = 'new'
+                text = text.replace(new_pattern, b'', 1)
+            elif text.startswith(old_pattern):
+                state = 'old'
+                text = text.replace(old_pattern, b'', 1)
+            elif text.startswith(stop_pattern):
+                state = 'unchanged'
+                text = text.replace(stop_pattern, b'', 1)
+            else:
+                out[state] += text[0:1]
+                text = text[1:]
+        return out
+    from_stdout = parse_wdiff(stdout)
+    from_expected = parse_wdiff(expected)
+    assert from_stdout['new'] == from_expected['new']
+    assert from_stdout['old'] == from_expected['old']
+    assert from_stdout['unchanged'] == from_expected['unchanged']
+
+    
 
 
 def test_gtxml():
