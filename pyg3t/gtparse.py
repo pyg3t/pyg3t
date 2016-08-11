@@ -410,7 +410,9 @@ class ReadBuffer:
     def __next__(self):
         line = next(self.fd)
         self.bytelines.append(line)
-        return line.decode('utf8', errors='replace')
+        # Python 2.6 does ot accept keyword arguments for decode, the
+        # last argument is errors='replace'
+        return line.decode('utf8', 'replace')
     next = __next__
 
     def decode(self, charset):
