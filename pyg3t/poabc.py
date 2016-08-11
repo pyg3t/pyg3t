@@ -454,7 +454,6 @@ def main(cmdparser):
                 if opts.color:
                     warn = ansi.light_red(warn)
                 print(warn, file=out, end='\n\n')
-                fileheader_unfinished = False
 
                 if opts.annotate:
                     header = get_header(lineno=header_msg.meta['lineno'],
@@ -495,11 +494,13 @@ def main(cmdparser):
                 else:
                     print(''.join(msg.meta['rawlines']), file=out)
 
-        if thisfilewarnings == 0:
+        if thisfilewarnings == 0 and fileheader_unfinished:
             ok = ' [OK]'
             if opts.color:
                 ok = ansi.light_green(ok)
             print(ok, file=out)
+
+        fileheader_unfinished = False
 
     def fancyfmt(n):
         return '%d [%d%%]' % (n, round(100 * float(n) / poabc.msgcount))
