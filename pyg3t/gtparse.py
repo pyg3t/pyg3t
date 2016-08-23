@@ -238,9 +238,11 @@ class MessageChunk:
         # (However we do not verify number of plurals, etc.  A language with
         # two plurals could have only msgstr[0] and we would not detect this.)
         if len(self.msgstrs) == 0:
-            raise PoError('msg-lacks-msgstr',
-                          'Message at line %d has no msgstr:\n%s'
-                          % (meta['lineno'], ''.join(meta['rawlines'])))
+            err = PoError('msg-lacks-msgstr',
+                          'Message has no msgstr:\n%s'
+                          % ''.join(meta['rawlines']))
+            err.lineno = meta['lineno']
+            raise err
         msgstr = [join(lines) for lines in self.msgstrs]
 
         if msgid == '':
