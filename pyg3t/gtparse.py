@@ -169,7 +169,7 @@ class ParseError(PoError):
 def devour(pattern, continuation, line, fd, tokens, lines):
     match = pattern.match(line)
     if not match:
-        raise ParseError('Current line does not match regex',
+        raise ParseError('Current line does not match pattern',
                          regex=pattern.pattern, line=line, prev_lines=lines)
     while match:
         token = match.group('line')
@@ -231,9 +231,17 @@ class MessageChunk:
             msgclass = Message
 
         msgid = join(self.msgid_lines)
-        msgstr = None
-        if len(self.msgstrs) > 0:
-            msgstr = [join(lines) for lines in self.msgstrs]
+        #msgstr = None
+        # If a message has no msgid, then it becomes 'trailing comments'.
+        # If it lacks msgstr (even an empty one), this is also an error
+        # and we have to handle it well.  Everything else is optional.
+        # (However we do not verify number of plurals, etc.  A language with
+        # two plurals could have only msgstr[0] and we would not detect this.)
+        if len(self.msgstrs) == 0:
+            raise PoError('msg-lacks-msgstr',
+                          'Message at line %d has no msgstr:\n%s'
+                          % (meta['lineno'], ''.join(meta['rawlines'])))
+        msgstr = [join(lines) for lines in self.msgstrs]
 
         if msgid == '':
             charset, headers = parse_header_data(msgstr[0])
