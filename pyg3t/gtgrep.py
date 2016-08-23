@@ -217,6 +217,9 @@ def main(parser):
                 op = logical_not(op)
             ops.append(op)
 
+        else:
+            assert False, 'Internal error: %s' % key
+
     # final search operation is either logical AND or logical OR of everything
     op = match_strategy(ops)
 
