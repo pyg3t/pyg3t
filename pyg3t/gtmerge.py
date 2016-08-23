@@ -207,8 +207,11 @@ def merge_by_annotations(parser, opts, args):
             nmsgs_thisfile += 1
             print(msg.tostring(), file=buf)
 
-        fd.close()  # We will perhaps write to that file in a moment
-        assert len(new_dict) == 0  # All should have been popped now
+        fd.close()  # Close so we can (perhaps) overwrite it in a moment
+
+        #assert len(new_dict) == 0  # All should have been popped now
+        # Actually there may be untranslated ones; those would be left.
+        # For now, new_dict may not be empty after all
 
         txt = buf.getvalue()
         btxt = txt.encode(old_encoding)
