@@ -453,12 +453,13 @@ def main(cmdparser):
                 if opts.color:
                     warn = ansi.light_red(warn)
                 print(warn, file=out, end='\n\n')
+                fileheader_unfinished = False
 
-                if opts.annotate:
-                    header = get_header(lineno=header_msg.meta['lineno'],
-                                        fname=fname, pad=False)
-                    print(header, file=out)
-                    print(header_msg.tostring(), file=out)
+                #if opts.annotate:
+                #    header = get_header(lineno=header_msg.meta['lineno'],
+                #                        fname=fname, pad=False)
+                #    print(header, file=out)
+                #    print(header_msg.tostring(), file=out)
 
             header = get_header(lineno=msg.meta['lineno'], fname=fname,
                                 pad=not bool(opts.quiet))
