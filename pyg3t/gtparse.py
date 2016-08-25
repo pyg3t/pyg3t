@@ -505,7 +505,7 @@ def parse(fd):
 
     trailing_comments = []
     if msgs[-1].msgid is None:
-        trailing_comments = msgs.pop().comments
+        trailing_comments = msgs.pop()
 
     encoding = msgs[0].meta['encoding']
 

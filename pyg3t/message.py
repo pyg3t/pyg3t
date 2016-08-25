@@ -63,12 +63,13 @@ class Catalog(object):
         self.trailing_comments = trailing_comments
         #assert 'headers' in self.header.meta
 
-    def dict(self):
+    def dict(self, obsolete=False):
         """Return a dict with the contents of this catalog.
 
         Values are Messages and keys are tuples of (msgid, msgctxt)."""
         d = {}
-        for msg in self.msgs:
+
+        for msg in self.iter(trailing=False, obsolete=obsolete):
             key = msg.key
             if key in d:
                 raise DuplicateMessageError(d[key], msg, self.fname)
@@ -78,6 +79,17 @@ class Catalog(object):
     def __iter__(self):
         """Return an iterator of the (non-obsolete) messages."""
         return iter(self.msgs)
+
+    def iter(self, msgs=True, obsolete=True, trailing=True):
+        """Return iterator over all or some parts of the catalog."""
+        if msgs:
+            for msg in self.msgs:
+                yield msg
+        if obsolete:
+            for msg in self.obsoletes:
+                yield msg
+        if trailing and self.trailing_comments is not None:
+            yield self.trailing_comments
 
     def __len__(self):
         """Return the number of (non-obsolete) messages."""
