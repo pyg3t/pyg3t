@@ -49,21 +49,19 @@ class PoDiff:
 
     @staticmethod
     def catalogs_have_common_base(old_cat, new_cat):
-        """Check if catalogs has common base
+        """Check if catalogs have common base
 
         Keywords:
-        old_cat    old catalog
-        new_cat    new catalog
+          old_cat    old catalog
+          new_cat    new catalog
         """
-        # Perform checks of whether the files have common base
-        if len(old_cat) != len(new_cat):
-            return False
 
-        for old_msg, new_msg in zip(old_cat, new_cat):
-            if old_msg.key != new_msg.key:
-                return False
+        def getkeys(cat):
+            return set(msg.key for msg in cat.iter(trailing=False))
 
-        return True
+        old_keys = getkeys(old_cat)
+        new_keys = getkeys(new_cat)
+        return old_keys == new_keys
 
     def diff_catalogs_relaxed(self, old_cat, new_cat, full_diff=False):
         """Diff catalogs relaxed. I.e. accept differences in base.
@@ -73,10 +71,11 @@ class PoDiff:
         new_cat    new catalog
         full_diff  boolean, show msg's unique to old_cat
         """
-        dict_old_cat = old_cat.dict()
+        dict_old_cat = old_cat.dict(obsolete=True)
 
         # Make diff for all the msg's in new_cat
-        for new_msg in new_cat:
+        # XXX trailing comments!
+        for new_msg in new_cat.iter(trailing=False):
             if new_msg.key in dict_old_cat:
                 self.diff_two_msgs(dict_old_cat[new_msg.key], new_msg,
                                    fname=new_cat.fname)
@@ -86,7 +85,7 @@ class PoDiff:
         # If we are making the full diff, diff the entries that are only
         # present in old file
         if full_diff:
-            dict_new_cat = new_cat.dict()
+            dict_new_cat = new_cat.dict(obsolete=True)
             only_old = [key for key in dict_old_cat if key not in
                         dict_new_cat]
 
