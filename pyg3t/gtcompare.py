@@ -121,11 +121,11 @@ def compare_headers(headers1, headers2, fd):
         try:
             check(header)
         except KeyError:
-            if header in headers1 and header not in headers1:
+            if header in headers1 and header not in headers2:
                 print('Removed header %s' % ': '.join([header,
                                                        headers1[header]]),
                       file=fd)
-            elif header not in headers1 and header in headers2:
+            elif header in headers2 and header not in headers1:
                 print('Added header %s' % ': '.join([header,
                                                      headers2[header]]),
                       file=fd)
