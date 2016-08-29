@@ -36,6 +36,5 @@ def strip_annotations(msg):
         else:
             comments.append(comment)
     msg.comments = comments
-    assert fname is not None
-    assert lineno is not None
+    # fname/lineno may be None if there are no annotations.
     return annotations, fname, lineno
