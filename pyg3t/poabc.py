@@ -367,6 +367,28 @@ def format_context(trouble, use_color):
     return ''.join(tokens)
 
 
+# XXX This should be made into a general utility function
+def generate_po_header():
+    from pyg3t.message import Message
+    from pyg3t.gtparse import parse_header_data
+    import time
+    timestr = time.strftime('%Y-%m-%d %H:%M%z')
+    fields = ['Project-Id-Version: poabc-output',
+              'POT-Creation-Date: %s' % timestr,
+              'PO-Revision-Date: %s' % timestr,
+              'Last-Translator: TRANSLATOR',
+              'Language-Team: TEAM',
+              'Language: LANGUAGE',
+              'MIME-Version: 1.0',
+              'Content-Type: text/plain; charset=utf-8',
+              'Content-Transfer-Encoding: 8bit']
+    header = r'\n'.join(fields)
+    _, headers = parse_header_data(header)
+    msg = Message(msgid='',
+                  msgstr=header,
+                  meta={'headers': headers})
+    return msg
+
 @pyg3tmain(build_parser)
 def main(cmdparser):
     opts, args = cmdparser.parse_args()
@@ -424,6 +446,10 @@ def main(cmdparser):
     warningcount = 0 # total number of warnings
     msgwarncount = 0 # number of msgs with at least one warning
 
+    if opts.annotate:
+        custom_header = generate_po_header()
+        print(custom_header.tostring(), file=out)
+
     for arg in args:
         fd = get_bytes_input(arg)
         fname = fd.name
@@ -444,8 +470,10 @@ def main(cmdparser):
         thisfilewarnings = 0
 
         header_msg = next(cat)  # header will not be passed to tests
-        if opts.annotate:
-            set_header_charset(header_msg, 'utf-8')
+        # Do we want to do something with header_msg?
+
+        #if opts.annotate:
+        #    set_header_charset(header_msg, 'utf-8')
 
         for msg, warnings in poabc.check_msgs(cat):
             if fileheader_unfinished:

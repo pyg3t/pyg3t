@@ -2,6 +2,7 @@ from __future__ import print_function, unicode_literals
 
 from pyg3t.util import py2, PoError, noansi, ansipattern, ansi_nocolor, regex
 
+
 class DuplicateMessageError(PoError):
     def __init__(self, msg1, msg2, fname):
         self.msg1 = msg1

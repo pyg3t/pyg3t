@@ -19,11 +19,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import print_function, unicode_literals
 from codecs import iterdecode
+import itertools
+import sys
+import time
+
 from pyg3t.util import PoError, regex
 from pyg3t.charsets import get_normalized_encoding_name
 from pyg3t.message import Catalog, Message, ObsoleteMessage, Comments
-import itertools
-import sys
 
 # It is recommended that the license should be the first comment in each source
 # code file, but it doesn't make a good module level doc string, so supply one
@@ -125,6 +127,26 @@ def parse_header_data(msgstr):
 
     # Extract more info?
     return charset, headers
+
+
+def generate_po_header():
+    # Todo: accept arguments
+    timestr = time.strftime('%Y-%m-%d %H:%M%z')
+    fields = ['Project-Id-Version: poabc-output',
+              'POT-Creation-Date: %s' % timestr,
+              'PO-Revision-Date: %s' % timestr,
+              'Last-Translator: TRANSLATOR',
+              'Language-Team: TEAM',
+              'Language: LANGUAGE',
+              'MIME-Version: 1.0',
+              'Content-Type: text/plain; charset=utf-8',
+              'Content-Transfer-Encoding: 8bit']
+    header = r'\n'.join(fields)
+    _, headers = parse_header_data(header)
+    msg = Message(msgid='',
+                  msgstr=header,
+                  meta={'headers': headers})
+    return msg
 
 
 obsolete_pattern = regex(r'\s*#~')
