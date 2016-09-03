@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (C) 2009-2010 PyG3T development team
+# Copyright (C) 2009-2016 PyG3T development team
 # Please see the accompanying LICENSE file for further information.
 
 from distutils.core import setup
