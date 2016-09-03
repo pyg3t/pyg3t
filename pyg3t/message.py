@@ -483,6 +483,8 @@ def newwrap(tokens, maxwidth=77, endline=r'\n'):
 
     current_color = ansi_nocolor
     for token in tokens:
+        if len(token) == 0:
+            continue
         colors = ansipattern.findall(token)
         if colors:
             current_color = colors[-1]
@@ -500,13 +502,13 @@ def newwrap(tokens, maxwidth=77, endline=r'\n'):
                 line.append(current_color)
         nchars += tokenlen
         line.append(token)
-        if token == endline:  # We could accept a pattern here
+        if token.endswith(endline):  # We could accept a pattern here
             nchars = maxwidth  # This ensures break before next token if any
     lines.append(line)
     return lines
 
-
-linetoken_pattern = regex(r'(\s+|\\n)')
+# Split over any number of letters followed by either newline or whitespace
+linetoken_pattern = regex(r'(\S*?(?:\\n|\s+))')
 
 
 def wrap_declaration(declaration, string, continuation='"', end='"\n',
