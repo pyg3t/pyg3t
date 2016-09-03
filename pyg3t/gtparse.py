@@ -320,7 +320,7 @@ def build_pattern(name):
     return regex(r'\s*%s\s*(%s)?\s*$' % (name, _line_pattern))
 
 
-patterns = {'comment': regex(r'\s*(?P<line>#.*\n)'),
+patterns = {'comment': regex(r'\s*(?P<line>#.*(\n)?)'),
             'prev_msgctxt': build_pattern(r'#\|\s*msgctxt'),
             'prev_msgid': build_pattern(r'#\|\s*msgid'),
             'prev_continuation': build_pattern(r'#\|'),
