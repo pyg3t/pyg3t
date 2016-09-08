@@ -7,7 +7,6 @@ Provides convinience functions to run the tests programatically
 from os import chdir
 from os.path import abspath, dirname, join
 
-_IMPORT_CHECK_MESSAGE = ()
 _FAILED_IMPORTS = []
 try:
     import pytest
