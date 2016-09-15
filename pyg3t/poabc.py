@@ -157,6 +157,9 @@ class TrailingCharTest:
         if re.search(r'\w\.$', msgid_word) and not msgstr_word.endswith('.'):
             warn.append(Trouble('Translation removes period', endings))
 
+        if re.search(r'\w$', msgid_word) and msgstr_word.endswith('.'):
+            warn.append(Trouble('Translation adds period', endings))
+
         if re.search(r'\w\?$', msgid_word) and not msgstr_word.endswith('?'):
             warn.append(Trouble('Translation removes question mark', endings))
 

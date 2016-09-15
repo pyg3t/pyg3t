@@ -14,7 +14,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GTParse test suite\n"
 "POT-Creation-Date: 2009-04-18 18:06+0200\n"
-"PO-Revision-Date: 2009-04-18 18:06+0200\n"
+"PO-Revision-Date: 2016-09-15 23:20+0200\n"
 "Last-Translator: Ask Hjorth Larsen <asklarsen@gmail.com>\n"
 "Language-Team: Dansk <dansk@dansk-gruppen.dk>\n"
 "Language: da\n"
@@ -104,10 +104,10 @@ msgstr "se <a href=\"http://www.dansk-gruppen.dk\">Dansk-gruppen<a/>!"
 msgid "action|Roll _tarball."
 msgstr "Rul t_jærebolle"
 
-# Hotkeys with the & character
+# Hotkeys with the & character.  Translation adds period
 #: hotkeys.c:3
 msgid "Mail &daemon"
-msgstr "Post&dæmon"
+msgstr "Post&dæmon."
 
 # Bad hotkey assignment, bad context char, tests multiple faults for poabc
 # Also whitespace inconsistency

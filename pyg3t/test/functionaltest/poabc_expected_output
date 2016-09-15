@@ -35,6 +35,14 @@ Translation removes period
 msgid "action|Roll _tarball."
 msgstr "Rul t_jærebolle"
 
+--- Line 109 ---------------------------------------------------
+Translation adds period
+>> "&daemon" vs "Post&dæmon."
+# Hotkeys with the & character.  Translation adds period
+#: hotkeys.c:3
+msgid "Mail &daemon"
+msgstr "Post&dæmon."
+
 --- Line 115 ---------------------------------------------------
 Trailing whitespace
 >> "_emoticon" vs "følikon "
@@ -49,5 +57,5 @@ Number of messages: 21
 Translated messages: 13 [62%]
 Fuzzy messages: 2 [10%]
 Untranslated messages: 6 [29%]
-Number of warnings: 4
+Number of warnings: 5
 ================================================================
