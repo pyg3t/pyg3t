@@ -472,11 +472,15 @@ def is_wrappable(declaration, string, maxwidth=77):
 
 
 def newwrap(tokens, maxwidth=77, endline=r'\n'):
-    """Group a list of tokens into a list of lists of tokens.
+    """Group a list of words (tokens) into a list of lines (lists of tokens).
+
+    Return a list of lines, where each line is a list of tokens whose
+    total length does not exceed maxwidth.
 
     This function is ANSI-color aware.  ANSI color patterns will be
     detected and added when appropriate to ensure that coloring
-    terminates at the end of each line, and starts at next line."""
+    terminates at the end of each line, and starts at next line.
+    """
     nchars = 0
     lines = []
     line = []
@@ -485,10 +489,10 @@ def newwrap(tokens, maxwidth=77, endline=r'\n'):
     for token in tokens:
         if len(token) == 0:
             continue
-        colors = ansipattern.findall(token)
-        if colors:
-            current_color = colors[-1]
+
         tokenlen = len(noansi(token))
+
+        # If line is too long, go to new line before processing token:
         if nchars + tokenlen > maxwidth:
             if current_color != ansi_nocolor:
                 # Switch off color before ending line.
@@ -500,6 +504,12 @@ def newwrap(tokens, maxwidth=77, endline=r'\n'):
             if current_color != ansi_nocolor:
                 # Remember color at beginning of next line
                 line.append(current_color)
+
+        # There is space for the token - add it:
+        colors = ansipattern.findall(token)
+        if colors:
+            current_color = colors[-1]
+
         nchars += tokenlen
         line.append(token)
         if token.endswith(endline):  # We could accept a pattern here
