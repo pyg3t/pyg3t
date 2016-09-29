@@ -76,8 +76,8 @@ class MSGDiffer:
             colors.append(color)
 
         for op, s1beg, s1end, s2beg, s2end in differ.get_opcodes():
-            w1 = oldwords[s1beg:s1end]
-            w2 = newwords[s2beg:s2end]
+            w1 = [w for w in oldwords[s1beg:s1end] if w]
+            w2 = [w for w in newwords[s2beg:s2end] if w]
 
             if op == 'equal':
                 append(w1, self.equalcolor)
@@ -88,6 +88,7 @@ class MSGDiffer:
                 append(w2, self.newcolor)
             elif op == 'delete':
                 append(w1, self.oldcolor)
+
         return chunks, colors
 
     def colorize(self, chunks, colors):
