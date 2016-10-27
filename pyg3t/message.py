@@ -146,7 +146,8 @@ class Message(object):
 
     def __init__(self, msgid, msgstr, msgid_plural=None,
                  msgctxt=None, comments=None, meta=None,
-                 flags=None, previous_msgctxt=None, previous_msgid=None):
+                 flags=None, previous_msgctxt=None, previous_msgid=None,
+                 previous_msgid_plural=None):
         """Create a Message, representing one message from a message catalog.
 
         Parameters:
@@ -194,6 +195,8 @@ class Message(object):
 
         self.previous_msgctxt = previous_msgctxt
         self.previous_msgid = previous_msgid
+        self.previous_msgid_plural = previous_msgid_plural
+
         if meta is None:
             meta = {}
         self.meta = meta
@@ -259,6 +262,11 @@ class Message(object):
         return self.previous_msgid is not None
 
     @property
+    def has_previous_msgid_plural(self):
+        """Whether the message has a plural previous msgid."""
+        return self.previous_msgid_plural is not None
+
+    @property
     def key(self):
         """The tuple (msgid, msgctxt).
 
@@ -308,7 +316,7 @@ class Message(object):
 
         The string will be on the form. First all comments that are not
         previous msgid (if any), then the flags (if any), then the previous
-        msgid (if any), then the context (if any) and finnaly the :term:`msgid`
+        msgid (if any), then the context (if any) and finally the :term:`msgid`
         and the :term:`msgstr`.
 
         .. code-block:: po
@@ -337,6 +345,10 @@ class Message(object):
         if self.has_previous_msgid:
             lines += wrap_declaration('%s %s' % (c('#|'), c('msgid')),
                                       self.previous_msgid,
+                                      continuation=c('#|') + ' "')
+        if self.has_previous_msgid_plural:
+            lines += wrap_declaration('%s %s' % (c('#|'), c('msgid_plural')),
+                                      self.previous_msgid_plural,
                                       continuation=c('#|') + ' "')
         if self.has_context:
             lines += wrap_declaration(c('msgctxt'), self.msgctxt)

@@ -211,6 +211,7 @@ class MessageChunk:
         self.comment_lines = []
         self.prevmsgctxt_lines = None
         self.prevmsgid_lines = None
+        self.prevmsgid_plural_lines = None
         self.msgctxt_lines = None
         self.msgid_lines = []
         self.msgid_plural_lines = None
@@ -275,6 +276,7 @@ class MessageChunk:
         msg = msgclass(comments=comments,
                        previous_msgctxt=join(self.prevmsgctxt_lines),
                        previous_msgid=join(self.prevmsgid_lines),
+                       previous_msgid_plural=join(self.prevmsgid_plural_lines),
                        flags=flags,
                        msgctxt=join(self.msgctxt_lines),
                        msgid=join(self.msgid_lines),
@@ -323,6 +325,7 @@ def build_pattern(name):
 patterns = {'comment': regex(r'\s*(?P<line>#.*(\n)?)'),
             'prev_msgctxt': build_pattern(r'#\|\s*msgctxt'),
             'prev_msgid': build_pattern(r'#\|\s*msgid'),
+            'prev_msgid_plural': build_pattern(r'#\|\s*msgid_plural'),
             'prev_continuation': build_pattern(r'#\|'),
             'msgctxt': build_pattern('msgctxt'),
             'msgid': build_pattern(r'msgid'),
@@ -383,6 +386,11 @@ def parse_encoded(fd):
                     msg.prevmsgid_lines = []
                     line = _devour(pat['prev_msgid'],
                                    line, msg.prevmsgid_lines,
+                                   continuation=pat['prev_continuation'])
+                elif pat['prev_msgid_plural'].match(line):
+                    msg.prevmsgid_plural_lines = []
+                    line = _devour(pat['prev_msgid_plural'],
+                                   line, msg.prevmsgid_plural_lines,
                                    continuation=pat['prev_continuation'])
                 else:
                     msg.comment_lines.append(line)
