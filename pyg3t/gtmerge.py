@@ -133,9 +133,9 @@ def merge_translation_project(opts, args):
         assert not dstheader.isplural
         dstheader.msgstrs[0] = r'\n'.join(newheaderlines)
 
-        fd = get_encoded_output(dstfname, idcat.encoding)
+        fd = get_encoded_output(idcat.encoding, dstfname)
         for msg in dstcat:
-            print(msg, file=fd)
+            print(msg.tostring(), file=fd)
         fd.close()
 
 def merge_by_annotations(parser, opts, args):
