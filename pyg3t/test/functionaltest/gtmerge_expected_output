@@ -158,3 +158,25 @@ msgstr "<blinke>Knap</blinke>"
 msgid "This syntax is not supposed to exist"
 msgstr ""
 
+# previous msgid_plural
+#: src/files.c:907
+#, c-format, fuzzy
+#| msgid ""
+#| "The future of the world is decided in %lu city: New York, London, Eibar… and "
+#| "the last two I forget."
+#| msgid_plural ""
+#| "The future of the world is decided in %lu cities: New York, London, Eibar… "
+#| "and the last two I forget."
+msgid ""
+"The future of the world is decided in %lu city: New York, London, Tokyo, "
+"Eibar… and the last one I forget."
+msgid_plural ""
+"The future of the world is decided in %lu cities: New York, London, Tokyo, "
+"Eibar… and the last one I forget."
+msgstr[0] ""
+"Verdens fremtid afgøres i %lu by: New York, London, Tokyo, Eibar… og den "
+"sidste kan jeg ikke huske."
+msgstr[1] ""
+"Verdens fremtid afgøres i %lu byer: New York, London, Tokyo, Eibar… og den "
+"sidste kan jeg ikke huske."
+

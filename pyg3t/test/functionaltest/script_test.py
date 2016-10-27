@@ -41,6 +41,12 @@ def standardtest(command_args, expected, return_code=0):
     expected, that stderr is empty and that stdout has the expected value.
     """
     return_code_actual, stdout, stderr = run_command(command_args)
+
+    if 'pyg3t_save_output' in os.environ:
+        with open('{0}_expected_output'.format(command_args[0]), 'w') as fd:
+            fd.write(stdout)
+        return
+
     assert return_code_actual == return_code
     assert stderr == b''
     assert stdout == expected
@@ -152,8 +158,6 @@ def test_gtwdiff():
     assert from_stdout['new'] == from_expected['new']
     assert from_stdout['old'] == from_expected['old']
     assert from_stdout['unchanged'] == from_expected['unchanged']
-
-    
 
 
 def test_gtxml():

@@ -169,6 +169,26 @@ msgid
 msgstr
 ""
 
+# previous msgid_plural
+#: src/files.c:907
+#, fuzzy, c-format
+#| msgid "The future of the world is decided in %lu city: New York, London, "
+#| "Eibar… and the last two I forget."
+#| msgid_plural ""
+#| "The future of the world is decided in %lu cities: New York, London, "
+#| "Eibar… and the last two I forget."
+msgid ""
+"The future of the world is decided in %lu city: New York, London, "
+"Tokyo, Eibar… and the last one I forget."
+msgid_plural ""
+"The future of the world is decided in %lu cities: New York, London, "
+"Tokyo, Eibar… and the last one I forget."
+msgstr[0] "Verdens fremtid afgøres i %lu by: New York, London, Tokyo, "
+"Eibar… og den sidste kan jeg ikke huske."
+msgstr[1] "Verdens fremtid afgøres i %lu byer: New York, London, Tokyo, "
+"Eibar… og den sidste kan jeg ikke huske."
+
+
 # A lot of the files from GNOME are even uglier, they have obsolete
 # messages where the translator created comment has the ordinary prefix
 #~ msgid "A ugly obsolete chunk"
