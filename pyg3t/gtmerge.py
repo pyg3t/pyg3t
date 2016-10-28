@@ -56,30 +56,41 @@ def build_parser():
 
 
 def merge_msg(strmsg, idmsg):
-    strcomments = [comment for comment in strmsg.comments
-                   if comment.startswith('# ') or comment == '#\n']
-    idcomments = [comment for comment in idmsg.comments
-                  if not comment.startswith('# ')
-                  and not comment == '#\n'
-                  and not comment.startswith('#|')]
-    # This will remove #|-comments
-
     flags = idmsg.flags.copy()
     if 'fuzzy' in flags:
         flags.remove('fuzzy')
     if 'fuzzy' in strmsg.flags:
         flags.add('fuzzy')
 
+    def is_id_comment(comment):
+        return comment.startswith('#.') or comment.startswith('#:')
+
+    comments = [c for c in strmsg.comments if not is_id_comment(c)]
+    comments += [c for c in idmsg.comments if is_id_comment(c)]
+
+    kwargs = dict(comments=comments,
+                  previous_msgctxt=strmsg.previous_msgctxt,
+                  previous_msgid=strmsg.previous_msgid,
+                  previous_msgid_plural=strmsg.previous_msgid_plural,
+                  flags=flags,
+                  msgctxt=idmsg.msgctxt,
+                  msgid=idmsg.msgid,
+                  msgid_plural=idmsg.msgid_plural,
+                  msgstrs=strmsg.msgstrs,
+                  meta=idmsg.meta)
+    msg = idmsg.__class__(**kwargs)
+
+    # Check that we have set (or at least thought about) all possible kwargs:
+    assert len(msg.todict()) == len(kwargs), [key for key in msg.todict()
+                                              if key not in kwargs]
     assert len(strmsg.msgstrs) == len(idmsg.msgstrs)
-    return Message(idmsg.msgid, strmsg.msgstrs, idmsg.msgid_plural,
-                   msgctxt=idmsg.msgctxt, comments=strcomments + idcomments,
-                   meta=idmsg.meta, flags=flags)
+    return msg
 
 
 def merge(msgstrcat, msgidcat, overwrite=True, fname='<unknown>'):
-    msgstrdict = msgstrcat.dict()
+    msgstrdict = msgstrcat.dict(obsolete=True)
     newmsgs = []
-    for msg in msgidcat:
+    for msg in msgidcat.iter(obsolete=True, trailing=False):
         if msg.key in msgstrdict:
             msg2 = msgstrdict[msg.key]
             if not msg2.istranslated or len(msg.msgstrs) != len(msg2.msgstrs):
@@ -132,6 +143,16 @@ def merge_translation_project(opts, args):
         newheaderlines.append('')
         assert not dstheader.isplural
         dstheader.msgstrs[0] = r'\n'.join(newheaderlines)
+
+        def translatedcount(cat):
+            return len([msg for msg in cat if msg.istranslated])
+
+        old_nmsgs = translatedcount(idcat)
+        new_nmsgs = translatedcount(dstcat)
+        print('{dst}: {inc} more translated; from {nold} to {nnew}/{ntot}'
+              .format(inc=new_nmsgs - old_nmsgs,
+                      dst=idcat.fname, nold=old_nmsgs, nnew=new_nmsgs,
+                      ntot=len(dstcat)))
 
         fd = get_encoded_output(idcat.encoding, dstfname)
         for msg in dstcat:

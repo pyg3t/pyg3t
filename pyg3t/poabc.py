@@ -388,7 +388,7 @@ def generate_po_header():
     header = r'\n'.join(fields)
     _, headers = parse_header_data(header)
     msg = Message(msgid='',
-                  msgstr=header,
+                  msgstrs=header,
                   meta={'headers': headers})
     return msg
 

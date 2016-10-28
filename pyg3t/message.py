@@ -110,6 +110,7 @@ class Message(object):
                          msgid/msgctxt (#|)
         previous_msgctxt (string or None): Old msgctxt (#| msgctxt) if present.
         previous_msgid (string or None): Old msgid (#| msgid) if present.
+        previous_msgid_plural (string or None): Same for plural.
         flags (set of strings): Flags ('fuzzy', 'c-format', etc.)
         msgctxt (string or None): Context if present
         msgid (string): The :term:`msgid`
@@ -137,6 +138,7 @@ class Message(object):
         msgctxt (str): The msgid context if any, otherwise None
         flags (set): Flags (strs) that are set if they are present
         previous_msgid (str): The previous msgid if any, otherwise None
+        previous_msgid_plural (str): Likewise but plural
         is_obsolete (bool): Whether the message is obsolete
         meta (dict): The metadata dictionary
     """
@@ -144,7 +146,7 @@ class Message(object):
     is_obsolete = False
     is_proper_message = True
 
-    def __init__(self, msgid, msgstr, msgid_plural=None,
+    def __init__(self, msgid, msgstrs, msgid_plural=None,
                  msgctxt=None, comments=None, meta=None,
                  flags=None, previous_msgctxt=None, previous_msgid=None,
                  previous_msgid_plural=None):
@@ -173,10 +175,10 @@ class Message(object):
         self.msgid = msgid
         self.msgid_plural = msgid_plural
 
-        if isstringtype(msgstr):
-            self.msgstrs = [msgstr]
+        if isstringtype(msgstrs):
+            self.msgstrs = [msgstrs]
         else:
-            self.msgstrs = list(msgstr)
+            self.msgstrs = list(msgstrs)
         if len(self.msgstrs) > 1:
             assert msgid_plural is not None
 
@@ -367,15 +369,21 @@ class Message(object):
             string = string.encode('utf-8')
         return string
 
+    def todict(self):
+        return dict(msgid=self.msgid,
+                    msgstrs=list(self.msgstrs),
+                    msgid_plural=self.msgid_plural,
+                    msgctxt=self.msgctxt,
+                    comments=list(self.comments),
+                    previous_msgctxt=self.previous_msgctxt,
+                    previous_msgid=self.previous_msgid,
+                    previous_msgid_plural=self.previous_msgid_plural,
+                    flags=self.flags.copy(),
+                    meta=self.meta.copy())
+
     def copy(self):
         """Return a copy of this message."""
-        return self.__class__(self.msgid, self.msgstrs,
-                              msgid_plural=self.msgid_plural,
-                              msgctxt=self.msgctxt,
-                              comments=list(self.comments),
-                              meta=self.meta.copy(), flags=self.flags.copy(),
-                              previous_msgctxt=self.previous_msgctxt,
-                              previous_msgid=self.previous_msgid)
+        return self.__class__(**self.todict())
 
 
 class ObsoleteMessage(Message):

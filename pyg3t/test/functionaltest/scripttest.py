@@ -19,7 +19,7 @@ print('Testing')
 print('-------')
 
 def py(cmd):
-    return '%s ../../bin/%s' % (pycmd, cmd)
+    return '%s ../../../bin/%s' % (pycmd, cmd)
 
 scripts = {}
 for name in ['gtcat', 'gtcheckargs', 'gtcompare', 'gtgrep', 'gtmerge',

@@ -144,7 +144,7 @@ def generate_po_header():
     header = r'\n'.join(fields)
     _, headers = parse_header_data(header)
     msg = Message(msgid='',
-                  msgstr=header,
+                  msgstrs=[header],
                   meta={'headers': headers})
     return msg
 
@@ -266,10 +266,10 @@ class MessageChunk:
                           % ''.join(meta['rawlines']))
             err.lineno = meta['lineno']
             raise err
-        msgstr = [join(lines) for lines in self.msgstrs]
+        msgstrs = [join(lines) for lines in self.msgstrs]
 
         if msgid == '':
-            charset, headers = parse_header_data(msgstr[0])
+            charset, headers = parse_header_data(msgstrs[0])
             meta['encoding'] = charset
             meta['headers'] = headers
 
@@ -281,7 +281,7 @@ class MessageChunk:
                        msgctxt=join(self.msgctxt_lines),
                        msgid=join(self.msgid_lines),
                        msgid_plural=join(self.msgid_plural_lines),
-                       msgstr=msgstr,
+                       msgstrs=msgstrs,
                        meta=meta)
         return msg
 

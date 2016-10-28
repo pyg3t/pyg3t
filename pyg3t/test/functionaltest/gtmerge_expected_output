@@ -139,6 +139,10 @@ msgid "Open file"
 msgstr "Åbn fil"
 
 # Command line options, multi-line previous msgid
+#| msgid ""
+#| "  -c, --coffee=AMOUNT    Make AMOUNT of coffee.\n"
+#| "      --bacon=SLICES     Get SLICES slices of bacon.\n"
+#| "\n"
 msgid ""
 "  -c, --coffee=AMOUNT    Make AMOUNT of coffee.\n"
 "      --bacon=SLICES     Get SLICES slices of bacon.\n"

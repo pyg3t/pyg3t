@@ -44,7 +44,7 @@ def print_msg_diff(differ, msg1, msg2, fd):
                                         fillvalue=''):
         diffmsgstr = differ.diff(msgstr1, msgstr2)
         diffmsgstrs.append(diffmsgstr)
-    kwargs['msgstr'] = diffmsgstrs
+    kwargs['msgstrs'] = diffmsgstrs
     msg = Message(**kwargs)
     print(msg.tostring(), file=fd)
 
