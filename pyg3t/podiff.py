@@ -57,7 +57,8 @@ class PoDiff:
         """
 
         def getkeys(cat):
-            return set(msg.key for msg in cat.iter(trailing=False))
+            return set(msg.key for msg in cat.iter(trailing=False,
+                                                   obsolete=False))
 
         old_keys = getkeys(old_cat)
         new_keys = getkeys(new_cat)
@@ -71,11 +72,11 @@ class PoDiff:
         new_cat    new catalog
         full_diff  boolean, show msg's unique to old_cat
         """
-        dict_old_cat = old_cat.dict(obsolete=True)
+        dict_old_cat = old_cat.dict(obsolete=full_diff)
 
         # Make diff for all the msg's in new_cat
         # XXX trailing comments!
-        for new_msg in new_cat.iter(trailing=False):
+        for new_msg in new_cat.iter(trailing=False, obsolete=full_diff):
             if new_msg.key in dict_old_cat:
                 self.diff_two_msgs(dict_old_cat[new_msg.key], new_msg,
                                    fname=new_cat.fname)
@@ -206,7 +207,7 @@ class PoDiff:
     def __print_lineno(msg, fname=None):
         """Print line number and file name header for diff of msg pairs"""
         lineno = msg.meta['lineno'] if 'lineno' in msg.meta else 'N/A'
-        return ('--- Line %d (%s) ' % (lineno, fname)).ljust(32, '-')
+        return ('--- Line %d (%s)' % (lineno, fname)).ljust(32, '-')
 
     def print_status(self):
         """Print the number of diff pieces that have been output"""
