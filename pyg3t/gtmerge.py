@@ -305,8 +305,8 @@ def main(parser):
         #                     stderr=PIPE)
         #    cat1 = parse(msgmerge.stdout) # XXX encoding??
         #else:
-        cat1 = parse(open(fname1, 'rb'))
-        cat2 = parse(open(fname2, 'rb'))
+        cat1 = parse(get_bytes_input(fname1))
+        cat2 = parse(get_bytes_input(fname2))
 
         if opts.mode == 'left':
             overwrite = True
