@@ -150,6 +150,9 @@ class TrailingCharTest:
             warn.append(Trouble('Translation removes whitespace after colon',
                                 endings))
 
+        if msgstr_word.endswith(':') and not msgid_word.endswith(':'):
+            warn.append(Trouble('Translation adds :'))
+
         ellipsis = ('…', '...')
         if msgid_word.endswith(ellipsis) != msgstr_word.endswith(ellipsis):
             warn.append(Trouble('Inconsistent use of ellipsis', endings))
