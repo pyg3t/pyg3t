@@ -215,6 +215,11 @@ def main(parser):
 
     checker = OptionChecker(debugfile=debug)
 
+    if len(args) == 1:
+        template = 'Line {line}: {msg}'
+    else:
+        template = '{file} L{line}: {msg}'
+
     for arg in args:
         fd = open(arg, 'rb')
         cat = parse(fd)
@@ -226,7 +231,9 @@ def main(parser):
             except BadOption as e:
                 errcount += 1
                 if not opts.quiet:
-                    string = 'Line %d: %s' % (msg.meta['lineno'], e.args[0])
+                    string = template.format(file=arg,
+                                             line=msg.meta['lineno'],
+                                             msg=e.args[0])
                     if opts.diagnostics:
                         print(('ERR: %s '
                                % string).ljust(78, '-'), file=checker.debug)
