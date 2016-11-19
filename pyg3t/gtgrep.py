@@ -230,9 +230,9 @@ def main(parser):
         from pyg3t.annotate import ref_template
         annotation = ref_template  # XXX
     elif len(fnames) > 1:
-        annotation = '%(fname)s:%(lineno)d\n'
+        annotation = '%(fname)s:%(lineno)d'
     else:
-        annotation = 'Line %(lineno)d\n'
+        annotation = 'Line %(lineno)d'
 
     if opts.gettext:
         annotation = '# pyg3t: %s' % annotation
