@@ -207,7 +207,7 @@ class PoDiff:
     def __print_lineno(msg, fname=None):
         """Print line number and file name header for diff of msg pairs"""
         lineno = msg.meta['lineno'] if 'lineno' in msg.meta else 'N/A'
-        return ('--- Line %d (%s)' % (lineno, fname)).ljust(32, '-')
+        return ('--- Line %d %s ---' % (lineno, fname)).ljust(32, '-')
 
     def print_status(self):
         """Print the number of diff pieces that have been output"""
