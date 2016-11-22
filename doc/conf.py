@@ -14,6 +14,7 @@
 
 import sys
 import os
+import sphinx
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -33,8 +34,18 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
     'sphinx.ext.autosummary',
-    'sphinxcontrib.napoleon'
 ]
+
+# From the Napoleon webpage:
+# "As of Sphinx 1.3, the napoleon extension will come packaged with
+# Sphinx under sphinx.ext.napoleon. The sphinxcontrib.napoleon
+# extension will continue to work with Sphinx <= 1.2."
+# So import accordingly: sphinx.__version__ is a string like '1.4.5'
+sphinx_version = [int(number) for number in sphinx.__version__.split('.')]
+if sphinx_version[0] >= 1 and sphinx_version[1] >= 3:
+    extensions.append('sphinx.ext.napoleon')
+else:
+    extensions.append('sphinxcontrib.napoleon')
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
