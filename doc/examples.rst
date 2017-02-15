@@ -10,7 +10,7 @@ Write catalog to stdout with syntax coloring::
 
 Change encoding of file to UTF-8::
 
-  gtcat --encoding utf-8 file.po > file.utf8.po
+  gtcat --encode utf-8 file.po > file.utf8.po
 
 podiff
 ------
