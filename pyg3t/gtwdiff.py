@@ -13,7 +13,7 @@ from pyg3t.util import (ansi, pyg3tmain, get_encoded_output, get_bytes_input,
 from pyg3t.popatch import split_diff_as_bytes
 
 
-def print_msg_diff(differ, msg1, msg2, fd):
+def msg_diff(differ, msg1, msg2):
     kwargs = {}
     comments1 = ''.join(msg1.comments)
     comments2 = ''.join(msg2.comments)
@@ -46,7 +46,12 @@ def print_msg_diff(differ, msg1, msg2, fd):
         diffmsgstrs.append(diffmsgstr)
     kwargs['msgstrs'] = diffmsgstrs
     msg = Message(**kwargs)
-    print(msg.tostring(), file=fd)
+    return msg.tostring()
+
+
+def print_msg_diff(differ, msg1, msg2, fd):
+    string = msg_diff(differ, msg1, msg2)
+    print(string, file=fd)
 
 
 class MSGDiffer:
